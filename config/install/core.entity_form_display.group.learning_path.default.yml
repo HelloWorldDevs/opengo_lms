@@ -1,0 +1,90 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.group.learning_path.field_anonymous_visibility
+    - field.field.group.learning_path.field_certificate
+    - field.field.group.learning_path.field_learning_path_category
+    - field.field.group.learning_path.field_learning_path_description
+    - field.field.group.learning_path.field_learning_path_folder
+    - field.field.group.learning_path.field_learning_path_image
+    - field.field.group.learning_path.field_learning_path_visibility
+    - field.field.group.learning_path.field_requires_validation
+    - field.field.group.learning_path.field_learning_path_published
+    - group.type.learning_path
+    - image.style.thumbnail
+  module:
+    - image
+    - text
+id: group.learning_path.default
+targetEntityType: group
+bundle: learning_path
+mode: default
+content:
+  field_anonymous_visibility:
+    weight: 6
+    settings:
+      display_label: true
+    third_party_settings: {  }
+    type: boolean_checkbox
+    region: content
+  field_certificate:
+    type: options_select
+    weight: 7
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_learning_path_category:
+    weight: 4
+    settings: {  }
+    third_party_settings: {  }
+    type: options_select
+    region: content
+  field_learning_path_description:
+    weight: 1
+    settings:
+      rows: 5
+      placeholder: ''
+    third_party_settings: {  }
+    type: text_textarea
+    region: content
+  field_learning_path_image:
+    weight: 2
+    settings:
+      progress_indicator: throbber
+      preview_image_style: thumbnail
+    third_party_settings: {  }
+    type: image_image
+    region: content
+  field_learning_path_visibility:
+    weight: 3
+    settings: {  }
+    third_party_settings: {  }
+    type: options_select
+    region: content
+  field_requires_validation:
+    weight: 5
+    settings:
+      display_label: true
+    third_party_settings: {  }
+    type: boolean_checkbox
+    region: content
+  field_learning_path_published:
+    weight: 6
+    settings:
+      display_label: true
+    third_party_settings: {  }
+    type: boolean_checkbox
+    region: content
+  label:
+    type: string_textfield
+    weight: 0
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+hidden:
+  field_learning_path_folder: true
+  path: true
+  uid: true

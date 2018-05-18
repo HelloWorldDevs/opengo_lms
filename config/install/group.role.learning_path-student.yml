@@ -1,0 +1,13 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - group.type.learning_path
+id: learning_path-student
+label: Student
+weight: 103
+internal: false
+audience: member
+group_type: learning_path
+permissions_ui: true
+permissions: {  }

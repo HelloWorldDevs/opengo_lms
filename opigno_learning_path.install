@@ -1,0 +1,47 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the module.
+ */
+
+use Drupal\opigno_learning_path\LearningPathAccess;
+use Drupal\Core\Config\FileStorage;
+
+/**
+ * Creates database table for Learning Path group user statuses.
+ *
+ * On module install.
+ */
+function opigno_learning_path_install() {
+  LearningPathAccess::createUserStatusTable();
+}
+
+/**
+ * Creates database table for Learning Path group user statuses.
+ *
+ * For existing instances.
+// */
+function opigno_learning_path_update_8002() {
+  LearningPathAccess::createUserStatusTable();
+}
+
+/**
+ * Creates database table for Latest Activity entity type.
+ */
+function opigno_learning_path_update_8004() {
+  $database = \Drupal::database();
+
+  if (!$database->schema()->tableExists('opigno_latest_group_activity')) {
+    $entityTypeManager = \Drupal::entityTypeManager();
+    $entityTypeManager->clearCachedDefinitions();
+    $definition = $entityTypeManager
+      ->getDefinition('opigno_latest_group_activity');
+    \Drupal::entityDefinitionUpdateManager()->installEntityType($definition);
+  }
+  else {
+    return 'Latest Activity entity already exists';
+  }
+
+  return NULL;
+}

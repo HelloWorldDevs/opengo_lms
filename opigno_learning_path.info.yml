@@ -1,0 +1,21 @@
+name: Opigno Learning Path
+type: module
+description: Add the Learning Path feature to the opigno instance.
+core: 8.x
+package: Opigno
+dependencies:
+  - better_exposed_filters
+  - opigno_certificate
+  - config_rewrite
+  - group
+  - ggroup
+  - opigno_class
+  - opigno_course
+  - path
+  - taxonomy
+  - tft
+  - opigno_module
+  - opigno_module_group
+  - opigno_notification
+  - opigno_group_manager
+configure: opigno_learning_path.learning_path_settings
