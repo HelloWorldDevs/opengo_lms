@@ -137,8 +137,16 @@ function opigno_learning_path_preprocess_region(&$variables)
           && \Drupal::routeMatch()->getRouteName() != 'opigno_learning_path.learning_path_modules'
         ) {
           $current_step = opigno_learning_path_get_current_step();
+          // Check if training is published.
+          $is_published = $group->get('field_learning_path_published')->getValue()[0]['value'];
+          if ($is_published) {
+            $publish_text = t('Finish');
+          }
+          else {
+            $publish_text = t('Publish');
+          };
           $next_step = ($current_step < 5) ? $current_step + 1 : NULL;
-          $link_text = !$next_step ? t('Publish') : t('Next');
+          $link_text = !$next_step ? $publish_text : t('Next');
           $variables['next_link'] = Link::createFromRoute($link_text, 'opigno_learning_path.content_steps', [
             'group' => $group->id(),
             'current' => ($current_step) ? $current_step : 0,
@@ -146,7 +154,8 @@ function opigno_learning_path_preprocess_region(&$variables)
             'attributes' => [
               'class' => [
                 'btn',
-                'btn-light'
+                'btn-success',
+                'color-white'
               ]
             ]
           ])->toRenderable();
@@ -2121,10 +2130,23 @@ function opigno_learning_path_validate_group_creating_steps() {
       $steps_number = [1];
     }
     else {
+
+      // Check if there is at least one mandatory entity.
+      $has_mandatory_item = FALSE;
+      foreach ($steps as $key => $step) {
+        if ($step->isMandatory()) {
+          $has_mandatory_item = TRUE;
+        };
+      }
+      if (!$has_mandatory_item) {
+        $steps_number = array_diff($steps_number, [2]);
+      };
+
       foreach ($steps as $key => $step) {
         $id = $step->getEntityId();
         $type_id = $step->getGroupContentTypeId();
         if ($group_type == 'learning_path') {
+          // Check if each module has at least one activity.
           if ($type_id === 'ContentTypeModule') {
             $module = OpignoModule::load($id);
             $activities = $module->getModuleActivities();
@@ -2135,10 +2157,11 @@ function opigno_learning_path_validate_group_creating_steps() {
           elseif ($type_id === 'ContentTypeCourse') {
             $course_steps = OpignoGroupManagedContent::loadByGroupId($id);
             if (!$course_steps) {
-              // Means course group is empty, so 2 and 4 steps are invalid.
+              // Means course group is empty, so 3 and 4 steps are invalid.
               $steps_number = array_diff($steps_number, [3, 4]);
             }
             else {
+              // Check if each course module has at least one activity
               foreach ($course_steps as $key => $step) {
                 $id = $step->getEntityId();
                 $module = OpignoModule::load($id);
@@ -2160,16 +2183,64 @@ function opigno_learning_path_validate_group_creating_steps() {
             foreach ($course_steps as $key => $step) {
               $id = $step->getEntityId();
               $module = OpignoModule::load($id);
-              $activities = $module->getModuleActivities();
-              if (!$activities) {
-                $steps_number = array_diff($steps_number, [3]);
-              }
+              if ($module) {
+                $activities = $module->getModuleActivities();
+                if (!$activities) {
+                  $steps_number = array_diff($steps_number, [3]);
+                }
+              };
             }
           }
         }
       }
     }
     return $steps_number;
+  }
+  return FALSE;
+}
+
+/**
+ * Function to detect if user has resumed step in LP.
+ *
+ * Return step content id or FALSE if there is no resumed step.
+ */
+function opigno_learning_path_resumed_step(array $steps) {
+  $account = \Drupal::currentUser();
+  // Array with all finished modules.
+  $attempts_finished = [];
+  foreach ($steps as $index => $step) {
+    $opigno_module = OpignoModule::load($step['id']);
+
+    if ($opigno_module != NULL) {
+      $attempts = $opigno_module->getModuleAttempts($account);
+      if ($attempts) {
+        // Get last attempt.
+        $last_attempt = end($attempts);
+
+        if (!$last_attempt->isFinished()) {
+          // Means last attempt is unfinished. Return FALSE.
+          break;
+        };
+        //
+        $attempts_finished[$opigno_module->id()] = intval($last_attempt->get('finished')->value);
+      };
+    }
+  }
+  if (!empty($attempts_finished)) {
+    // Get last finished opigno_module id
+    $last_module_id = reset(array_keys($attempts_finished, max($attempts_finished)));
+    $last_step = end($steps);
+    if ($last_module_id == $last_step['id']) {
+      // continue
+    }
+    else {
+      for ($i = 0; $i < count($steps); ++$i) {
+        if (intval($steps[$i]['id']) == $last_module_id) {
+          $next_step_cid = $steps[$i + 1]['cid'];
+          return $next_step_cid;
+        };
+      }
+    }
   }
   return FALSE;
 }

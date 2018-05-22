@@ -3,7 +3,7 @@
 (function ($, Drupal) {
   Drupal.behaviors.opignoLearningPathJoin = {
     attach(context) {
-      $('.opigno-quiz-app-course-button.join-link', context).click((e) => {
+      $('.opigno-quiz-app-course-button.join-link', context).mousedown((e) => {
         e.preventDefault();
         $('#join-group-form-overlay').fadeIn(200);
       });

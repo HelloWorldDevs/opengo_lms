@@ -4,6 +4,7 @@ namespace Drupal\opigno_learning_path;
 
 use Drupal\Core\Url;
 use Drupal\group\Entity\Group;
+use Drupal\opigno_group_manager\Entity\OpignoGroupManagedContent;
 use Drupal\opigno_learning_path\Entity\LPManagedContent;
 use Drupal\opigno_module\Entity\OpignoModule;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -59,55 +60,74 @@ class LearningPathValidator {
     };
     // Validate group type "learning_path".
     if ($group_type == 'learning_path') {
-      $group_courses = $group->getContent('subgroup:opigno_course');
-      $group_modules = $group->getContent('opigno_module_group');
+      // Route with invalid step.
       $route = '';
-      // Check if group has at least one course or module.
-      if (empty($group_courses) && empty($group_modules)) {
+      // Get all training content.
+      $contents = OpignoGroupManagedContent::loadByGroupId($group->id());
+      // Learning path is empty
+      if (empty($contents)) {
         $step = 2;
         $route = array_search($step, opigno_learning_path_get_routes_steps());
         $messenger->addError("Please, add some course or module!");
       }
-      // Check if each course has at least one module.
-      else if ($group_courses) {
-        foreach ($group_courses as $cid => $content) {
-          $course = $content->getEntity();
-          $course_contents = $course->getContent('opigno_module_group');
-          if (empty($course_contents)) {
-            $step = 3;
-            $route = array_search($step, opigno_learning_path_get_routes_steps());
-            $messenger->addError("Please, add to course at least one module!");
-          }
-          // Check if each module of course has at least one activity.
-          else {
-            foreach ($course_contents as $cid => $content) {
-              $module = $content->getEntity();
-              $hasActivities = self::hasModuleActivities($module);
-              if (empty($hasActivities)) {
+      // Learning path is created and not empty
+      else {
+        // Skip 4 step if learning path hasn't any courses.
+        $group_courses = $group->getContent('subgroup:opigno_course');
+        if (empty($group_courses) && $current_route == 'opigno_learning_path.learning_path_courses') {
+          $step = 4;
+          $route = array_search($step, opigno_learning_path_get_routes_steps());
+          // $messenger->addError("You can't visit this page because you didn't add any course with modules!");
+        }
+
+        // Check if training has at least one mandatory entity.
+        $has_mandatory = self::hasMandatoryItem($contents);
+        if (!$has_mandatory) {
+          $step = 2;
+          $route = array_search($step, opigno_learning_path_get_routes_steps());
+          $messenger->addError("At least one entity must be mandatory!");
+        }
+        else {
+          foreach ($contents as $cid => $content) {
+            $type_id = $content->getGroupContentTypeId();
+            if ($type_id === 'ContentTypeModule') {
+              // Check if all modules has at least one activity.
+              $module_id = $content->getEntityId();
+              $module = OpignoModule::load($module_id);
+              $activities = $module->getModuleActivities();
+              // If at least one module hasn't activity.
+              if (empty($activities)) {
                 $step = 4;
                 $route = array_search($step, opigno_learning_path_get_routes_steps());
                 $messenger->addError("Please, add at least one activity to {$module->label()} module!");
               };
             }
+            else {
+              if ($type_id === 'ContentTypeCourse') {
+                $contents = OpignoGroupManagedContent::loadByGroupId($content->getEntityId());
+                // Check if each course has at least one module.
+                if (empty($contents)) {
+                  $step = 3;
+                  $route = array_search($step, opigno_learning_path_get_routes_steps());
+                  $messenger->addError("Please, add to course at least one module!");
+                }
+                else {
+                  foreach ($contents as $cid => $content) {
+                    // Check if all modules in course has at least one activity.
+                    $module_id = $content->getEntityId();
+                    $module = OpignoModule::load($module_id);
+                    $activities = $module->getModuleActivities();
+                    // If at least one module hasn't activity.
+                    if (empty($activities)) {
+                      $step = 4;
+                      $route = array_search($step, opigno_learning_path_get_routes_steps());
+                      $messenger->addError("Please, add at least one activity to {$module->label()} module!");
+                    };
+                  }
+                }
+              }
+            }
           }
-        }
-      }
-      // Skip 4 step if learning path hasn't any courses.
-      else if (empty($group_courses) && $current_route == 'opigno_learning_path.learning_path_courses') {
-        $step = 4;
-        $route = array_search($step, opigno_learning_path_get_routes_steps());
-        // $messenger->addError("You can't visit this page because you didn't add any course with modules!");
-      }
-      // Check if each learning path module has at least one activity.
-      else if ($group_modules) {
-        foreach ($group_modules as $cid => $content) {
-          $module = $content->getEntity();
-          $hasActivities = self::hasModuleActivities($module);
-          if (empty($hasActivities)) {
-            $step = 4;
-            $route = array_search($step, opigno_learning_path_get_routes_steps());
-            $messenger->addError("Please, add at least one activity to {$module->label()} module!");
-          };
         }
       }
       if (!empty($route)) {
@@ -125,42 +145,20 @@ class LearningPathValidator {
   }
 
   /**
-   * This method is called checking if opigno module has any activities.
+   *  Check if training has at least one mandatory content.
    *
-   * @param \Drupal\opigno_module\Entity\OpignoModule $opigno_module
+   * @param array
    *
    * @return bool
    */
-  protected static function hasModuleActivities(OpignoModule $opigno_module) {
-    /* @var $db_connection \Drupal\Core\Database\Connection */
-    $db_connection = \Drupal::service('database');
-    $query = $db_connection->select('opigno_activity', 'oa');
-    $query->fields('oa', ['id', 'vid', 'type', 'name']);
-    $query->fields('omr', [
-      'weight',
-      'max_score',
-      'auto_update_max_score',
-      'omr_id',
-      'omr_pid',
-      'child_id',
-      'child_vid',
-    ]);
-    $query->addJoin('inner', 'opigno_module_relationship', 'omr', 'oa.id = omr.child_id');
-    $query->condition('oa.status', 1);
-    $query->condition('omr.parent_id', $opigno_module->id());
-    if ($opigno_module->getRevisionId()) {
-      $query->condition('omr.parent_vid', $opigno_module->getRevisionId());
+  protected static function hasMandatoryItem($contents) {
+    foreach ($contents as $cid => $content) {
+      if ($content->isMandatory()) {
+        return TRUE;
+      };
     }
-    $query->condition('omr_pid', NULL, 'IS');
-    $query->orderBy('omr.weight');
-    $result = $query->execute();
-    // If there is at least one activity - return TRUE.
-    if ($result->fetchAll()) {
-      return TRUE;
-    }
-    else {
-      return FALSE;
-    }
+    // If training hasn't mandatory entity return FALSE.
+    return FALSE;
   }
 
 }

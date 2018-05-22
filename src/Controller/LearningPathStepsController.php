@@ -12,7 +12,6 @@ use Drupal\opigno_group_manager\OpignoGroupContext;
 use Drupal\opigno_learning_path\Entity\LPResult;
 use Drupal\opigno_learning_path\LearningPathAccess;
 use Drupal\opigno_learning_path\LearningPathValidator;
-use Drupal\opigno_module\Entity\OpignoModule;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class LearningPathStepsController extends ControllerBase {
@@ -70,6 +69,21 @@ class LearningPathStepsController extends ControllerBase {
       }
     });
 
+    // Check if there is resumed step. If is - redirect.
+    $step_resumed_cid = opigno_learning_path_resumed_step($steps);
+    if ($step_resumed_cid) {
+      $content = OpignoGroupManagedContent::load($step_resumed_cid);
+      // Find and load the content type linked to this content.
+      $content_type = $this->content_type_manager->createInstance($content->getGroupContentTypeId());
+      $step_url = $content_type->getStartContentUrl($content->getEntityId());
+      // Before redirecting, keep the content ID in context.
+      OpignoGroupContext::setCurrentContentId($step_resumed_cid);
+      OpignoGroupContext::setGroupId($group->id());
+      // Finally, redirect the user to the first step.
+      return $this->redirect($step_url->getRouteName(), $step_url->getRouteParameters(), $step_url->getOptions());
+
+    };
+
     // Get the first step of the learning path. If no steps, show a message.
     $first_step = reset($steps);
     if ($first_step === FALSE) {
@@ -78,72 +92,6 @@ class LearningPathStepsController extends ControllerBase {
         '#markup' => '<p>No first step assigned.</p>',
       ];
     }
-
-//    // Redirect to module which is not finished.
-//    foreach ($steps as $index => $step) {
-//      $opigno_module = OpignoModule::load($step['id']);
-//      // Check if here is unfinished module (without results).
-//      if ($opigno_module != NULL) {
-//        $attempt = $opigno_module->getModuleActiveAttempt($this->currentUser());
-//        if ($attempt && $attempt->isFinished()) {
-//          $resumed_activity_id = $attempt->getCurrentActivityId();
-//          if ($resumed_activity_id) {
-//            $group_content = OpignoGroupManagedContent::loadByGroupId($group->id());
-//            foreach ($group_content as $cid => $content) {
-//              if ($content->getEntityId() == $opigno_module->id()) {
-//                // Find and load the content type linked to this content.
-//                $content_type = $this->content_type_manager->createInstance($content->getGroupContentTypeId());
-//                $step_url = $content_type->getStartContentUrl($content->getEntityId());
-//                return $this->redirect($step_url->getRouteName(), $step_url->getRouteParameters(), $step_url->getOptions());
-//              };
-//            }
-//          };
-//        }
-//      }
-//    };
-//    // If user finish one module which is not last - redirect to next module.
-//    $arr = [];
-//    foreach ($steps as $index => $step) {
-//      $opigno_module = OpignoModule::load($step['id']);
-//      if ($opigno_module != NULL) {
-//        // TODO: in OpignoModule create method for getting only one module last attempt.
-//        $attempts = $opigno_module->getModuleAttempts($this->currentUser());
-//        if ($attempts) {
-//          $last_attempt = end($attempts);
-//          if (!$last_attempt->isFinished()) {
-//            // last attempt must be finished.
-//            continue;
-//          };
-//          $arr[$opigno_module->id()] = intval($last_attempt->get('finished')->value);
-//        };
-//      }
-//    }
-//    if (!empty($arr)) {
-//      $last_module_id = reset(array_keys($arr, max($arr)));
-//      $last_step = end($steps);
-//      if ($last_module_id == $last_step['id']) {
-//        // continue
-//      }
-//      else {
-//        for ($i = 0; $i < count($steps); ++$i) {
-//          if (intval($steps[$i]['id']) == $last_module_id) {
-//            $next_step_id = $steps[$i + 1]['id'];
-//            // Load group content.
-//            $group_content = OpignoGroupManagedContent::loadByGroupId($group->id());
-//            foreach ($group_content as $cid => $content) {
-//              if ($content->getEntityId() == $next_step_id) {
-//                // Before redirecting, keep the content ID in context.
-//                OpignoGroupContext::setCurrentContentId(strval($cid));
-//                // Find and load the content type linked to this content.
-//                $content_type = $this->content_type_manager->createInstance($content->getGroupContentTypeId());
-//                $step_url = $content_type->getStartContentUrl($next_step_id);
-//                return $this->redirect($step_url->getRouteName(), $step_url->getRouteParameters(), $step_url->getOptions());
-//              }
-//            };
-//          };
-//        }
-//      };
-//    };
 
     // Load first step entity.
     $first_step = OpignoGroupManagedContent::load($first_step['cid']);

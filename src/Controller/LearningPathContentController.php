@@ -99,7 +99,8 @@ class LearningPathContentController extends ControllerBase {
         'attributes' => [
           'class' => [
             'btn',
-            'btn-light'
+            'btn-success',
+            'color-white'
           ]
         ]
       ])->toRenderable();
