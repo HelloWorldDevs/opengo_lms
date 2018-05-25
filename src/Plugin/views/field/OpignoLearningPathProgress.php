@@ -33,11 +33,11 @@ class OpignoLearningPathProgress extends FieldPluginBase {
 
     if ($group instanceof LatestActivity) {
       $group = Group::load($group->getTraining());
+      if (!is_null($group)) {
+        $group_progress = opigno_learning_path_progress($group->id(), $account->id());
+        return round(100 * $group_progress) . '%';
+      };
     }
-    if ($group) {
-      $group_progress = opigno_learning_path_progress($group->id(), $account->id());
-      return round(100 * $group_progress) . '%';
-    };
     return '';
   }
 

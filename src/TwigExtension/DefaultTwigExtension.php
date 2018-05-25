@@ -179,6 +179,7 @@ class DefaultTwigExtension extends \Twig_Extension {
       return;
     }
 
+    $current_route = \Drupal::routeMatch()->getRouteName();
     $visibility = $group->field_learning_path_visibility->value;
     $validation = $group->field_requires_validation->value;
     $account = \Drupal::currentUser();
@@ -193,9 +194,11 @@ class DefaultTwigExtension extends \Twig_Extension {
       $attributes['class'][] = 'start-link';
     }
     elseif (!$group->getMember($account)) {
-      $text = t('Subscribe to group');
-      $route = 'entity.group.join';
-      $attributes['class'][] = 'join-link';
+      $text = ($current_route == 'entity.group.canonical') ? t('Subscribe to group') : t('Learn more') ;
+      $route = ($current_route == 'entity.group.canonical') ? 'entity.group.join' : 'entity.group.canonical';
+      if ($current_route == 'entity.group.canonical') {
+        $attributes['class'][] = 'join-link';
+      }
     }
     elseif ($member_pending) {
       $text = t('Approval Pending');
