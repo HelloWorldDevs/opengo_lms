@@ -655,7 +655,7 @@ class LearningPathAchievementController extends ControllerBase {
     return [
       '#type' => 'container',
       '#attributes' => [
-        'class' => ['lp_timeline_wrapper', 'px-5', 'pb-5'],
+        'class' => ['lp_timeline_wrapper', 'px-3', 'px-md-5', 'pb-5'],
       ],
       [
         '#type' => 'container',
@@ -820,7 +820,7 @@ class LearningPathAchievementController extends ControllerBase {
     return [
       '#type' => 'container',
       '#attributes' => [
-        'class' => ['lp_summary'],
+        'class' => ['lp_summary', 'py-5', 'pr-3', 'pr-md-5'],
       ],
       [
         '#type' => 'container',
@@ -872,7 +872,7 @@ class LearningPathAchievementController extends ControllerBase {
         '#type' => 'html_tag',
         '#tag' => 'h2',
         '#attributes' => [
-          'class' => ['lp_title', 'px-5', 'pt-5', 'pb-4', 'mb-0', 'h4', 'text-uppercase'],
+          'class' => ['lp_title', 'px-3', 'px-md-5', 'pt-5', 'pb-4', 'mb-0', 'h4', 'text-uppercase'],
         ],
         '#value' => t('Learning Path : @name', [
           '@name' => $lp->label(),
@@ -882,7 +882,7 @@ class LearningPathAchievementController extends ControllerBase {
       [
         '#type' => 'container',
         '#attributes' => [
-          'class' => ['lp_timeline_info'],
+          'class' => ['lp_timeline_info', 'px-3', 'px-md-5', 'py-3'],
         ],
         [
           '#type' => 'html_tag',
@@ -987,7 +987,7 @@ class LearningPathAchievementController extends ControllerBase {
       [
         '#type' => 'container',
         '#attributes' => [
-          'class' => ['lp_info'],
+          'class' => ['lp_info', 'mb-4', 'py-4', 'pr-3', 'pr-md-5'],
         ],
         [
           '#type' => 'html_tag',

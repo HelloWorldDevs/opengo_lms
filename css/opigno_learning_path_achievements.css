@@ -1,14 +1,25 @@
 .lp_info {
   background-color: #f6f6f6;
   color: #3d3d3c;
-  padding: 30px 90px 30px;
-  margin-bottom: 40px;
+  padding-left: 90px;
   position: relative;
+}
+
+@media (max-width: 768px) {
+  .lp_info {
+    padding-left: 75px;
+  }
 }
 
 .lp_info .lp_icon_info {
   position: absolute;
   left: 30px;
+}
+
+@media (max-width: 768px) {
+  .lp_info .lp_icon_info {
+    left: 15px;
+  }
 }
 
 .lp_info_text {
@@ -110,8 +121,6 @@
   background-color: #eee;
   color: #9d9c9c;
   cursor: pointer;
-  height: 60px;
-  padding: 15px 65px;
 }
 
 .lp_timeline_info_text {
@@ -169,9 +178,15 @@
 }
 
 .lp_summary {
-  padding: 50px 3rem 50px 10rem;
+  padding-left: 10rem;
   position: relative;
   min-height: 200px;
+}
+
+@media (max-width: 768px) {
+  .lp_summary {
+    padding-left: 5rem;
+  }
 }
 
 .lp_summary .lp_summary_step_state_passed,
@@ -181,8 +196,22 @@
   left: 3rem;
 }
 
+@media (max-width: 768px) {
+  .lp_summary .lp_summary_step_state_passed,
+  .lp_summary .lp_summary_step_state_not_started,
+  .lp_summary .lp_summary_step_state_in_progress {
+    left: 1rem;
+  }
+}
+
 .lp_summary_content {
   max-width: calc(100% - 190px);
+}
+
+@media (max-width: 768px) {
+  .lp_summary_content {
+    max-width: 100%;
+  }
 }
 
 .lp_summary_certificate {
@@ -191,6 +220,14 @@
   max-width: 190px;
   text-align: center;
   margin-top: -.5rem;
+}
+
+@media (max-width: 768px) {
+  .lp_summary_certificate {
+    float: none;
+    max-width: 100%;
+    margin-bottom: 1rem;
+  }
 }
 
 .lp_summary_certificate_text {
@@ -240,7 +277,7 @@
 }
 
 .lp_step_required {
-  background: url('../img/required_white.png');
+  background-image: url('../img/required_white.png');
   background-repeat: no-repeat;
   background-position: center;
   background-size: 100%;
@@ -273,6 +310,12 @@
   padding: 3rem 3rem 3rem 130px;
 }
 
+@media (max-width: 768px) {
+  .lp_step_summary_wrapper {
+    padding: 6rem 1rem 3rem;
+  }
+}
+
 .lp_step_summary_wrapper .tableresponsive-toggle-columns {
   display: none;
 }
@@ -283,6 +326,17 @@
 .lp_step_summary_wrapper .lp_summary_step_state_in_progress {
   left: -100px;
   position: absolute;
+}
+
+@media (max-width: 768px) {
+  .lp_step_summary_wrapper .lp_summary_step_state_passed,
+  .lp_step_summary_wrapper .lp_summary_step_state_failed,
+  .lp_step_summary_wrapper .lp_summary_step_state_not_started,
+  .lp_step_summary_wrapper .lp_summary_step_state_in_progress {
+    left: 50%;
+    transform: translateX(-50%);
+    top: -68px;
+  }
 }
 
 .lp_step_summary_wrapper::after {
@@ -341,14 +395,12 @@
 
 .lp_step_summary_clickable {
   display: none;
-
   position: absolute;
   left: 0;
   bottom: 0;
   width: 100%;
-  height: calc(100% - 30px);
-
-  background: #95d5f4;
+  height: calc(100% - 48px);
+  background-color: #95d5f4;
   color: #fff;
   cursor: pointer;
   font-weight: bold;
@@ -359,11 +411,15 @@
 }
 
 .lp_step_content_module .lp_step_summary {
-  background: linear-gradient(to bottom, transparent 30px, #f6f6f6 30px, #f6f6f6);
-  border-image: linear-gradient(to bottom, transparent 31px, #95d5f4 31px, #95d5f4) 2.5;
+  background: linear-gradient(to bottom, transparent 49px, #f6f6f6 30px, #f6f6f6);
+  border-image: linear-gradient(to bottom, transparent 50px, #95d5f4 31px, #95d5f4) 2.5;
   border-left: 2.5px solid transparent;
-  padding: 0 10px 10px;
+  padding: 0 0 10px;
   position: relative;
+}
+
+.lp_step_content_module .lp_step_summary .lp_step_summary_text {
+  padding-left: 10px;
 }
 
 .lp_step_content_module .lp_step_summary:hover .lp_step_summary_clickable {
@@ -371,7 +427,13 @@
 }
 
 .lp_course_steps_wrapper {
-  padding: 0 3rem 2rem 130px;
+  padding: 0 3rem 2rem 8rem;
+}
+
+@media (max-width: 768px) {
+  .lp_course_steps_wrapper {
+    padding: 0 1rem 1rem 1rem;
+  }
 }
 
 .lp_course_steps_title {
@@ -439,13 +501,13 @@
 }
 
 .lp_course_steps tr:hover td:nth-child(1) {
-  color: #fff;
-  font-weight: bold;
+  /* color: #fff; */
+  /* font-weight: bold; */
 }
 
 .lp_course_steps tr:hover td:nth-child(2),
 .lp_course_steps tr:hover td:nth-child(3) {
-  opacity: 0;
+  /* opacity: 0; */
 }
 
 .lp_step_name_activities {
@@ -484,6 +546,17 @@
 .lp_summary_step_state_in_progress {
   height: 67px;
   width: 67px;
+  background-size: contain;
+}
+
+@media (max-width: 768px) {
+  .lp_summary_step_state_passed,
+  .lp_summary_step_state_failed,
+  .lp_summary_step_state_not_started,
+  .lp_summary_step_state_in_progress {
+    height: 50px;
+    width: 50px;
+  }
 }
 
 .lp_course_steps .lp_step_state_pending,
@@ -500,31 +573,31 @@
 }
 
 .lp_summary_step_state_passed {
-  background: url('../img/state_passed_big.png');
+  background-image: url('../img/state_passed_big.png');
 }
 
 .lp_summary_step_state_failed {
-  background: url('../img/state_failed_big.png');
+  background-image: url('../img/state_failed_big.png');
 }
 
 .lp_summary_step_state_not_started {
-  background: url('../img/state_not_started_big.png');
+  background-image: url('../img/state_not_started_big.png');
 }
 
 .lp_summary_step_state_in_progress {
-  background: url('../img/state_in_progress_big.png');
+  background-image: url('../img/state_in_progress_big.png');
 }
 
 .lp_step_state_pending {
-  background: url('../img/state_pending.png');
+  background-image: url('../img/state_pending.png');
 }
 
 .lp_step_state_passed {
-  background: url('../img/state_passed.png');
+  background-image: url('../img/state_passed.png');
 }
 
 .lp_step_state_failed {
-  background: url('../img/state_failed.png');
+  background-image: url('../img/state_failed.png');
 }
 
 .lp_details_show,

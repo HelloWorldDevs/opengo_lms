@@ -259,6 +259,15 @@ class LearningPathMembershipController extends ControllerBase {
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    */
   public function createUser(Group $group) {
+    $account = $this->currentUser();
+    $roles = $account->getRoles();
+    $is_admin = in_array('administrator', $roles);
+    $is_platform_um = in_array('user_manager', $roles);
+
+    if (!($is_admin || $is_platform_um)) {
+      throw new AccessDeniedHttpException();
+    }
+
     $name = \Drupal::request()->query->get('name');
     $email = \Drupal::request()->query->get('email');
 
@@ -287,9 +296,14 @@ class LearningPathMembershipController extends ControllerBase {
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    */
   public function createClass(Group $group) {
-    $curr_user = \Drupal::currentUser();
+    $account = $this->currentUser();
+    $roles = $account->getRoles();
+    $is_admin = in_array('administrator', $roles);
+    $is_platform_um = in_array('user_manager', $roles);
 
-    if (!$curr_user->hasPermission('create opigno class group')) {
+    if (!($is_admin
+      || $is_platform_um
+      || $account->hasPermission('create opigno class group'))) {
       throw new AccessDeniedHttpException();
     }
 
@@ -373,7 +387,14 @@ class LearningPathMembershipController extends ControllerBase {
       throw new NotFoundHttpException();
     }
 
-    if (!$member->getGroupContent()->access('delete')) {
+    $account = $this->currentUser();
+    $roles = $account->getRoles();
+    $is_admin = in_array('administrator', $roles);
+    $is_platform_um = in_array('user_manager', $roles);
+
+    if (!($is_admin
+      || $is_platform_um
+      || $member->getGroupContent()->access('delete', $account))) {
       throw new AccessDeniedHttpException();
     }
 
@@ -401,6 +422,11 @@ class LearningPathMembershipController extends ControllerBase {
 
     $content = $group->getContent();
 
+    $account = $this->currentUser();
+    $roles = $account->getRoles();
+    $is_admin = in_array('administrator', $roles);
+    $is_platform_um = in_array('user_manager', $roles);
+
     /** @var \Drupal\group\Entity\GroupContentInterface $item */
     foreach ($content as $item) {
       $entity = $item->getEntity();
@@ -409,7 +435,9 @@ class LearningPathMembershipController extends ControllerBase {
 
       if ($type === 'group' && $bundle === 'opigno_class'
         && $entity->id() === $class->id()) {
-        if (!$item->access('delete')) {
+        if (!($is_admin
+          || $is_platform_um
+          || $item->access('delete', $account))) {
           throw new AccessDeniedHttpException();
         }
 
@@ -445,6 +473,17 @@ class LearningPathMembershipController extends ControllerBase {
 
     if (!isset($member)) {
       throw new NotFoundHttpException();
+    }
+
+    $account = $this->currentUser();
+    $roles = $account->getRoles();
+    $is_admin = in_array('administrator', $roles);
+    $is_platform_um = in_array('user_manager', $roles);
+
+    if (!($is_admin
+      || $is_platform_um
+      || $member->getGroupContent()->access('update', $account))) {
+      throw new AccessDeniedHttpException();
     }
 
     $group_content = $member->getGroupContent();
@@ -493,6 +532,17 @@ class LearningPathMembershipController extends ControllerBase {
 
     if (!isset($member)) {
       throw new NotFoundHttpException();
+    }
+
+    $account = $this->currentUser();
+    $roles = $account->getRoles();
+    $is_admin = in_array('administrator', $roles);
+    $is_platform_um = in_array('user_manager', $roles);
+
+    if (!($is_admin
+      || $is_platform_um
+      || $member->getGroupContent()->access('update', $account))) {
+      throw new AccessDeniedHttpException();
     }
 
     $group_content = $member->getGroupContent();

@@ -6,11 +6,14 @@ dependencies:
     - field.field.group.learning_path.field_certificate
     - field.field.group.learning_path.field_learning_path_category
     - field.field.group.learning_path.field_learning_path_description
+    - field.field.group.learning_path.field_learning_path_duration
+    - field.field.group.learning_path.field_learning_path_enable_forum
     - field.field.group.learning_path.field_learning_path_folder
+    - field.field.group.learning_path.field_learning_path_forum
     - field.field.group.learning_path.field_learning_path_image
+    - field.field.group.learning_path.field_learning_path_published
     - field.field.group.learning_path.field_learning_path_visibility
     - field.field.group.learning_path.field_requires_validation
-    - field.field.group.learning_path.field_learning_path_published
     - group.type.learning_path
     - image.style.thumbnail
   module:
@@ -22,20 +25,20 @@ bundle: learning_path
 mode: default
 content:
   field_anonymous_visibility:
-    weight: 6
+    weight: 4
     settings:
       display_label: true
     third_party_settings: {  }
     type: boolean_checkbox
     region: content
   field_certificate:
-    type: options_select
-    weight: 7
-    region: content
+    weight: 8
     settings: {  }
     third_party_settings: {  }
+    type: options_select
+    region: content
   field_learning_path_category:
-    weight: 4
+    weight: 6
     settings: {  }
     third_party_settings: {  }
     type: options_select
@@ -48,8 +51,23 @@ content:
     third_party_settings: {  }
     type: text_textarea
     region: content
+  field_learning_path_duration:
+    weight: 7
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+    region: content
+  field_learning_path_enable_forum:
+    weight: 5
+    settings:
+      display_label: true
+    third_party_settings: {  }
+    type: boolean_checkbox
+    region: content
   field_learning_path_image:
-    weight: 2
+    weight: 9
     settings:
       progress_indicator: throbber
       preview_image_style: thumbnail
@@ -57,20 +75,13 @@ content:
     type: image_image
     region: content
   field_learning_path_visibility:
-    weight: 3
+    weight: 2
     settings: {  }
     third_party_settings: {  }
     type: options_select
     region: content
   field_requires_validation:
-    weight: 5
-    settings:
-      display_label: true
-    third_party_settings: {  }
-    type: boolean_checkbox
-    region: content
-  field_learning_path_published:
-    weight: 6
+    weight: 3
     settings:
       display_label: true
     third_party_settings: {  }
@@ -86,5 +97,7 @@ content:
     third_party_settings: {  }
 hidden:
   field_learning_path_folder: true
+  field_learning_path_forum: true
+  field_learning_path_published: true
   path: true
   uid: true

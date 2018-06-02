@@ -68,7 +68,8 @@ function opigno_learning_path_theme()
     ],
     'page__group' => [
       'base hook' => 'page',
-      'join_group_form' => null
+      'join_group_form' => null,
+      'delete_lp_form' => null
     ],
   ];
 }
@@ -80,6 +81,9 @@ function opigno_learning_path_page_attachments(array &$page)
 {
   $route = \Drupal::routeMatch()->getRouteName();
 
+  if ($route == 'entity.group.edit_form') {
+    $page['#attached']['library'][] = 'opigno_learning_path/delete';
+  }
   if ($route == 'entity.group.canonical') {
     $page['#attached']['library'][] = 'opigno_learning_path/join';
   }
@@ -138,7 +142,9 @@ function opigno_learning_path_preprocess_region(&$variables)
         ) {
           $current_step = opigno_learning_path_get_current_step();
           // Check if training is published.
-          $is_published = $group->get('field_learning_path_published')->getValue()[0]['value'];
+          $is_published = $group->hasField('field_learning_path_published')
+            ? $group->get('field_learning_path_published')->getValue()[0]['value']
+            : TRUE;
           if ($is_published) {
             $publish_text = t('Finish');
           }
@@ -203,6 +209,26 @@ function opigno_learning_path_preprocess_page(&$variables)
                 </div>'
             );
         }
+    }
+
+    if ($route == 'entity.group.edit_form'
+      && $group = \Drupal::routeMatch()->getParameter('group')
+    ) {
+        $form = \Drupal::service('entity.form_builder')->getForm($group, 'delete', []);
+
+        // Change default link to current page
+        $url = Url::fromRoute('entity.group.edit_form', ['group' => $group->id()], ['attributes' => ['class' => ['button', 'close-overlay']]]);
+        $link = Link::fromTextAndUrl(t('Cancel'), $url)->toRenderable();
+        $form['actions']['cancel']['#url'] = $url;
+
+        $variables['delete_lp_form'] = Markup::create(
+            '<div style="display: none;" id="delete-lp-form-overlay">
+                <div id="delete-lp-form-wrapper">
+                    <div class="text-right"><button class="close-overlay">close</button></div>
+                    <div>' . render($form) . '</div>
+                </div>
+            </div>'
+        );
     }
 }
 
@@ -272,9 +298,9 @@ function opigno_learning_path_get_step_list_top()
     $current_step = opigno_learning_path_get_current_step();
     $pased_steps = opigno_learning_path_validate_group_creating_steps();
 
-    $html = '<ul class="d-flex justify-content-center text-center list-unstyled step-list-top mb-5">';
+    $html = '<ul class="d-none d-md-flex justify-content-center text-center list-unstyled step-list-top mb-5">';
     foreach ($steps as $key => $step) {
-        $classes = ['mx-4'];
+        $classes = ['mx-4', 'mb-4', 'mb-md-0'];
 
         if ($current_step >= $key) {
             $classes[] = 'active';
@@ -346,8 +372,35 @@ function opigno_learning_path_get_step_list_aside()
           2 => $lp_manager_link,
           3 => $modules_link,
           4 => $activities_link,
-          5 => $members_link
+          5 => $members_link,
       ];
+
+      $user = \Drupal::currentUser();
+      $roles = $user->getRoles();
+      $is_admin = in_array('administrator', $roles);
+      $is_platform_cm = in_array('content_manager', $roles);
+      $is_platform_um = in_array('user_manager', $roles);
+
+      /** @var \Drupal\group\Entity\Group $group */
+      $group = \Drupal::routeMatch()->getParameter('group');
+      if ($group !== NULL) {
+        $membership = $group->getMember($user);
+        if ($membership !== FALSE) {
+          $group_roles = $membership !== FALSE ? $membership->getRoles() : [];
+          $is_group_cm = array_key_exists('learning_path-content_manager', $group_roles);
+          $is_group_um = array_key_exists('learning_path-user_manager', $group_roles);
+
+          if ($is_group_um && !$is_admin && !$is_platform_cm && !$is_group_cm) {
+            unset($steps[2]);
+            unset($steps[3]);
+            unset($steps[4]);
+          }
+
+          if ($is_group_cm && !$is_admin && !$is_platform_um && !$is_group_um) {
+            unset($steps[5]);
+          }
+        }
+      }
     } elseif ($group_type == 'opigno_course') {
       $steps = [
           1 => $description_link,
@@ -1335,17 +1388,29 @@ function opigno_learning_path_group_presave(Group $group)
 function opigno_learning_path_group_access(Group $group, $operation, AccountInterface $account) {
   $type = $group->type->entity->id();
 
-
-  if ($type == 'learning_path' && $operation == 'view certificate' && LearningPathAccess::getGroupAccess($group, $account)) {
-    $completed = opigno_learning_path_completed_on($group->id(), $account->id());
-    return AccessResult::allowedIf($completed);
+  $roles = $account->getRoles();
+  $is_platform_sm = in_array('statistics_reader', $roles);
+  $is_platform_cm = in_array('content_manager', $roles);
+  $is_platform_um = in_array('user_manager', $roles);
+  if ($is_platform_sm || $is_platform_cm || $is_platform_um) {
+    // Allow platform-level managers to access any group.
+    return AccessResult::allowed();
   }
 
-  if ($type == 'learning_path' && !LearningPathAccess::getGroupAccess($group, $account)) {
-    return AccessResult::forbidden();
+  if ($type === 'learning_path') {
+    if (!LearningPathAccess::getGroupAccess($group, $account)) {
+      return AccessResult::forbidden();
+    }
+
+    if ($operation === 'view certificate') {
+      $completed = opigno_learning_path_completed_on($group->id(), $account->id());
+      return AccessResult::allowedIf($completed);
+    }
   }
-  if ($type == 'opigno_course' && !LearningPathAccess::getGroupContentAccess($group, $account)) {
-    return AccessResult::forbidden();
+  elseif ($type === 'opigno_course') {
+    if (!LearningPathAccess::getGroupContentAccess($group, $account)) {
+      return AccessResult::forbidden();
+    }
   }
 }
 
@@ -1355,8 +1420,67 @@ function opigno_learning_path_group_access(Group $group, $operation, AccountInte
  * Implements hook_ENTITY_TYPE_access().
  */
 function opigno_learning_path_opigno_module_access(EntityInterface $entity, $operation, AccountInterface $account) {
+  $is_platform_cm = in_array('content_manager', $account->getRoles());
+  if ($is_platform_cm) {
+    // Allow platform-level content managers to view/edit/delete learning path modules.
+    return AccessResult::allowed();
+  }
+
   if (!LearningPathAccess::getGroupContentAccess($entity, $account)) {
     return AccessResult::forbidden();
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_access().
+ */
+function opigno_learning_path_group_content_access(EntityInterface $entity, $operation, AccountInterface $account) {
+  $is_platform_um = in_array('user_manager', $account->getRoles());
+  $bundle = $entity->bundle();
+  if ($is_platform_um && in_array($bundle, [
+    'opigno_class-group_membership',
+    'opigno_course-group_membership',
+    'learning_path-group_membership',
+  ])) {
+    // Allow platform-level user managers to view/edit/delete user group membership.
+    return AccessResult::allowed();
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_access().
+ */
+function opigno_learning_path_user_access(EntityInterface $entity, $operation, AccountInterface $account) {
+  $is_platform_um = in_array('user_manager', $account->getRoles());
+  if ($is_platform_um) {
+    // Allow platform-level user managers to view/edit/delete users.
+    return AccessResult::allowed();
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_create_access().
+ */
+function opigno_learning_path_group_content_create_access(AccountInterface $account, array $context, $entity_bundle) {
+  $is_platform_um = in_array('user_manager', $account->getRoles());
+  if ($is_platform_um && in_array($entity_bundle, [
+      'opigno_class-group_membership',
+      'opigno_course-group_membership',
+      'learning_path-group_membership',
+    ])) {
+    // Allow platform-level user managers to create new user group membership.
+    return AccessResult::allowed();
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_create_access().
+ */
+function opigno_learning_path_user_create_access(AccountInterface $account, array $context, $entity_bundle) {
+  $is_platform_um = in_array('user_manager', $account->getRoles());
+  if ($is_platform_um) {
+    // Allow platform-level user managers to create new users.
+    return AccessResult::allowed();
   }
 }
 
@@ -1412,7 +1536,7 @@ function opigno_learning_path_get_student_managers($group) {
   $users[$owner->id()] = $owner;
 
   $content = $group->getContent();
-  $student_manager_role = 'learning_path-learning_path_mana';
+  $student_manager_role = 'learning_path-user_manager';
 
   /** @var \Drupal\group\Entity\GroupContentInterface $item */
   foreach ($content as $item) {

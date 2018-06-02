@@ -23,7 +23,7 @@
       const $pnl_create_class_btn_select_all = $('#pnl_create_class_btn_select_all', context);
       const $pnl_create_class_field_search = $('#pnl_create_class_field_search', context);
       const $pnl_create_class_field_class_users = $('#pnl_create_class_field_class_users', context);
-      $pnl_create_class_field_class_users.empty();
+      let class_users_all_available = true;
 
       $btn_create.once('click').click(function (e) {
         e.preventDefault();
@@ -102,6 +102,10 @@
         e.preventDefault();
         $pnl_create_class.hide();
         $pnl_create_class_field_class_users.empty();
+        $('option', $options)
+            .clone()
+            .appendTo($pnl_create_class_field_class_users);
+        class_users_all_available = true;
 
         return false;
       });
@@ -118,6 +122,11 @@
 
         if (!ui.item) {
           return false;
+        }
+
+        if (class_users_all_available) {
+          class_users_all_available = false;
+          $pnl_create_class_field_class_users.empty();
         }
 
         // Add option with matching id from all users list to class users list

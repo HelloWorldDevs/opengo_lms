@@ -6,6 +6,12 @@
   padding: 25px 90px;
 }
 
+@media (max-width: 768px) {
+  .lp_step_explanation {
+    padding: 25px 15px 25px 90px;
+  }
+}
+
 .lp_step_explanation p {
   margin: 0;
 }

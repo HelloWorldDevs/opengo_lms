@@ -5,8 +5,10 @@
  * Install, update and uninstall functions for the module.
  */
 
-use Drupal\opigno_learning_path\LearningPathAccess;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Core\Config\FileStorage;
+use Drupal\opigno_learning_path\LearningPathAccess;
 
 /**
  * Creates database table for Learning Path group user statuses.
@@ -44,4 +46,42 @@ function opigno_learning_path_update_8004() {
   }
 
   return NULL;
+}
+
+/**
+ * Creates forum field in the learning path group type.
+ */
+function opigno_learning_path_update_8005() {
+  $config_path = drupal_get_path('module', 'opigno_learning_path')
+    . '/config/install';
+  $storage = new FileStorage($config_path);
+
+  $data = $storage->read('field.storage.group.field_learning_path_forum');
+  if (!FieldStorageConfig::loadByName($data['entity_type'], $data['field_name'])) {
+    FieldStorageConfig::create($data)->save();
+  }
+
+  $data = $storage->read('field.field.group.learning_path.field_learning_path_forum');
+  if (!FieldConfig::loadByName($data['entity_type'], $data['bundle'], $data['field_name'])) {
+    FieldConfig::create($data)->save();
+  }
+}
+
+/**
+ * Creates enable forum field in the learning path group type.
+ */
+function opigno_learning_path_update_8006() {
+  $config_path = drupal_get_path('module', 'opigno_learning_path')
+    . '/config/install';
+  $storage = new FileStorage($config_path);
+
+  $data = $storage->read('field.storage.group.field_learning_path_enable_forum');
+  if (!FieldStorageConfig::loadByName($data['entity_type'], $data['field_name'])) {
+    FieldStorageConfig::create($data)->save();
+  }
+
+  $data = $storage->read('field.field.group.learning_path.field_learning_path_enable_forum');
+  if (!FieldConfig::loadByName($data['entity_type'], $data['bundle'], $data['field_name'])) {
+    FieldConfig::create($data)->save();
+  }
 }

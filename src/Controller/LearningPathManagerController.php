@@ -67,6 +67,11 @@ class LearningPathManagerController extends ControllerBase {
       return AccessResult::forbidden();
     }
 
+    $is_platform_cm = in_array('content_manager', $account->getRoles());
+    if ($is_platform_cm) {
+      return AccessResult::allowed();
+    }
+
     if (!LearningPathAccess::getGroupAccess($group, $account, 'lp_manager')) {
       return AccessResult::forbidden();
     }

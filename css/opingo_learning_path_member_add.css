@@ -132,6 +132,12 @@
   padding: 45px 55px 15px;
 }
 
+@media (max-width: 768px) {
+  .group-content-learning-path-group-membership-add-form {
+    padding: 45px 15px 15px;
+  }
+}
+
 .group-content-learning-path-group-membership-add-form #btn_create, #btn_member_add {
   background-color: #c3e86c;
   color: #fff;
@@ -143,12 +149,27 @@
   width: 245px;
 }
 
+@media (max-width: 768px) {
+  .group-content-learning-path-group-membership-add-form #btn_create, #btn_member_add {
+    float: none;
+    width: 100%;
+  }
+}
+
 #btn_member_add {
   text-align: center;
   vertical-align: middle;
   display: block;
   line-height: 60px;
   margin: 45px 55px 50px;
+}
+
+@media (max-width: 768px) {
+  #btn_member_add {
+    float: right;
+    margin: 45px 15px 50px;
+    width: calc(100% - 30px);
+  }
 }
 
 .group-content-learning-path-group-membership-add-form #btn_create:hover, #btn_member_add:hover {
@@ -191,13 +212,31 @@
   background-image: url('../img/add_user.png');
 }
 
+@media (max-width: 768px) {
+  .group-content-learning-path-group-membership-add-form #add_option {
+    margin-top: 1rem;
+  }
+}
+
 .group-content-learning-path-group-membership-add-form #remove_option {
   margin-top: 10px;
   background-image: url('../img/remove_user.png');
 }
 
+@media (max-width: 768px) {
+  .group-content-learning-path-group-membership-add-form #remove_option {
+    margin-bottom: 2rem;
+  }
+}
+
 .group-content-learning-path-group-membership-add-form #edit-selected label {
   margin-left: 40px;
+}
+
+@media (max-width: 768px) {
+  .group-content-learning-path-group-membership-add-form #edit-selected label {
+    margin-left: 0;
+  }
 }
 
 .group-content-learning-path-group-membership-add-form #selected_options_list {
@@ -246,12 +285,12 @@
   margin-left: 10px;
 }
 
-.group-content-learning-path-group-membership-add-form #edit-send-message + label {
+.group-content-learning-path-group-membership-add-form #edit-send-message+label {
   width: unset;
 }
 
 .group-content-learning-path-group-membership-add-form #edit-message {
-  margin: 50px 0 110px;
+  margin: 1rem 0 3rem;
   padding: 20px 30px;
 }
 
@@ -259,10 +298,17 @@
   background-color: #c3e86c;
   color: #fff;
   font-weight: 700;
-  height: 90px;
+  height: 60px;
   margin: 0 -55px;
   text-transform: uppercase;
   width: calc(100% + 110px);
+}
+
+@media (max-width: 768px) {
+  .group-content-learning-path-group-membership-add-form #edit-submit {
+    margin: 0 -15px;
+    width: calc(100% + 30px);
+  }
 }
 
 .group-content-learning-path-group-membership-add-form #edit-submit:hover {

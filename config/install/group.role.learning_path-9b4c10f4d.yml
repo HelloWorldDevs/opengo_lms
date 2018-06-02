@@ -7,7 +7,7 @@ dependencies:
     config:
       - user.role.statistics_reader
 id: learning_path-9b4c10f4d
-label: 'Statistics reader'
+label: 'Statistics manager'
 weight: 5
 internal: true
 audience: outsider

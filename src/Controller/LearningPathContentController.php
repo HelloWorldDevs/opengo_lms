@@ -117,6 +117,12 @@ class LearningPathContentController extends ControllerBase {
       return AccessResult::forbidden();
     }
 
+    $is_platform_cm = in_array('content_manager', $account->getRoles());
+    if ($is_platform_cm) {
+      // Allow platform-level content managers to access.
+      return AccessResult::allowed();
+    }
+
     if (!LearningPathAccess::getGroupAccess($group, $account, 'lp_manager')) {
       return AccessResult::forbidden();
     }
@@ -125,7 +131,10 @@ class LearningPathContentController extends ControllerBase {
     if ($membership) {
       $membershipRoles = $membership->getRoles();
       $siteRoles = $account->getRoles();
-      if (!in_array('administrator', $siteRoles) && !array_key_exists('learning_path-admin', $membershipRoles)) {
+      if (!in_array('administrator', $siteRoles)
+        && !in_array('content_manager', $siteRoles)
+        && !array_key_exists('learning_path-admin', $membershipRoles)
+        && !array_key_exists('learning_path-content_manager', $membershipRoles)) {
         return AccessResult::forbidden();
       }
     }
@@ -178,11 +187,13 @@ class LearningPathContentController extends ControllerBase {
       $course = $content->getEntity();
       $course_contents = $course->getContent('opigno_module_group');
       foreach ($course_contents as $course_content) {
+        /* @var $module_entity \Drupal\opigno_module\Entity\OpignoModule */
         $module_entity = $course_content->getEntity();
         $modules[] = [
           'entity_id' => $module_entity->id(),
           'name' => $module_entity->label(),
-          'activity_count' => $this->countActivityInModule($module_entity)
+          'activity_count' => $this->countActivityInModule($module_entity),
+          'editable' => $module_entity->access('update'),
         ];
       }
     }
@@ -190,12 +201,13 @@ class LearningPathContentController extends ControllerBase {
     $group_content = $group->getContent('opigno_module_group');
     foreach ($group_content as $content) {
       /* @var $content \Drupal\group\Entity\GroupContent */
-      /* @var $content_entity \Drupal\group\Entity\Group */
+      /* @var $content_entity \Drupal\opigno_module\Entity\OpignoModule */
       $content_entity = $content->getEntity();
       $modules[] = [
         'entity_id' => $content_entity->id(),
         'name' => $content_entity->label(),
-        'activity_count' => $this->countActivityInModule($content_entity)
+        'activity_count' => $this->countActivityInModule($content_entity),
+        'editable' => $content_entity->access('update'),
       ];
     }
 

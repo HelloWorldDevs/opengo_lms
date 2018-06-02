@@ -4,8 +4,11 @@ namespace Drupal\opigno_learning_path\Controller;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Link;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
+use Drupal\forum\Controller\ForumController;
+use Drupal\taxonomy\Entity\Term;
 use Drupal\tft\Controller\TFTController;
 
 class LearningPathController extends ControllerBase {
@@ -202,7 +205,7 @@ class LearningPathController extends ControllerBase {
     $content[] = [
       '#type' => 'container',
       '#attributes' => [
-        'class' => ['col-9'],
+        'class' => ['col-sm-9', 'mb-3'],
       ],
       [
         '#type' => 'container',
@@ -249,30 +252,65 @@ class LearningPathController extends ControllerBase {
       ],
     ];
 
+    $continue_route = 'opigno_learning_path.steps.start';
+    $edit_route = 'entity.group.edit_form';
+    $members_route = 'opigno_learning_path.membership.overview';
+
+    $route_args = ['group' => $group->id()];
+    $continue_url = Url::fromRoute($continue_route, $route_args);
+    $edit_url = Url::fromRoute($edit_route, $route_args);
+    $members_url = Url::fromRoute($members_route, $route_args);
+
+    $admin_continue_button = Link::fromTextAndUrl('', $continue_url)->toRenderable();
+    $admin_continue_button['#attributes']['class'][] = 'lp_progress_admin_continue';
+    $edit_button = Link::fromTextAndUrl('', $edit_url)->toRenderable();
+    $edit_button['#attributes']['class'][] = 'lp_progress_admin_edit';
+    $members_button = Link::fromTextAndUrl('', $members_url)->toRenderable();
+    $members_button['#attributes']['class'][] = 'lp_progress_admin_edit';
+
+    $continue_button_text = $this->t('Continue Training');
+    $continue_button = Link::fromTextAndUrl($continue_button_text, $continue_url)->toRenderable();
+    $continue_button['#attributes']['class'][] = 'lp_progress_continue';
+
+    $roles = $user->getRoles();
+    $is_admin = in_array('administrator', $roles);
+    $is_platform_cm = in_array('content_manager', $roles);
+    $is_platform_um = in_array('user_manager', $roles);
+
+    $membership = $group->getMember($user);
+    $group_roles = $membership !== FALSE ? $membership->getRoles() : [];
+    $is_group_cm = array_key_exists('learning_path-content_manager', $group_roles);
+    $is_group_um = array_key_exists('learning_path-user_manager', $group_roles);
+
     $buttons = [];
-
-    $route = 'opigno_learning_path.steps.start';
-    $args = ['group' => $group->id()];
-    $url = Url::fromRoute($route, $args, []);
-
-    if ($group->hasPermission('edit', $user)) {
-      $buttons[] = [
-        '#markup' => '<a class="lp_progress_admin_continue" href="' . $url->toString() . '"></a>'
-          . '<a class="lp_progress_admin_edit" href="/group/' . $group->id() . '/edit"></a>',
-      ];
+    if ($is_admin || $is_platform_cm || $is_group_cm) {
+      $buttons[] = $admin_continue_button;
+      $buttons[] = $edit_button;
+    }
+    elseif ($is_platform_um || $is_group_um) {
+      $buttons[] = $admin_continue_button;
+      $buttons[] = $members_button;
+    }
+    elseif ($group->hasPermission('administer group', $user)
+      || $group->hasPermission('edit group', $user)) {
+      $buttons[] = $admin_continue_button;
+      $buttons[] = $edit_button;
+    }
+    elseif ($group->hasPermission('administer members', $user)) {
+      $buttons[] = $admin_continue_button;
+      $buttons[] = $members_button;
     }
     else {
-      $buttons[] = [
-        '#markup' => '<a class="lp_progress_continue" href="' . $url->toString() . '">Continue Training</a>',
-      ];
+      $buttons[] = $continue_button;
     }
 
-    $content[] = array_merge([
+    $content[] = [
       '#type' => 'container',
       '#attributes' => [
-        'class' => ['col-3'],
+        'class' => ['col-sm-3', 'mb-3'],
       ],
-    ], $buttons);
+      $buttons,
+    ];
 
     return $content;
   }
@@ -281,6 +319,7 @@ class LearningPathController extends ControllerBase {
    * @return array
    */
   public function trainingContent() {
+    /** @var \Drupal\group\Entity\Group $group */
     $group = \Drupal::routeMatch()->getParameter('group');
     $user = \Drupal::currentUser();
 
@@ -440,43 +479,82 @@ class LearningPathController extends ControllerBase {
       ];
     }, $steps);
 
+    $TFTController = new TFTController();
+    $listGroup = $TFTController->listGroup($group->id());
+
     $content = [];
-
-    $content[] = [
+    $content['tabs'] = [
       '#type' => 'container',
-      '#markup' => '<div class="lp_tabs nav mb-4">
-                      <a class="lp_tabs_link active" data-toggle="tab" href="#training-content">' . t('Training Content') . '</a>
-                      <span></span>
-                      <a class="lp_tabs_link" data-toggle="tab" href="#documents-library">' . t('Documents Library') . '</a>
-                      <a class="lp_tabs_link" data-toggle="tab" href="#collaborative-workspace">' . t('Collaborative Workspace') . '</a>
-                    </div>'
-                  ];
+      '#attributes' => ['class' => ['lp_tabs', 'nav', 'mb-4']],
+    ];
 
-    $content[] = [
+    $content['tabs'][] = [
+      '#markup' => '<a class="lp_tabs_link active" data-toggle="tab" href="#training-content">' . t('Training Content') . '</a>',
+    ];
+
+    $content['tabs'][] = [
+      '#markup' => '<a class="lp_tabs_link" data-toggle="tab" href="#documents-library">' . t('Documents Library') . '</a>',
+    ];
+
+    $content['tabs'][] = [
+      '#markup' => '<a class="lp_tabs_link" data-toggle="tab" href="#collaborative-workspace">' . t('Collaborative Workspace') . '</a>',
+    ];
+
+    $content['tab-content'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['tab-content']],
+    ];
+
+    $content['tab-content'][] = [
       '#type' => 'container',
       '#attributes' => ['id' => 'training-content', 'class' => ['tab-pane', 'fade', 'show', 'active']],
-      '#prefix' => '<div class="tab-content">',
       'steps' => $steps,
+    ];
+
+    $content['tab-content'][] = [
+      '#type' => 'container',
+      '#attributes' => ['id' => 'documents-library', 'class' => ['tab-pane', 'fade']],
+      $listGroup,
+    ];
+
+    $content['tab-content'][] = [
+      '#type' => 'container',
+      '#attributes' => ['id' => 'collaborative-workspace', 'class' => ['tab-pane', 'fade']],
+      '#markup' => 'collaborative-workspace',
+    ];
+
+    $has_enable_forum_field = $group->hasField('field_learning_path_enable_forum');
+    $has_forum_field = $group->hasField('field_learning_path_forum');
+    if ($has_enable_forum_field && $has_forum_field) {
+      $enable_forum_field = $group->get('field_learning_path_enable_forum')->getValue();
+      $forum_field = $group->get('field_learning_path_forum')->getValue();
+      if (!empty($enable_forum_field) && !empty($forum_field)) {
+        $enable_forum = $enable_forum_field[0]['value'];
+        if ($enable_forum) {
+          $forum_tid = $forum_field[0]['target_id'];
+          $forum_term = Term::load($forum_tid);
+          $forum_controller = ForumController::create(\Drupal::getContainer());
+          $forum = $forum_controller->forumPage($forum_term);
+
+          $content['tabs'][] = [
+            '#markup' => '<a class="lp_tabs_link" data-toggle="tab" href="#forum">' . t('Forum') . '</a>',
+          ];
+
+          $content['tab-content'][] = [
+            '#type' => 'container',
+            '#attributes' => ['id' => 'forum', 'class' => ['tab-pane', 'fade']],
+            $forum,
+          ];
+        }
+      }
+    }
+
+    $content[] = [
       '#attached' => [
         'library' => [
           'opigno_learning_path/training_content',
         ],
       ],
-    ];
-
-    $TFTController = new TFTController();
-    $listGroup = $TFTController->listGroup($group->id());
-    $content[] = [
-      '#type' => 'container',
-      '#attributes' => ['id' => 'documents-library', 'class' => ['tab-pane', 'fade']],
-      '#markup' => render($listGroup),
-    ];
-
-    $content[] = [
-      '#type' => 'container',
-      '#attributes' => ['id' => 'collaborative-workspace', 'class' => ['tab-pane', 'fade']],
-      '#markup' => 'collaborative-workspace',
-      '#suffix' => '</div>'
     ];
 
     return $content;

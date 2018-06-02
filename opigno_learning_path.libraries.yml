@@ -31,6 +31,18 @@ join:
     - core/jquery.once
     - core/drupalSettings
 
+delete:
+  version: VERSION
+  css:
+    theme:
+      css/opigno_learning_path_delete.css: {}
+  js:
+    js/opigno_learning_path_delete.js: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - core/drupalSettings
+
 member_add:
   version: VERSION
   css:

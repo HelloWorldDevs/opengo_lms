@@ -21,11 +21,11 @@ plugin_config:
     learning_path-admin: ''
     learning_path-anonymous: ''
     learning_path-b2b679d24: ''
-    learning_path-coach: ''
-    learning_path-learning_path_mana: ''
+    learning_path-content_manager: ''
     learning_path-member: opigno_course-member
     learning_path-outsider: ''
     learning_path-student: ''
+    learning_path-user_manager: ''
   child_role_mapping:
     opigno_course-1eb7047a7: ''
     opigno_course-3e4ccc6a3: ''

@@ -4,8 +4,6 @@ dependencies:
   config:
     - group.type.learning_path
     - group.type.opigno_class
-  module:
-    - opigno_class
 id: group_content_type_27efa0097d858
 label: 'Learning Path: Subgroup (Class)'
 description: 'Adds <em class="placeholder">Class</em> groups to groups both publicly and privately.'
@@ -23,11 +21,11 @@ plugin_config:
     learning_path-admin: ''
     learning_path-anonymous: ''
     learning_path-b2b679d24: ''
-    learning_path-coach: ''
-    learning_path-learning_path_mana: ''
+    learning_path-content_manager: ''
     learning_path-member: ''
     learning_path-outsider: ''
     learning_path-student: ''
+    learning_path-user_manager: ''
   child_role_mapping:
     opigno_class-1eb7047a7: ''
     opigno_class-3e4ccc6a3: ''

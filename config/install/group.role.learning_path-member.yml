@@ -10,4 +10,7 @@ internal: true
 audience: member
 group_type: learning_path
 permissions_ui: true
-permissions: {  }
+permissions:
+  - 'update own group_membership content'
+  - 'leave group'
+  - 'view group'

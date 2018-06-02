@@ -2,14 +2,14 @@ langcode: en
 status: true
 dependencies:
   config:
-    - field.storage.group.field_learning_path_category
+    - field.storage.group.field_learning_path_forum
     - group.type.learning_path
-    - taxonomy.vocabulary.learning_path_category
-id: group.learning_path.field_learning_path_category
-field_name: field_learning_path_category
+    - taxonomy.vocabulary.forums
+id: group.learning_path.field_learning_path_forum
+field_name: field_learning_path_forum
 entity_type: group
 bundle: learning_path
-label: Category
+label: Forum
 description: ''
 required: false
 translatable: false
@@ -19,7 +19,7 @@ settings:
   handler: 'default:taxonomy_term'
   handler_settings:
     target_bundles:
-      learning_path_category: learning_path_category
+      forums: forums
     sort:
       field: name
       direction: asc

@@ -24,15 +24,18 @@ class LearningPathMembersForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    $student_manager_role = 'learning_path-learning_path_mana';
-    $content_manager_role = 'learning_path-coach';
+    $student_manager_role = 'learning_path-user_manager';
+    $content_manager_role = 'learning_path-content_manager';
 
     /** @var \Drupal\group\Entity\Group $group */
     $group = \Drupal::routeMatch()->getParameter('group');
 
-    // If not a learning_path, returns
+    // If not a learning_path or class, returns
     // default '/group/{group}/members' view.
-    if ($group->bundle() !== 'learning_path') {
+    if (!in_array($group->bundle(), [
+      'opigno_class',
+      'learning_path',
+    ])) {
       $view = Views::getView('group_members');
 
       if (!$view || !$view->access('page_1')) {
