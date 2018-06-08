@@ -55,6 +55,18 @@ member_add:
     - core/jquery.once
     - core/drupalSettings
 
+create_member:
+  version: VERSION
+  css:
+    theme:
+      css/opingo_learning_path_create_member.css: {}
+  js:
+    js/opingo_learning_path_create_member.js: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - core/drupalSettings
+
 member_overview:
   version: VERSION
   css:

@@ -3,8 +3,11 @@
 namespace Drupal\opigno_learning_path\Controller;
 
 use Drupal\Core\Access\AccessResult;
-use Drupal\group\Entity\Group;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Link;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\group\Entity\Group;
+use Drupal\group\Entity\GroupInterface;
 use Drupal\opigno_group_manager\OpignoGroupContentTypesManager;
 use Drupal\opigno_learning_path\LearningPathAccess;
 use Drupal\opigno_learning_path\LearningPathValidator;
@@ -13,8 +16,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Drupal\Core\Session\AccountInterface;
-use Drupal\Core\Link;
 
 /**
  * Controller for all the actions of the Learning Path content.
@@ -26,31 +27,29 @@ class LearningPathContentController extends ControllerBase {
   /**
    * {@inheritdoc}
    */
-  public function __construct(OpignoGroupContentTypesManager $content_types_manager)
-  {
+  public function __construct(OpignoGroupContentTypesManager $content_types_manager) {
     $this->content_types_manager = $content_types_manager;
   }
 
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container)
-  {
+  public static function create(ContainerInterface $container) {
     return new static(
       $container->get('opigno_group_manager.content_types.manager')
     );
   }
 
   /**
-   * Root page for angular app
+   * Root page for angular app.
    */
-  public function coursesIndex(Group $group, Request $request)
-  {
+  public function coursesIndex(Group $group, Request $request) {
     // Check if user has uncompleted steps.
     LearningPathValidator::stepsValidate($group);
 
     $next_link = $this->getNextLink($group);
-    $view_type = ($group->get('type')->getString() == 'opigno_course') ? 'manager' : 'modules' ;
+    $view_type = ($group->get('type')->getString() == 'opigno_course')
+      ? 'manager' : 'modules';
 
     return [
       '#theme' => 'opigno_learning_path_courses',
@@ -59,20 +58,18 @@ class LearningPathContentController extends ControllerBase {
       '#base_href' => \Drupal::service('path.current')->getPath(),
       '#learning_path_id' => $group->id(),
       '#view_type' => $view_type,
-      '#next_link' => isset($next_link) ? render($next_link) : null,
+      '#next_link' => isset($next_link) ? render($next_link) : NULL,
     ];
   }
 
   /**
-   * Root page for angular app
+   * Root page for angular app.
    */
-  public function modulesIndex(Group $group, Request $request)
-  {
+  public function modulesIndex(Group $group, Request $request) {
     // Check if user has uncompleted steps.
     LearningPathValidator::stepsValidate($group);
 
     $next_link = $this->getNextLink($group);
-
     return [
       '#theme' => 'opigno_learning_path_modules',
       '#attached' => ['library' => ['opigno_group_manager/manage_app']],
@@ -80,16 +77,24 @@ class LearningPathContentController extends ControllerBase {
       '#base_href' => \Drupal::service('path.current')->getPath(),
       '#learning_path_id' => $group->id(),
       '#module_context' => 'false',
-      '#next_link' => isset($next_link) ? render($next_link) : null,
+      '#next_link' => isset($next_link) ? render($next_link) : NULL,
     ];
   }
 
-  public function getNextLink(Group $group)
-  {
-    $next_link = null;
+  public function getNextLink(Group $group) {
+    $next_link = NULL;
 
-    if ($group instanceof \Drupal\group\Entity\GroupInterface) {
+    if ($group instanceof GroupInterface) {
       $current_step = opigno_learning_path_get_current_step();
+
+      $user = \Drupal::currentUser();
+      if ($current_step == 4
+        && !$user->hasPermission('manage group members in any group')
+        && !$group->hasPermission('administer members', $user)) {
+        // Hide link if user can't access members overview tab.
+        return NULL;
+      }
+
       $next_step = ($current_step < 5) ? $current_step + 1 : NULL;
       $link_text = !$next_step ? t('Publish') : t('Next');
       $next_link = Link::createFromRoute($link_text, 'opigno_learning_path.content_steps', [
@@ -100,9 +105,9 @@ class LearningPathContentController extends ControllerBase {
           'class' => [
             'btn',
             'btn-success',
-            'color-white'
-          ]
-        ]
+            'color-white',
+          ],
+        ],
       ])->toRenderable();
     }
 
@@ -110,15 +115,16 @@ class LearningPathContentController extends ControllerBase {
   }
 
   /**
-   * Check the access for the Learning path content pages. @todo correct permission
+   * Check the access for the Learning path content pages.
+   *
+   * @todo correct permission.
    */
   public function access(Group $group, AccountInterface $account) {
     if (empty($group) || !is_object($group)) {
       return AccessResult::forbidden();
     }
 
-    $is_platform_cm = in_array('content_manager', $account->getRoles());
-    if ($is_platform_cm) {
+    if ($account->hasPermission('manage group content in any group')) {
       // Allow platform-level content managers to access.
       return AccessResult::allowed();
     }
@@ -127,27 +133,16 @@ class LearningPathContentController extends ControllerBase {
       return AccessResult::forbidden();
     }
 
-    $membership = $group->getMember($account);
-    if ($membership) {
-      $membershipRoles = $membership->getRoles();
-      $siteRoles = $account->getRoles();
-      if (!in_array('administrator', $siteRoles)
-        && !in_array('content_manager', $siteRoles)
-        && !array_key_exists('learning_path-admin', $membershipRoles)
-        && !array_key_exists('learning_path-content_manager', $membershipRoles)) {
-        return AccessResult::forbidden();
-      }
-    }
-    else {
+    if (!$group->hasPermission('edit group', $account)) {
       return AccessResult::forbidden();
     }
 
-    if ($group->getGroupType()->id() == 'learning_path' || $group->getGroupType()->id() == 'opigno_course') {
-      return AccessResult::allowed();
-    }
-    else {
+    $type = $group->getGroupType()->id();
+    if ($type !== 'learning_path' && $type !== 'opigno_course') {
       return AccessResult::forbidden();
     }
+
+    return AccessResult::allowed();
   }
 
   /**

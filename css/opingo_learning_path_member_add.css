@@ -1,131 +1,3 @@
-#main {
-  position: relative;
-}
-
-.group-content-learning-path-group-membership-add-form .pnl_create {
-  background-color: #fff;
-  box-shadow: -5px 5px 10px rgba(61, 61, 60, 0.1);
-  display: none;
-  max-width: 490px;
-  min-height: 50%;
-  position: absolute;
-  right: 0;
-  top: 0;
-  z-index: 10;
-}
-
-.group-content-learning-path-group-membership-add-form .pnl_create_header {
-  padding: 60px 40px 40px;
-}
-
-.group-content-learning-path-group-membership-add-form .pnl_create_title {
-  display: inline-block;
-  font-size: 16px;
-  font-weight: 700;
-  margin: 0;
-  text-transform: uppercase;
-}
-
-.group-content-learning-path-group-membership-add-form .pnl_create_btn_close {
-  float: right;
-  font-size: 25px;
-  line-height: 25px;
-  margin: 0;
-  padding: 0;
-  width: 25px;
-}
-
-.group-content-learning-path-group-membership-add-form .pnl_create_btn_create {
-  background-color: #f6f6f6 !important;
-  background-image: url('../img/create_user.png');
-  background-repeat: no-repeat;
-  background-position-x: 25px;
-  background-position-y: center;
-  border-left: solid 2.5px #95d5f4 !important;
-  color: #585857 !important;
-  height: 60px;
-  margin: 0 0 18px !important;
-  padding-left: 70px;
-  width: 323px;
-  text-align: left;
-}
-
-.group-content-learning-path-group-membership-add-form .pnl_create_btn_create:hover {
-  background-color: #95d5f4 !important;
-  background-image: url('../img/create_user_hover.png');
-  color: #fff !important;
-}
-
-.group-content-learning-path-group-membership-add-form .pnl_create_content {
-  padding: 30px 40px 100px;
-}
-
-.group-content-learning-path-group-membership-add-form .pnl_create .alert {
-  background-color: #fdf29a !important;
-  color: #585857 !important;
-  padding: 20px 40px;
-  text-align: center;
-  width: 100%;
-}
-
-.group-content-learning-path-group-membership-add-form .pnl_create label {
-  float: unset !important;
-  font-size: 15px;
-  font-weight: 700;
-  margin-left: 10px;
-  text-transform: uppercase;
-  width: 100% !important;
-}
-
-.group-content-learning-path-group-membership-add-form .pnl_create .form-element-wrapper {
-  float: unset !important;
-  width: 100% !important;
-}
-
-.group-content-learning-path-group-membership-add-form .pnl_create .pnl_create_field {
-  background-color: #f6f6f6;
-  margin-bottom: 50px;
-  padding: 20px 30px;
-  overflow-y: auto;
-}
-
-.group-content-learning-path-group-membership-add-form .pnl_create #pnl_create_class_field_class_users {
-  background: #f6f6f6;
-  padding-left: 65px;
-}
-
-.group-content-learning-path-group-membership-add-form .pnl_create .pnl_create_field::placeholder {
-  font-style: italic;
-}
-
-.group-content-learning-path-group-membership-add-form .pnl_create .pnl_create_btn_submit {
-  background-color: #c3e86c !important;
-  bottom: 10px;
-  color: #fff !important;
-  font-weight: 700;
-  height: 60px;
-  margin: 0 -40px;
-  position: absolute;
-  text-transform: uppercase;
-  width: 100%;
-}
-
-.group-content-learning-path-group-membership-add-form .pnl_create #pnl_create_class_btn_select_all {
-  background: #f6f6f6 !important;
-  color: #868e96 !important;
-  font-style: italic;
-  font-weight: normal;
-  margin: 0;
-  padding: 20px 30px 20px 65px;
-  position: static;
-  text-align: left;
-  text-transform: none;
-}
-
-.group-content-learning-path-group-membership-add-form .pnl_create .pnl_create_btn_submit:hover {
-  background-color: #9faf5b !important;
-}
-
 .group-content-learning-path-group-membership-add-form {
   background-color: #f6f6f6;
   color: #585857;
@@ -138,19 +10,21 @@
   }
 }
 
-.group-content-learning-path-group-membership-add-form #btn_create, #btn_member_add {
+.group-content-learning-path-group-membership-add-form #edit-btn-create, #btn_member_add {
   background-color: #c3e86c;
   color: #fff;
   float: right;
   font-weight: 700;
   height: 60px;
   margin-bottom: 50px;
+  padding-top: 15px;
+  text-align: center;
   text-transform: uppercase;
   width: 245px;
 }
 
 @media (max-width: 768px) {
-  .group-content-learning-path-group-membership-add-form #btn_create, #btn_member_add {
+  .group-content-learning-path-group-membership-add-form #edit-btn-create, #btn_member_add {
     float: none;
     width: 100%;
   }
@@ -160,7 +34,6 @@
   text-align: center;
   vertical-align: middle;
   display: block;
-  line-height: 60px;
   margin: 45px 55px 50px;
 }
 
@@ -172,82 +45,100 @@
   }
 }
 
-.group-content-learning-path-group-membership-add-form #btn_create:hover, #btn_member_add:hover {
+.group-content-learning-path-group-membership-add-form #edit-btn-create:hover, #btn_member_add:hover {
   background-color: #9faf5b;
   text-decoration: none;
 }
 
-.group-content-learning-path-group-membership-add-form #edit-users-widget {
+.group-content-learning-path-group-membership-add-form .form-item-training-users-autocomplete {
   clear: both;
 }
 
-.group-content-learning-path-group-membership-add-form #find_option {
+.group-content-learning-path-group-membership-add-form .form-item-training-users-autocomplete label {
+  float: unset !important;
+  width: unset !important;
+}
+
+.group-content-learning-path-group-membership-add-form .form-item-training-users-autocomplete .form-element-wrapper {
+  float: unset !important;
+  width: 250px !important;
+}
+
+.group-content-learning-path-group-membership-add-form #training_users_autocomplete {
   padding: 20px 30px;
   margin-bottom: 20px;
 }
 
-.group-content-learning-path-group-membership-add-form #find_option::placeholder,
+.group-content-learning-path-group-membership-add-form #training_users_autocomplete::placeholder,
 .group-content-learning-path-group-membership-add-form #edit-message::placeholder {
   font-style: italic;
 }
 
-.group-content-learning-path-group-membership-add-form #available_options {
+.group-content-learning-path-group-membership-add-form #training_users-available {
   background: #fff;
   height: 280px;
   padding: 30px;
   overflow-y: auto;
 }
 
-.group-content-learning-path-group-membership-add-form #add_option,
-.group-content-learning-path-group-membership-add-form #remove_option {
-  display: block;
-  height: 23px;
-  margin: 0 auto;
-  padding: 0;
-  width: 32px;
+.group-content-learning-path-group-membership-add-form .multiselect-btns ul {
+  margin: 10px 20px 0 20px !important;
 }
 
-.group-content-learning-path-group-membership-add-form #add_option {
-  margin-top: 180px;
-  background-image: url('../img/add_user.png');
+.group-content-learning-path-group-membership-add-form .multiselect-add,
+.group-content-learning-path-group-membership-add-form .multiselect-remove {
+  display: block;
+  height: 23px !important;
+  margin: 0 auto;
+  padding: 0;
+  width: 32px !important;
+}
+
+.group-content-learning-path-group-membership-add-form .multiselect-add:hover,
+.group-content-learning-path-group-membership-add-form .multiselect-remove:hover {
+  background-position: unset !important;
+}
+
+.group-content-learning-path-group-membership-add-form .multiselect-add {
+  margin-top: 120px !important;
+  background-image: url('../img/add_user.png') !important;
 }
 
 @media (max-width: 768px) {
-  .group-content-learning-path-group-membership-add-form #add_option {
+  .group-content-learning-path-group-membership-add-form .multiselect-add {
     margin-top: 1rem;
   }
 }
 
-.group-content-learning-path-group-membership-add-form #remove_option {
-  margin-top: 10px;
-  background-image: url('../img/remove_user.png');
+.group-content-learning-path-group-membership-add-form .multiselect-remove {
+  margin-top: 10px !important;
+  background-image: url('../img/remove_user.png') !important;
 }
 
 @media (max-width: 768px) {
-  .group-content-learning-path-group-membership-add-form #remove_option {
+  .group-content-learning-path-group-membership-add-form .multiselect-remove {
     margin-bottom: 2rem;
   }
 }
 
-.group-content-learning-path-group-membership-add-form #edit-selected label {
+.group-content-learning-path-group-membership-add-form .multiselect-selected label {
   margin-left: 40px;
 }
 
 @media (max-width: 768px) {
-  .group-content-learning-path-group-membership-add-form #edit-selected label {
+  .group-content-learning-path-group-membership-add-form .multiselect-selected label {
     margin-left: 0;
   }
 }
 
-.group-content-learning-path-group-membership-add-form #selected_options_list {
-  background-color: #fff;
-  padding: 30px 20px 0;
-  list-style: none;
-  height: 360px;
+.group-content-learning-path-group-membership-add-form #training_users {
+  background: #fff;
+  height: 280px;
+  padding: 30px;
   overflow-y: auto;
 }
 
-.group-content-learning-path-group-membership-add-form #selected_options_list .username {
+.group-content-learning-path-group-membership-add-form #training_users .username {
   background-color: #f0a794;
   color: #fff;
   display: inline-block;
@@ -260,11 +151,11 @@
   width: calc(50% - 8px);
 }
 
-.group-content-learning-path-group-membership-add-form #selected_options_list .selected .username {
+.group-content-learning-path-group-membership-add-form #training_users .selected .username {
   background-color: #ff5541;
 }
 
-.group-content-learning-path-group-membership-add-form #selected_options_list button {
+.group-content-learning-path-group-membership-add-form #training_users button {
   background-color: #ff5541;
   color: #fff;
   display: inline-block;
@@ -277,15 +168,11 @@
   width: calc(50% - 8px);
 }
 
-.group-content-learning-path-group-membership-add-form #options {
-  display: none;
-}
-
 .group-content-learning-path-group-membership-add-form .form-item-message label {
   margin-left: 10px;
 }
 
-.group-content-learning-path-group-membership-add-form #edit-send-message+label {
+.group-content-learning-path-group-membership-add-form #edit-send-message + label {
   width: unset;
 }
 

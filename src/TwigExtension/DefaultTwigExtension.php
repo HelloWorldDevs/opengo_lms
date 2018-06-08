@@ -13,98 +13,96 @@ use Drupal\opigno_learning_path\LearningPathAccess;
  */
 class DefaultTwigExtension extends \Twig_Extension {
 
- /**
-  * {@inheritdoc}
-  */
+  /**
+   * {@inheritdoc}
+   */
   public function getTokenParsers() {
     return [];
   }
 
- /**
-  * {@inheritdoc}
-  */
+  /**
+   * {@inheritdoc}
+   */
   public function getNodeVisitors() {
     return [];
   }
 
- /**
-  * {@inheritdoc}
-  */
+  /**
+   * {@inheritdoc}
+   */
   public function getFilters() {
     return [];
   }
 
- /**
-  * {@inheritdoc}
-  */
+  /**
+   * {@inheritdoc}
+   */
   public function getTests() {
     return [];
   }
 
- /**
-  * {@inheritdoc}
-  */
+  /**
+   * {@inheritdoc}
+   */
   public function getFunctions() {
     return [
-        new \Twig_SimpleFunction(
-            'is_group_member',
-            [$this, 'is_group_member']
-        ),
-        new \Twig_SimpleFunction(
-            'get_join_group_link',
-            [$this, 'get_join_group_link']
-        ),
-        new \Twig_SimpleFunction(
-            'get_start_link',
-            [$this, 'get_start_link']
-        ),
-        new \Twig_SimpleFunction(
-          'get_progress',
-          [$this, 'get_progress']
-        ),
-        new \Twig_SimpleFunction(
-          'get_training_content',
-          [$this, 'get_training_content']
-        ),
+      new \Twig_SimpleFunction(
+        'is_group_member',
+        [$this, 'is_group_member']
+      ),
+      new \Twig_SimpleFunction(
+        'get_join_group_link',
+        [$this, 'get_join_group_link']
+      ),
+      new \Twig_SimpleFunction(
+        'get_start_link',
+        [$this, 'get_start_link']
+      ),
+      new \Twig_SimpleFunction(
+        'get_progress',
+        [$this, 'get_progress']
+      ),
+      new \Twig_SimpleFunction(
+        'get_training_content',
+        [$this, 'get_training_content']
+      ),
     ];
   }
 
- /**
-  * {@inheritdoc}
-  */
+  /**
+   * {@inheritdoc}
+   */
   public function getOperators() {
     return [];
   }
 
- /**
-  * {@inheritdoc}
-  */
-  public function getName()
-  {
+  /**
+   * {@inheritdoc}
+   */
+  public function getName() {
     return 'opigno_learning_path.twig.extension';
   }
 
- /**
-  * Test if user is member of a group
-  */
-  function is_group_member($group=null, $account=null)
-  {
+  /**
+   * Test if user is member of a group.
+   */
+  function is_group_member($group = NULL, $account = NULL) {
     if (!$group) {
       $group = \Drupal::routeMatch()->getParameter('group');
     }
+
     if (empty($group)) {
-      return;
+      return FALSE;
     }
 
     if (!$account) {
       $account = \Drupal::currentUser();
     }
 
-    return $group->getMember($account) ? true : false ;
+    return $group->getMember($account) !== FALSE;
   }
 
-  function get_join_group_link($group=null, $account=null, $attributes=[])
-  {
+  function get_join_group_link($group = NULL, $account = NULL, $attributes = []) {
     if (!$group) {
       $group = \Drupal::routeMatch()->getParameter('group');
     }
@@ -120,8 +118,8 @@ class DefaultTwigExtension extends \Twig_Extension {
       $link = NULL;
       $visibility = $group->field_learning_path_visibility->value;
       $validation = $group->field_requires_validation->value;
-      $is_member = $group->getMember($account) ? TRUE : FALSE;
-      $isAnonymous = in_array('anonymous', $account->getRoles()) ? TRUE : FALSE;
+      $is_member = $group->getMember($account) !== FALSE;
+      $is_anonymous = $account->id() === 0;
 
       if ($visibility == 'semiprivate' && $validation) {
         $joinLabel = t('Request group membership');
@@ -130,7 +128,7 @@ class DefaultTwigExtension extends \Twig_Extension {
         $joinLabel = t('Subscribe to group');
       }
 
-      if ($isAnonymous) {
+      if ($is_anonymous) {
         if ($visibility === 'public') {
           $link = [
             'title' => t('Start'),
@@ -162,39 +160,38 @@ class DefaultTwigExtension extends \Twig_Extension {
         return render($l);
       }
     }
+
+    return '';
   }
 
-  function get_start_link($group=null, $attributes=[])
-  {
-
+  function get_start_link($group = NULL, $attributes = []) {
     if (!$group) {
       $group = \Drupal::routeMatch()->getParameter('group');
     }
 
-    if(filter_var($group, FILTER_VALIDATE_INT) !== false) {
-      $group = \Drupal\group\Entity\Group::load($group);
+    if (filter_var($group, FILTER_VALIDATE_INT) !== FALSE) {
+      $group = Group::load($group);
     }
 
     if (empty($group)) {
-      return;
+      return '';
     }
 
     $current_route = \Drupal::routeMatch()->getRouteName();
     $visibility = $group->field_learning_path_visibility->value;
     $validation = $group->field_requires_validation->value;
     $account = \Drupal::currentUser();
-    $isAnonymous = in_array('anonymous', $account->getRoles());
-    $access = LearningPathAccess::getGroupAccess($group, $account);
+    $is_anonymous = $account->id() === 0;
     $member_pending = $visibility === 'semiprivate' && $validation
       && !LearningPathAccess::statusGroupValidation($group, $account);
 
-    if ($visibility === 'public' && $isAnonymous) {
+    if ($visibility === 'public' && $is_anonymous) {
       $text = t('Start');
       $route = 'opigno_learning_path.steps.start';
       $attributes['class'][] = 'start-link';
     }
     elseif (!$group->getMember($account)) {
-      $text = ($current_route == 'entity.group.canonical') ? t('Subscribe to group') : t('Learn more') ;
+      $text = ($current_route == 'entity.group.canonical') ? t('Subscribe to group') : t('Learn more');
       $route = ($current_route == 'entity.group.canonical') ? 'entity.group.join' : 'entity.group.canonical';
       if ($current_route == 'entity.group.canonical') {
         $attributes['class'][] = 'join-link';
@@ -211,7 +208,8 @@ class DefaultTwigExtension extends \Twig_Extension {
 
       if (opigno_learning_path_started($group, $account)) {
         $attributes['class'][] = 'continue-link';
-      } else {
+      }
+      else {
         $attributes['class'][] = 'start-link';
       }
     }

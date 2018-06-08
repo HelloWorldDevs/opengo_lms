@@ -201,7 +201,6 @@ class LearningPathController extends ControllerBase {
     }
 
     $content = [];
-
     $content[] = [
       '#type' => 'container',
       '#attributes' => [
@@ -244,7 +243,7 @@ class LearningPathController extends ControllerBase {
           ],
         ],
       ],
-      (isset($summary) ? $summary : []),
+      isset($summary) ? $summary : [],
       '#attached' => [
         'library' => [
           'opigno_learning_path/training_content',
@@ -272,31 +271,14 @@ class LearningPathController extends ControllerBase {
     $continue_button = Link::fromTextAndUrl($continue_button_text, $continue_url)->toRenderable();
     $continue_button['#attributes']['class'][] = 'lp_progress_continue';
 
-    $roles = $user->getRoles();
-    $is_admin = in_array('administrator', $roles);
-    $is_platform_cm = in_array('content_manager', $roles);
-    $is_platform_um = in_array('user_manager', $roles);
-
-    $membership = $group->getMember($user);
-    $group_roles = $membership !== FALSE ? $membership->getRoles() : [];
-    $is_group_cm = array_key_exists('learning_path-content_manager', $group_roles);
-    $is_group_um = array_key_exists('learning_path-user_manager', $group_roles);
-
     $buttons = [];
-    if ($is_admin || $is_platform_cm || $is_group_cm) {
-      $buttons[] = $admin_continue_button;
-      $buttons[] = $edit_button;
-    }
-    elseif ($is_platform_um || $is_group_um) {
-      $buttons[] = $admin_continue_button;
-      $buttons[] = $members_button;
-    }
-    elseif ($group->hasPermission('administer group', $user)
+    if ($user->hasPermission('manage group content in any group')
       || $group->hasPermission('edit group', $user)) {
       $buttons[] = $admin_continue_button;
       $buttons[] = $edit_button;
     }
-    elseif ($group->hasPermission('administer members', $user)) {
+    elseif ($user->hasPermission('manage group members in any group')
+      || $group->hasPermission('administer members', $user)) {
       $buttons[] = $admin_continue_button;
       $buttons[] = $members_button;
     }
@@ -530,8 +512,8 @@ class LearningPathController extends ControllerBase {
       $forum_field = $group->get('field_learning_path_forum')->getValue();
       if (!empty($enable_forum_field) && !empty($forum_field)) {
         $enable_forum = $enable_forum_field[0]['value'];
-        if ($enable_forum) {
-          $forum_tid = $forum_field[0]['target_id'];
+        $forum_tid = $forum_field[0]['target_id'];
+        if ($enable_forum && _opigno_forum_access($forum_tid, $user)) {
           $forum_term = Term::load($forum_tid);
           $forum_controller = ForumController::create(\Drupal::getContainer());
           $forum = $forum_controller->forumPage($forum_term);
@@ -542,8 +524,11 @@ class LearningPathController extends ControllerBase {
 
           $content['tab-content'][] = [
             '#type' => 'container',
-            '#attributes' => ['id' => 'forum', 'class' => ['tab-pane', 'fade']],
-            $forum,
+            '#attributes' => [
+              'id' => 'forum',
+              'class' => ['tab-pane', 'fade'],
+            ],
+            'forum' => $forum,
           ];
         }
       }

@@ -62,6 +62,10 @@ class LearningPathMembersForm extends FormBase {
     /** @var \Drupal\group\Entity\GroupContentInterface $item */
     foreach ($content as $item) {
       $entity = $item->getEntity();
+      if ($entity === NULL) {
+        continue;
+      }
+
       $type = $entity->getEntityTypeId();
       $bundle = $entity->bundle();
 
@@ -139,7 +143,7 @@ class LearningPathMembersForm extends FormBase {
         '#attributes' => [
           'class' => ['class'],
         ],
-        'delete' => [
+        'class_delete' => [
           '#type' => 'submit',
           '#value' => $this->t('&times;'),
           '#submit' => [],

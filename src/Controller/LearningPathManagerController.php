@@ -67,8 +67,7 @@ class LearningPathManagerController extends ControllerBase {
       return AccessResult::forbidden();
     }
 
-    $is_platform_cm = in_array('content_manager', $account->getRoles());
-    if ($is_platform_cm) {
+    if ($account->hasPermission('manage group content in any group')) {
       return AccessResult::allowed();
     }
 
@@ -76,24 +75,15 @@ class LearningPathManagerController extends ControllerBase {
       return AccessResult::forbidden();
     }
 
-    $membership = $group->getMember($account);
-    if ($membership) {
-      $membershipRoles = $membership->getRoles();
-      $siteRoles = $account->getRoles();
-      if (!in_array('administrator', $siteRoles) && !array_key_exists('learning_path-admin', $membershipRoles)) {
-        return AccessResult::forbidden();
-      }
-    }
-    else {
+    if ($group->hasPermission('edit group', $account)) {
       return AccessResult::forbidden();
     }
 
-    if ($group->getGroupType()->id() == 'learning_path') {
-      return AccessResult::allowed();
-    }
-    else {
+    if ($group->getGroupType()->id() !== 'learning_path') {
       return AccessResult::forbidden();
     }
+
+    return AccessResult::allowed();
   }
 
   /**

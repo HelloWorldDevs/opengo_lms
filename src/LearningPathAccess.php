@@ -150,21 +150,19 @@ class LearningPathAccess {
    *   Membership object.
    */
   public static function membershipPreSave(EntityInterface &$membership) {
-    $status = Html::escape(\Drupal::request()->get('user_status'));
-    $update_source = Html::escape(\Drupal::request()->get('membership_update_source'));
-    if ($status) {
-      switch ($status) {
-        case 1:
-          if ($update_source == 'join') {
-            $membership->set('group_roles', ['learning_path-student']);
-          }
-          break;
+    /** @var \Drupal\group\Entity\GroupContentInterface $membership */
+    $group = $membership->getGroup();
+    $group_is_semiprivate = $group->hasField('field_learning_path_visibility')
+      && $group->get('field_learning_path_visibility')->getValue() === 'semiprivate';
+    $group_requires_validation = $group->hasField('field_requires_validation')
+      && $group->get('field_requires_validation')->getValue();
 
-        case 2:
-        case 3:
-          $membership->set('group_roles', []);
-          break;
-      }
+    if (!$group_is_semiprivate || !$group_requires_validation) {
+      $user_join = $membership->isNew()
+        && $membership->getEntity()->id() == $membership->getOwnerId();
+      // Add 'student' role if user is self-join group
+      // and group is not semiprivate with validation.
+      $membership->set('group_roles', $user_join ? ['learning_path-student'] : []);
     }
 
     LearningPathAccess::setLearningPathCourseMember($membership, 'update');
@@ -248,34 +246,20 @@ class LearningPathAccess {
    *   Membership object.
    */
   public static function mergeUserStatus(EntityInterface $membership) {
-    $status = Html::escape(\Drupal::request()->get('user_status'));
     $message = \Drupal::request()->get('user_message');
     $message = !empty($message) ? Html::escape($message) : '';
-    $uid = $membership->entity_id->entity->id();
-    $gid = $membership->gid->entity->id();
-
+    /** @var \Drupal\group\Entity\GroupContentInterface $membership */
     $group = $membership->getGroup();
+    $uid = $membership->getEntity()->id();
+    $gid = $group->id();
     $visibility = $group->field_learning_path_visibility->value;
     $validation = $group->field_requires_validation->value;
+    $status = in_array($visibility, ['semiprivate', 'private'])
+      && $validation ? 2 : 1;
 
-    $userEdited = FALSE;
-    if ($status) {
-      $userEdited = TRUE;
-    }
-    elseif (!$status && in_array($visibility, ['semiprivate', 'private'])) {
-      if ($validation) {
-        $status = 2;
-      }
-      else {
-        $status = 1;
-      }
-    }
-    elseif (!$status && $visibility == 'public') {
-      $status = 1;
-    }
-
-    $query = \Drupal::database()->merge('opigno_learning_path_group_user_status')
-      ->key(['mid' => $membership->id()])
+    $query = \Drupal::database()
+      ->merge('opigno_learning_path_group_user_status')
+      ->key('mid', $membership->id())
       ->insertFields([
         'mid' => $membership->id(),
         'uid' => $uid,
@@ -292,15 +276,19 @@ class LearningPathAccess {
     $result = $query->execute();
 
     if ($result) {
-      if ($group->bundle() == 'learning_path') {
+      if ($group->bundle() === 'learning_path') {
         $token = \Drupal::moduleHandler()->moduleExists('token') ? TRUE : FALSE;
         LearningPathAccess::notifyUsersByMail($group, $uid, $status, $token);
 
-        if (!$userEdited && $status == 1) {
-          drupal_set_message(t('Thanks for subscription!'));
-        }
-        elseif (!$userEdited && $status == 2) {
-          drupal_set_message(t('Thanks for subscription! Administrator activate your subscription soon.'));
+        if ($membership->isNew()
+          && $membership->getEntity()->id() == $membership->getOwnerId()) {
+          $messenger = \Drupal::messenger();
+          if ($status == 1) {
+            $messenger->addMessage(t('Thanks for subscription!'));
+          }
+          elseif ($status == 2) {
+            $messenger->addMessage(t('Thanks for subscription! Administrator activate your subscription soon.'));
+          }
         }
       }
     }
