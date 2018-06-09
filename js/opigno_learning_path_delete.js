@@ -2,7 +2,7 @@
 
 (function ($, Drupal) {
   Drupal.behaviors.opignoLearningPathDelete = {
-    attach(context) {
+    attach: function (context, settings) {
       $('a#edit-delete', context).click(function(e) {
         e.preventDefault();
         $('#delete-lp-form-overlay').fadeIn(200);

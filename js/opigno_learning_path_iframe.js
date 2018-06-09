@@ -2,17 +2,17 @@
 
 (function ($, Drupal) {
   Drupal.behaviors.opignoLearningPathIframe = {
-    attach() {
-      const self = this;
+    attach: function (context, settings) {
+      var self = this;
 
-      $(document).once().ajaxComplete(() => {
+      $(document).once().ajaxComplete(function () {
         if (self.inIframe()) {
           parent.iframeFormValues = drupalSettings.formValues;
         }
       });
     },
 
-    inIframe() {
+    inIframe: function () {
       try {
         return window.self !== window.top;
       }

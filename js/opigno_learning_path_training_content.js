@@ -1,13 +1,13 @@
 (function ($, Drupal, drupalSettings) {
   Drupal.behaviors.opignoLearningPathTrainingContent = {
-    attach(context) {
-      const $step_show = $('.lp_step_show', context);
-      const $step_hide = $('.lp_step_hide', context);
+    attach: function (context, settings) {
+      var $step_show = $('.lp_step_show', context);
+      var $step_hide = $('.lp_step_hide', context);
 
       $step_show.once('click').click(function (e) {
         e.preventDefault();
 
-        const $parent = $(this).parent('.lp_step');
+        var $parent = $(this).parent('.lp_step');
 
         if (!$parent) {
           return false;
@@ -23,7 +23,7 @@
       $step_hide.once('click').click(function (e) {
         e.preventDefault();
 
-        const $parent = $(this).parent('.lp_step');
+        var $parent = $(this).parent('.lp_step');
 
         if (!$parent) {
           return false;

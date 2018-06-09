@@ -1,7 +1,7 @@
 (function ($, Drupal, drupalSettings) {
   Drupal.behaviors.opignoLearningPathMemberOverview = {
-    attach(context) {
-      const gid = drupalSettings.opigno_learning_path.gid;
+    attach: function (context, settings) {
+      var gid = drupalSettings.opigno_learning_path.gid;
 
       $('#learning-path-members-form').submit(function (e) {
         e.preventDefault();
@@ -12,7 +12,7 @@
       $('.class_members_row', context).hide();
 
       function showClass($el) {
-        const $parent = $el.closest('.class');
+        var $parent = $el.closest('.class');
 
         if (!$parent.length) {
           return;
@@ -24,7 +24,7 @@
       }
 
       function hideClass($el) {
-        const $parent = $el.closest('.class');
+        var $parent = $el.closest('.class');
 
         if (!$parent.length) {
           return;
@@ -46,7 +46,7 @@
       $('.class_delete').once('click').click(function (e) {
         e.preventDefault();
 
-        const $this = $(this);
+        var $this = $(this);
 
         $.ajax({
           url: '/group/' + gid + '/learning-path/members/delete-class',
@@ -64,7 +64,7 @@
       $('.class_member_since_pending').once('click').click(function (e) {
         e.preventDefault();
 
-        const $this = $(this);
+        var $this = $(this);
 
         $.ajax({
           url: '/group/' + gid + '/learning-path/members/validate',
@@ -74,10 +74,10 @@
         }).done(function (e) {
           this.classList.remove('class_member_since_pending');
 
-          const date = new Date();
-          const day = date.getDate();
-          const month = date.getMonth() + 1;
-          const year = date.getFullYear();
+          var date = new Date();
+          var day = date.getDate();
+          var month = date.getMonth() + 1;
+          var year = date.getFullYear();
           this.textContent =
               (day < 10 ? '0' : '') + day + '/'
               + (month < 10 ? '0' : '') + month + '/'
@@ -90,7 +90,7 @@
       $('.class_member_toggle_sm').once('click').click(function (e) {
         e.preventDefault();
 
-        const $this = $(this);
+        var $this = $(this);
 
         $.ajax({
           url: '/group/' + gid + '/learning-path/members/toggle-role',
@@ -109,7 +109,7 @@
       $('.class_member_toggle_cm').once('click').click(function (e) {
         e.preventDefault();
 
-        const $this = $(this);
+        var $this = $(this);
 
         $.ajax({
           url: '/group/' + gid + '/learning-path/members/toggle-role',
@@ -129,8 +129,8 @@
         e.preventDefault();
 
         if (ui.item) {
-          const id = 'student_' + ui.item.id;
-          const $row = $('#' + id);
+          var id = 'student_' + ui.item.id;
+          var $row = $('#' + id);
 
           if ($row.length) {
             showClass($row);
@@ -138,8 +138,8 @@
             window.location.hash = id;
             window.scrollBy(0, -100);
           } else {
-            const id = 'individual_' + ui.item.id;
-            const $row = $('#' + id);
+            var id = 'individual_' + ui.item.id;
+            var $row = $('#' + id);
 
             if ($row.length) {
               showClass($row);
@@ -157,8 +157,8 @@
         e.preventDefault();
 
         if (ui.item) {
-          const id = 'individual_' + ui.item.id;
-          const $row = $('#' + id);
+          var id = 'individual_' + ui.item.id;
+          var $row = $('#' + id);
 
           if ($row.length) {
             showClass($row);
@@ -174,7 +174,7 @@
       $('.class_member_delete').once('click').click(function (e) {
         e.preventDefault();
 
-        const $this = $(this);
+        var $this = $(this);
 
         $.ajax({
           url: '/group/' + gid + '/learning-path/members/delete-user',
