@@ -7,9 +7,11 @@
 
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Link;
+use Drupal\Core\PhpStorage\PhpStorageFactory;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -1013,7 +1015,23 @@ function opigno_learning_path_group_membership_form_submit(array $form, FormStat
     /** @var \Drupal\group\Entity\GroupContentInterface $entity */
     $entity = $form_state->getFormObject()->getEntity();
     if ($entity->getOwnerId() === \Drupal::currentUser()->id()) {
-      drupal_flush_all_caches();
+      // Partial flush cache.
+      $module_handler = \Drupal::moduleHandler();
+      // Flush all persistent caches.
+      // This is executed based on old/previously known information, which is
+      // sufficient, since new extensions cannot have any primed caches yet.
+      $module_handler->invokeAll('cache_flush');
+      foreach (Cache::getBins() as $service_id => $cache_backend) {
+        $cache_backend->deleteAll();
+      }
+      // Flush asset file caches.
+      \Drupal::service('asset.css.collection_optimizer')->deleteAll();
+      \Drupal::service('asset.js.collection_optimizer')->deleteAll();
+      _drupal_flush_css_js();
+      // Wipe the Twig PHP Storage cache.
+      PhpStorageFactory::get('twig')->deleteAll();
+      // Clear all plugin caches.
+      \Drupal::service('plugin.cache_clearer')->clearCachedDefinitions();
     }
   }
 }
