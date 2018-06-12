@@ -150,19 +150,20 @@ class LearningPathAccess {
    *   Membership object.
    */
   public static function membershipPreSave(EntityInterface &$membership) {
-    /** @var \Drupal\group\Entity\GroupContentInterface $membership */
-    $group = $membership->getGroup();
-    $group_is_semiprivate = $group->hasField('field_learning_path_visibility')
-      && $group->get('field_learning_path_visibility')->getValue() === 'semiprivate';
-    $group_requires_validation = $group->hasField('field_requires_validation')
-      && $group->get('field_requires_validation')->getValue();
+    if ($membership->isNew()) {
+      /** @var \Drupal\group\Entity\GroupContentInterface $membership */
+      $group = $membership->getGroup();
+      $group_is_semiprivate = $group->hasField('field_learning_path_visibility')
+        && $group->get('field_learning_path_visibility')->getValue() === 'semiprivate';
+      $group_requires_validation = $group->hasField('field_requires_validation')
+        && $group->get('field_requires_validation')->getValue();
 
-    if (!$group_is_semiprivate || !$group_requires_validation) {
-      $user_join = $membership->isNew()
-        && $membership->getEntity()->id() == $membership->getOwnerId();
-      // Add 'student' role if user is self-join group
-      // and group is not semiprivate with validation.
-      $membership->set('group_roles', $user_join ? ['learning_path-student'] : []);
+      if (!$group_is_semiprivate || !$group_requires_validation) {
+        $user_join = $membership->getEntity()->id() == $membership->getOwnerId();
+        // Add 'student' role if user is self-join group
+        // and group is not semiprivate with validation.
+        $membership->set('group_roles', $user_join ? ['learning_path-student'] : []);
+      }
     }
 
     LearningPathAccess::setLearningPathCourseMember($membership, 'update');

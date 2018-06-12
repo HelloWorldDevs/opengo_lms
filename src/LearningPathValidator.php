@@ -54,6 +54,8 @@ class LearningPathValidator {
     $current_step = opigno_learning_path_get_current_step();
     $current_route = \Drupal::routeMatch()->getRouteName();
     $messenger = \Drupal::messenger();
+    $url_param = \Drupal::service('current_route_match');
+    $current = $url_param->getParameter('current');
     // Step 1 doesn't need validation because it has form validation.
     if ($current_step == 1) {
       return;
@@ -68,7 +70,10 @@ class LearningPathValidator {
       if (empty($contents)) {
         $step = 2;
         $route = array_search($step, opigno_learning_path_get_routes_steps());
-        $messenger->addError("Please, add some course or module!");
+        // Show message only if user click on "next" button from current route.
+        if ($current == strval($step)) {
+            $messenger->addError("Please, add some course or module!");
+        }
       }
       // Learning path is created and not empty
       else {
@@ -85,7 +90,10 @@ class LearningPathValidator {
         if (!$has_mandatory) {
           $step = 2;
           $route = array_search($step, opigno_learning_path_get_routes_steps());
+          // Show message only if user click on "next" button from current route.
+          if ($current == strval($step)) {
           $messenger->addError("At least one entity must be mandatory!");
+          }
         }
         else {
           foreach ($contents as $cid => $content) {
@@ -99,8 +107,11 @@ class LearningPathValidator {
               if (empty($activities)) {
                 $step = 4;
                 $route = array_search($step, opigno_learning_path_get_routes_steps());
-                $messenger->addError("Please, add at least one activity to {$module->label()} module!");
-              };
+                // Show message only if user click on "next" button from current route.
+                if ($current == strval($step)) {
+                  $messenger->addError("Please, add at least one activity to {$module->label()} module!");
+                }
+              }
             }
             else {
               if ($type_id === 'ContentTypeCourse') {
@@ -109,7 +120,10 @@ class LearningPathValidator {
                 if (empty($contents)) {
                   $step = 3;
                   $route = array_search($step, opigno_learning_path_get_routes_steps());
-                  $messenger->addError("Please, add to course at least one module!");
+                  // Show message only if user click on "next" button from current route.
+                  if ($current == strval($step)) {
+                    $messenger->addError("Please, add to course at least one module!");
+                  }
                 }
                 else {
                   foreach ($contents as $cid => $content) {
@@ -121,8 +135,11 @@ class LearningPathValidator {
                     if (empty($activities)) {
                       $step = 4;
                       $route = array_search($step, opigno_learning_path_get_routes_steps());
-                      $messenger->addError("Please, add at least one activity to {$module->label()} module!");
-                    };
+                      // Show message only if user click on "next" button from current route.
+                      if ($current == strval($step)) {
+                        $messenger->addError("Please, add at least one activity to {$module->label()} module!");
+                      }
+                    }
                   }
                 }
               }
