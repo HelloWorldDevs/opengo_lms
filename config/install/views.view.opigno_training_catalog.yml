@@ -6,7 +6,7 @@ dependencies:
     - field.storage.group.field_learning_path_description
     - field.storage.group.field_learning_path_image
     - group.type.learning_path
-    - image.style.medium
+    - image.style.catalog_thumbnail
     - taxonomy.vocabulary.learning_path_category
   module:
     - better_exposed_filters
@@ -129,8 +129,8 @@ display:
           label: ''
           exclude: true
           alter:
-            alter_text: false
-            text: ''
+            alter_text: true
+            text: group-member
             make_link: false
             path: ''
             absolute: false
@@ -213,14 +213,14 @@ display:
           element_wrapper_type: ''
           element_wrapper_class: ''
           element_default_classes: true
-          empty: ''
+          empty: '{{ opigno_catalog_get_default_image(''learning_path'') }}'
           hide_empty: false
           empty_zero: false
           hide_alter_empty: true
           click_sort_column: target_id
           type: image
           settings:
-            image_style: medium
+            image_style: catalog_thumbnail
             image_link: ''
           group_column: entity_id
           group_columns: {  }
@@ -569,6 +569,7 @@ display:
               content_manager: '0'
               user_manager: '0'
               statistics_reader: '0'
+              opigno_administrator: '0'
           is_grouped: false
           group_info:
             label: ''
@@ -611,6 +612,7 @@ display:
               content_manager: '0'
               user_manager: '0'
               statistics_reader: '0'
+              opigno_administrator: '0'
             reduce: false
           is_grouped: false
           group_info:

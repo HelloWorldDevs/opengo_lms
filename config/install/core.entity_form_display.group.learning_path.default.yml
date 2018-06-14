@@ -9,7 +9,6 @@ dependencies:
     - field.field.group.learning_path.field_learning_path_duration
     - field.field.group.learning_path.field_learning_path_enable_forum
     - field.field.group.learning_path.field_learning_path_folder
-    - field.field.group.learning_path.field_learning_path_forum
     - field.field.group.learning_path.field_learning_path_image
     - field.field.group.learning_path.field_learning_path_published
     - field.field.group.learning_path.field_learning_path_visibility
@@ -97,7 +96,6 @@ content:
     third_party_settings: {  }
 hidden:
   field_learning_path_folder: true
-  field_learning_path_forum: true
   field_learning_path_published: true
   path: true
   uid: true
