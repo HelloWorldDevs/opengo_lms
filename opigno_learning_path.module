@@ -2099,3 +2099,15 @@ function opigno_learning_path_resumed_step(array $steps) {
   }
   return FALSE;
 }
+
+/**
+ * Implements hook_user_login().
+ */
+function opigno_learning_path_user_login($account) {
+  // Redirect user to previous page.
+  $previous_url = \Drupal::request()->query->get('prev_path');
+  if ($previous_url) {
+    $response = new RedirectResponse($previous_url);
+    $response->send();
+  }
+}
