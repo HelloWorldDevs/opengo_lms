@@ -103,18 +103,19 @@ class DefaultTwigExtension extends \Twig_Extension {
   }
 
   function get_join_group_link($group = NULL, $account = NULL, $attributes = []) {
-    if (!$group) {
-      $group = \Drupal::routeMatch()->getParameter('group');
+    $route = \Drupal::routeMatch();
+
+    if (!isset($group)) {
+      $group = $route->getParameter('group');
     }
 
-    if (!$account) {
+    if (!isset($account)) {
       $account = \Drupal::currentUser();
     }
 
-    $route = \Drupal::routeMatch()->getRouteName();
-    $access = LearningPathAccess::getGroupAccess($group, $account);
-
-    if ($group && $group->id() && $route == 'entity.group.canonical' && $access) {
+    $route_name = $route->getRouteName();
+    $access = isset($group) && $group->access('view', $account);
+    if ($route_name == 'entity.group.canonical' && $access) {
       $link = NULL;
       $visibility = $group->field_learning_path_visibility->value;
       $validation = $group->field_requires_validation->value;
@@ -135,6 +136,7 @@ class DefaultTwigExtension extends \Twig_Extension {
             'route' => 'opigno_learning_path.steps.start',
             'args' => ['group' => $group->id()],
           ];
+          $attributes['class'][] = 'use-ajax';
         }
         else {
           $url = Url::fromRoute('entity.group.canonical', ['group' => $group->id()]);
@@ -188,6 +190,7 @@ class DefaultTwigExtension extends \Twig_Extension {
     if ($visibility === 'public' && $is_anonymous) {
       $text = t('Start');
       $route = 'opigno_learning_path.steps.start';
+      $attributes['class'][] = 'use-ajax';
       $attributes['class'][] = 'start-link';
     }
     elseif (!$group->getMember($account)) {
@@ -205,6 +208,7 @@ class DefaultTwigExtension extends \Twig_Extension {
     else {
       $text = opigno_learning_path_started($group, $account) ? t('Continue training') : t('Start');
       $route = 'opigno_learning_path.steps.start';
+      $attributes['class'][] = 'use-ajax';
 
       if (opigno_learning_path_started($group, $account)) {
         $attributes['class'][] = 'continue-link';

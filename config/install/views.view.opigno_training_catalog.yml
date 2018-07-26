@@ -16,7 +16,7 @@ dependencies:
     - taxonomy
     - text
 id: opigno_training_catalog
-label: 'Opigno training catalog'
+label: 'Opigno training catalogue'
 module: views
 description: ''
 tag: ''
@@ -741,7 +741,7 @@ display:
     position: 1
     display_options:
       display_extenders: {  }
-      path: catalog
+      path: catalogue
       display_description: ''
       exposed_block: true
     cache_metadata:

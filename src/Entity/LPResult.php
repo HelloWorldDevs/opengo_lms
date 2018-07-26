@@ -2,7 +2,6 @@
 
 namespace Drupal\opigno_learning_path\Entity;
 
-use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -24,6 +23,9 @@ use Drupal\user\Entity\User;
  *     "learning_path_id" = "learning_path_id",
  *     "user_id" = "user_id",
  *     "has_passed" = "has_passed"
+ *   },
+ *   handlers = {
+ *    "access" = "Drupal\opigno_learning_path\LPResultAccessControlHandler",
  *   }
  * )
  */
@@ -213,7 +215,7 @@ class LPResult extends ContentEntityBase {
   /**
    * @param array $properties
    * @return \Drupal\Core\Entity\EntityInterface[]|self[]
-   * @throws InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    */
   public static function loadByProperties($properties) {
     return \Drupal::entityTypeManager()->getStorage('learning_path_result')->loadByProperties($properties);
@@ -222,11 +224,11 @@ class LPResult extends ContentEntityBase {
   /**
    * @param Group $learning_path
    * @return \Drupal\Core\Entity\EntityInterface[]|self[]
-   * @throws InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    */
   public static function loadByLearningPath(Group $learning_path) {
     return self::loadByProperties([
-      'learning_path_id' => $learning_path->id()
+      'learning_path_id' => $learning_path->id(),
     ]);
   }
 }

@@ -35,6 +35,22 @@
 
         return false;
       });
+
+      // Workspace should be visible for a correct Moxtra load.
+      const $workspace = $('#collaborative-workspace', context);
+      const $workspace_container = $('#collaborative_workspace_container', $workspace);
+      if ($workspace_container.length) {
+        const workspace = $workspace.get(0);
+        // Make workspace visible outside the screen.
+        workspace.style.display = 'block';
+        workspace.style.position = 'fixed';
+        workspace.style.top = '100%';
+
+        $workspace.on('moxtra_loaded', '#collaborative_workspace_container', function (e) {
+          // Unset inline styles on the workspace.
+          workspace.removeAttribute('style');
+        });
+      }
     },
   };
 }(jQuery, Drupal, drupalSettings));

@@ -17,7 +17,7 @@ interface LatestActivityInterface extends ContentEntityInterface {
    * @return int
    *   The training ID.
    */
-  public function getTraining();
+  public function getTrainingId();
 
   /**
    * Sets the training ID.
@@ -28,7 +28,26 @@ interface LatestActivityInterface extends ContentEntityInterface {
    * @return \Drupal\opigno_learning_path\LatestActivityInterface
    *   The called entity.
    */
-  public function setTraining($id);
+  public function setTrainingId($id);
+
+  /**
+   * Gets the training entity.
+   *
+   * @return \Drupal\group\Entity\GroupInterface
+   *   The training entity.
+   */
+  public function getTraining();
+
+  /**
+   * Sets the training entity.
+   *
+   * @param \Drupal\group\Entity\GroupInterface $training
+   *   The training entity.
+   *
+   * @return \Drupal\opigno_learning_path\LatestActivityInterface
+   *   The called entity.
+   */
+  public function setTraining($training);
 
   /**
    * Gets the module ID.
@@ -36,7 +55,7 @@ interface LatestActivityInterface extends ContentEntityInterface {
    * @return int
    *   The module ID.
    */
-  public function getModule();
+  public function getModuleId();
 
   /**
    * Sets the module ID.
@@ -47,7 +66,26 @@ interface LatestActivityInterface extends ContentEntityInterface {
    * @return \Drupal\opigno_learning_path\LatestActivityInterface
    *   The called entity.
    */
-  public function setModule($id);
+  public function setModuleId($id);
+
+  /**
+   * Gets the module entity.
+   *
+   * @return \Drupal\opigno_module\Entity\OpignoModuleInterface
+   *   The module entity.
+   */
+  public function getModule();
+
+  /**
+   * Sets the module entity.
+   *
+   * @param \Drupal\opigno_module\Entity\OpignoModuleInterface $module
+   *   The module entity.
+   *
+   * @return \Drupal\opigno_learning_path\LatestActivityInterface
+   *   The called entity.
+   */
+  public function setModule($module);
 
   /**
    * Gets the timestamp.

@@ -23,3 +23,4 @@ permissions:
   10: 'tft delete child terms'
   11: 'tft reorder terms'
   12: 'edit group'
+  13: 'view own results'

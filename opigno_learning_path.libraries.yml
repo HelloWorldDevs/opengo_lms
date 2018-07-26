@@ -10,6 +10,18 @@
 #     theme:
 #       https://fonts.googleapis.com/icon?family=Material+Icons: { type: external }
 #
+global:
+  version: VERSION
+  js:
+    js/opigno_learning_path_global.js: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - core/drupalSettings
+  css:
+    theme:
+      css/opigno_learning_path_global.css: {}
+
 ajax_form:
   version: VERSION
   js:

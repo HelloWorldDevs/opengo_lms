@@ -2,19 +2,15 @@
 
 namespace Drupal\opigno_learning_path\Controller;
 
-use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\OpenModalDialogCommand;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Form\FormBuilderInterface;
-use Drupal\Core\Session\AccountInterface;
 use Drupal\group\Entity\Group;
-use Drupal\opigno_learning_path\LearningPathValidator;
 use Drupal\user\Entity\User;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -278,13 +274,6 @@ class LearningPathMembershipController extends ControllerBase {
       throw new NotFoundHttpException();
     }
 
-    $account = $this->currentUser();
-    if (!$account->hasPermission('manage group members in any group')
-      && !$group->hasPermission('administer members', $account)
-      && !$member->getGroupContent()->access('delete', $account)) {
-      throw new AccessDeniedHttpException();
-    }
-
     $group->removeMember($user);
     return new JsonResponse();
   }
@@ -318,12 +307,6 @@ class LearningPathMembershipController extends ControllerBase {
 
       if ($type === 'group' && $bundle === 'opigno_class'
         && $entity->id() === $class->id()) {
-        if (!$account->hasPermission('manage group members in any group')
-          && !$group->hasPermission('administer members', $account)
-          && !$item->access('delete', $account)) {
-          throw new AccessDeniedHttpException();
-        }
-
         $item->delete();
         break;
       }
@@ -353,13 +336,6 @@ class LearningPathMembershipController extends ControllerBase {
     $member = $group->getMember($user);
     if (!isset($member)) {
       throw new NotFoundHttpException();
-    }
-
-    $account = $this->currentUser();
-    if (!$account->hasPermission('manage group members in any group')
-      && !$group->hasPermission('administer members', $account)
-      && !$member->getGroupContent()->access('update', $account)) {
-      throw new AccessDeniedHttpException();
     }
 
     $group_content = $member->getGroupContent();
@@ -408,13 +384,6 @@ class LearningPathMembershipController extends ControllerBase {
       throw new NotFoundHttpException();
     }
 
-    $account = $this->currentUser();
-    if (!$account->hasPermission('manage group content in any group')
-      && !$group->hasPermission('administer members', $account)
-      && !$member->getGroupContent()->access('update', $account)) {
-      throw new AccessDeniedHttpException();
-    }
-
     $group_content = $member->getGroupContent();
 
     $query = \Drupal::database()
@@ -440,6 +409,11 @@ class LearningPathMembershipController extends ControllerBase {
       $tags = $member->getCacheTags();
       \Drupal::service('cache_tags.invalidator')
         ->invalidateTags($tags);
+
+      // Set notification.
+      opigno_set_message($uid, t('Enrollment validated to a new training @name', [
+        '@name' => $group->label(),
+      ]));
 
       // Send email.
       $module = 'opigno_learning_path';
@@ -470,40 +444,6 @@ Your membership to the training @training has been approved. You can now access 
     }
 
     return new JsonResponse();
-  }
-
-  public function access(Group $group, AccountInterface $account) {
-    // Check if user has uncompleted steps.
-    LearningPathValidator::stepsValidate($group);
-
-    if (empty($group) || !is_object($group)) {
-      return AccessResult::forbidden();
-    }
-
-    if (!$group->access('view', $account)) {
-      return AccessResult::forbidden();
-    }
-
-    return AccessResult::allowed();
-  }
-
-  /**
-   * Checks that user has management access to the group members.
-   */
-  public function manageAccess(Group $group, AccountInterface $account) {
-    // Check if user has uncompleted steps.
-    LearningPathValidator::stepsValidate($group);
-
-    if (empty($group) || !is_object($group)) {
-      return AccessResult::forbidden();
-    }
-
-    if ($account->hasPermission('manage group members in any group')
-      || $group->hasPermission('administer members', $account)) {
-      return AccessResult::allowed();
-    }
-
-    return AccessResult::forbidden();
   }
 
 }

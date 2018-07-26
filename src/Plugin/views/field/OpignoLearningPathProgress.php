@@ -1,11 +1,9 @@
 <?php
 namespace Drupal\opigno_learning_path\Plugin\views\field;
 
-use Drupal\group\Entity\Group;
 use Drupal\opigno_learning_path\Entity\LatestActivity;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
 use Drupal\views\ResultRow;
-
 
 /**
  * Field handler to output user progress for current LP.
@@ -17,27 +15,25 @@ use Drupal\views\ResultRow;
 class OpignoLearningPathProgress extends FieldPluginBase {
 
   /**
-   * @{inheritdoc}
+   * {@inheritdoc}
    */
   public function query() {
     // Leave empty to avoid a query on this field.
   }
 
   /**
-   * @{inheritdoc}
+   * {@inheritdoc}
    */
   public function render(ResultRow $values) {
     $account = \Drupal::currentUser();
     // Get an entity object.
-    $group = $values->_entity;
+    $entity = $values->_entity;
+    $group = $entity instanceof LatestActivity ? $entity->getTraining() : $entity;
+    if (!is_null($group)) {
+      $group_progress = opigno_learning_path_progress($group->id(), $account->id());
+      return round(100 * $group_progress) . '%';
+    };
 
-    if ($group instanceof LatestActivity) {
-      $group = Group::load($group->getTraining());
-      if (!is_null($group)) {
-        $group_progress = opigno_learning_path_progress($group->id(), $account->id());
-        return round(100 * $group_progress) . '%';
-      };
-    }
     return '';
   }
 

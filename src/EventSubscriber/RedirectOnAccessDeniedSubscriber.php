@@ -51,7 +51,7 @@ class RedirectOnAccessDeniedSubscriber implements EventSubscriberInterface {
     $is_anonymous = $this->user->isAnonymous();
     if ($is_anonymous && $status_code == 403) {
       $current_path = \Drupal::service('path.current')->getPath();
-      $response = new RedirectResponse("/user/login/?prev_path={$current_path}", 301);
+      $response = new RedirectResponse("/user/login/?prev_path={$current_path}");
 
       $event->setResponse($response);
     }

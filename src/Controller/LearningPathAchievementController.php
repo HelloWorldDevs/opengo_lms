@@ -3,15 +3,37 @@
 namespace Drupal\opigno_learning_path\Controller;
 
 use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\AppendCommand;
+use Drupal\Core\Ajax\ReplaceCommand;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Database\Connection;
+use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Link;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\group\Entity\Group;
+use Drupal\h5p\Entity\H5PContent;
 use Drupal\opigno_module\Entity\OpignoActivity;
 use Drupal\opigno_module\Entity\OpignoModule;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class LearningPathAchievementController extends ControllerBase {
+
+  /** @var \Drupal\Core\Database\Connection $db */
+  protected $database;
+
+  public function __construct(Connection $database) {
+    $this->database = $database;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static($container->get('database'));
+  }
 
   /**
    * Returns max score that user can have in this module & activity.
@@ -22,9 +44,7 @@ class LearningPathAchievementController extends ControllerBase {
    * @return int
    */
   protected function get_activity_max_score($module, $activity) {
-    /* @var $db_connection \Drupal\Core\Database\Connection */
-    $db_connection = \Drupal::service('database');
-    $query = $db_connection->select('opigno_module_relationship', 'omr')
+    $query = $this->database->select('opigno_module_relationship', 'omr')
       ->fields('omr', ['max_score'])
       ->condition('omr.parent_id', $module->id())
       ->condition('omr.parent_vid', $module->getRevisionId())
@@ -116,56 +136,34 @@ class LearningPathAchievementController extends ControllerBase {
    * @return array
    */
   protected function build_step_state($step) {
-    $user = $this->currentUser();
-    $uid = $user->id();
-
-    if ($step['typology'] === 'Module') {
-      $activities = opigno_learning_path_get_module_activities($step['id'], $uid);
-    }
-    elseif ($step['typology'] === 'Course') {
-      $activities = opigno_learning_path_get_activities($step['id'], $uid);
-    }
-    else {
-      return ['#markup' => '&dash;'];
-    }
-
-    $total = count($activities);
-    $attempted = count(array_filter($activities, function ($activity) {
-      return $activity['answers'] > 0;
-    }));
-
-    $progress = $total > 0
-      ? $attempted / $total
-      : 0;
-
-    if ($progress < 1) {
-      $state = '<span class="lp_step_state_pending"></span>' . t('Pending');
-    }
-    else {
-      $score = $step['best score'];
-      $min_score = $step['required score'];
-
-      if ($score < $min_score) {
-        $state = '<span class="lp_step_state_failed"></span>' . t('Failed');
-      }
-      else {
-        $state = '<span class="lp_step_state_passed"></span>' . t('Passed');
-      }
-    }
-
-    return ['#markup' => $state];
+    $uid = $this->currentUser()->id();
+    $status = opigno_learning_path_get_step_status($step, $uid);
+    $markups = [
+      'pending' => '<span class="lp_step_state_pending"></span>'
+        . t('Pending'),
+      'failed' => '<span class="lp_step_state_failed"></span>'
+        . t('Failed'),
+      'passed' => '<span class="lp_step_state_passed"></span>'
+        . t('Passed'),
+    ];
+    $markup = isset($markups[$status]) ? $markups[$status] : '&dash;';
+    return ['#markup' => $markup];
   }
 
   /**
-   * @param array $step
+   * @param \Drupal\group\Entity\GroupInterface $training
+   * @param null|\Drupal\group\Entity\GroupInterface $course
+   * @param \Drupal\opigno_module\Entity\OpignoModule $module
    *
    * @return array
    */
-  protected function build_module_panel($step) {
+  protected function build_module_panel($training, $course, $module) {
     /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
     $date_formatter = \Drupal::service('date.formatter');
     $user = $this->currentUser();
 
+    $parent = isset($course) ? $course : $training;
+    $step = opigno_learning_path_get_module_step($parent->id(), $user->id(), $module);
     $completed_on = $step['completed on'];
     $completed_on = $completed_on > 0
       ? $date_formatter->format($completed_on, 'custom', 'F d, Y')
@@ -229,7 +227,7 @@ class LearningPathAchievementController extends ControllerBase {
             '#type' => 'html_tag',
             '#tag' => 'span',
             '#attributes' => [
-              'class' => [$score >= $max_score
+              'class' => [isset($answer)
                 ? 'lp_step_state_passed'
                 : 'lp_step_state_failed'],
             ],
@@ -247,11 +245,21 @@ class LearningPathAchievementController extends ControllerBase {
       '#rows' => $activities,
     ];
 
+    $training_id = $training->id();
+    $module_id = $module->id();
+    if (isset($course)) {
+      $course_id = $course->id();
+      $id = "module_panel_${training_id}_${course_id}_${module_id}";
+    }
+    else {
+      $id = "module_panel_${training_id}_${module_id}";
+    }
+
     return [
       '#type' => 'container',
       '#attributes' => [
+        'id' => $id,
         'class' => ['lp_module_panel'],
-        'data-module-id' => $step['id'],
       ],
       [
         '#type' => 'container',
@@ -330,33 +338,131 @@ class LearningPathAchievementController extends ControllerBase {
   }
 
   /**
-   * @param array $course
+   * @param \Drupal\group\Entity\GroupInterface $training
+   * @param \Drupal\opigno_module\Entity\OpignoModule $module
+   *
+   * @return integer
+   */
+  protected function module_approved_activities($parent, $module)
+  {
+    $approved = 0;
+    $user = $this->currentUser();
+    $parent = \Drupal\group\Entity\Group::load($parent);
+    $module = \Drupal\opigno_module\Entity\OpignoModule::load($module);
+
+    $step = opigno_learning_path_get_module_step($parent->id(), $user->id(), $module);
+
+    /** @var \Drupal\opigno_module\Entity\OpignoModule $module */
+    $module = OpignoModule::load($step['id']);
+    /** @var \Drupal\opigno_module\Entity\UserModuleStatus[] $attempts */
+    $attempts = $module->getModuleAttempts($user);
+
+    $activities = $module->getModuleActivities();
+    /** @var \Drupal\opigno_module\Entity\OpignoActivity[] $activities */
+    $activities = array_map(function ($activity) {
+      /** @var \Drupal\opigno_module\Entity\OpignoActivity $activity */
+      return OpignoActivity::load($activity->id);
+    }, $activities);
+
+    if (!empty($attempts)) {
+      usort($attempts, function ($a, $b) {
+        /** @var \Drupal\opigno_module\Entity\UserModuleStatus $a */
+        /** @var \Drupal\opigno_module\Entity\UserModuleStatus $b */
+        $b_score = opigno_learning_path_get_attempt_score($b);
+        $a_score = opigno_learning_path_get_attempt_score($a);
+        return $b_score - $a_score;
+      });
+
+      $best_attempt = reset($attempts);
+      $max_score = $best_attempt->calculateMaxScore();
+      $score_percent = opigno_learning_path_get_attempt_score($best_attempt);
+      $score = round($score_percent * $max_score / 100);
+    }
+    else {
+      $best_attempt = NULL;
+      $max_score = !empty($activities)
+        ? array_sum(array_map(function ($activity) use ($module) {
+          return (int) $this->get_activity_max_score($module, $activity);
+        }, $activities))
+        : 0;
+      $score_percent = 0;
+      $score = 0;
+    }
+
+    $activities = array_map(function ($activity) use ($user, $module, $best_attempt) {
+      /** @var \Drupal\opigno_module\Entity\OpignoActivity $activity */
+      /** @var \Drupal\opigno_module\Entity\OpignoAnswer $answer */
+      $answer = isset($best_attempt)
+        ? $activity->getUserAnswer($module, $best_attempt, $user)
+        : NULL;
+      $score = isset($answer) ? $answer->getScore() : 0;
+      $max_score = (int) $this->get_activity_max_score($module, $activity);
+
+      return [
+        isset($answer) ? 'lp_step_state_passed' : 'lp_step_state_failed',
+      ];
+    }, $activities);
+
+    foreach ($activities as $activity) {
+
+      if ($activity[0] == 'lp_step_state_passed') {
+        $approved++;
+      }
+    }
+
+    return $approved;
+  }
+
+  /**
+   * @param \Drupal\group\Entity\GroupInterface $training
+   *   Parent training group entity.
+   * @param \Drupal\group\Entity\GroupInterface $course
+   *   Course group entity.
    *
    * @return array
    */
-  protected function build_course_steps($course) {
+  protected function build_course_steps($training, $course) {
     $user = $this->currentUser();
-    $steps = opigno_learning_path_get_steps($course['id'], $user->id());
-    $rows = array_map(function ($step) use ($user) {
+    $steps = opigno_learning_path_get_steps($course->id(), $user->id());
+    $rows = array_map(function ($step) use ($training, $course, $user) {
+      // var_dump($step);
       return [
-        'data-module-id' => $step['id'],
+        'data-training' => $training->id(),
+        'data-course' => $course->id(),
+        'data-module' => $step['id'],
         'data' => [
           ['data' => $this->build_step_name($step)],
           ['data' => $this->build_step_score($step)],
           ['data' => $this->build_step_state($step)],
+          ['data' => Link::createFromRoute(t('details'), 'opigno_module.module_result', [
+            'opigno_module' => $step['id'],
+            'user_module_status' => $step['best_attempt'],
+          ])->toRenderable()]
         ],
       ];
     }, $steps);
 
-    $modules = array_filter($steps, function ($step) {
+    $module_steps = array_filter($steps, function ($step) {
       return $step['typology'] === 'Module';
     });
-    $module_panels = array_map([$this, 'build_module_panel'], $modules);
+    $module_panels = array_map(function ($step) use ($training, $course) {
+      $training_id = $training->id();
+      $course_id = $course->id();
+      $module_id = $step['id'];
+      return [
+        '#type' => 'container',
+        '#attributes' => [
+          'id' => "module_panel_${training_id}_${course_id}_${module_id}",
+          'class' => ['lp_module_panel'],
+        ],
+      ];
+    }, $module_steps);
 
     return [
       '#type' => 'container',
       '#attributes' => [
-        'class' => ['lp_course_steps_wrapper'],
+        'id' => 'course_steps_' . $course->id(),
+        'class' => ['lp_course_steps_wrapper', 'ml-7', 'mr-5', 'mb-5'],
       ],
       [
         '#type' => 'html_tag',
@@ -369,12 +475,13 @@ class LearningPathAchievementController extends ControllerBase {
       [
         '#type' => 'table',
         '#attributes' => [
-          'class' => ['lp_course_steps'],
+          'class' => ['lp_course_steps', 'mb-0'],
         ],
         '#header' => [
           t('Module'),
           t('Results'),
           t('State'),
+          t('Details'),
         ],
         '#rows' => $rows,
       ],
@@ -383,105 +490,183 @@ class LearningPathAchievementController extends ControllerBase {
   }
 
   /**
-   * @param \Drupal\group\Entity\GroupInterface $lp
+   * @param \Drupal\group\Entity\GroupInterface $training
+   *   Parent training group entity.
+   * @param \Drupal\group\Entity\GroupInterface $course
+   *   Course group entity.
    *
    * @return array
    */
-  protected function build_lp_steps($lp) {
+  protected function course_steps_passed($training, $course)
+  {
     $user = $this->currentUser();
-    $steps = opigno_learning_path_get_steps($lp->id(), $user->id());
+    $steps = opigno_learning_path_get_steps($course->id(), $user->id());
+
+    $passed = 0;
+    foreach ($steps as $step) {
+      $status = opigno_learning_path_get_step_status($step, $user->id());
+      if ($status == 'passed') {
+        $passed++;
+      }
+    }
+
+    return [
+      'passed' => $passed,
+      'total' => count($steps),
+    ];
+  }
+
+  /**
+   * @param \Drupal\group\Entity\GroupInterface $group
+   *
+   * @return array
+   */
+  protected function build_lp_steps($group) {
+    $user = $this->currentUser();
+    $uid = $user->id();
+    $result = (int) $this->database
+      ->select('opigno_learning_path_achievements', 'a')
+      ->fields('a')
+      ->condition('uid', $user->id())
+      ->condition('gid', $group->id())
+      ->condition('status', 'completed')
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+    if ($result === 0) {
+      $steps = opigno_learning_path_get_steps($group->id(), $user->id());
+      $steps = array_filter($steps, function ($step) use ($user) {
+        if ($step['typology'] === 'Meeting') {
+          // If the user have not the collaborative features role.
+          if (!$user->hasPermission('view meeting entities')) {
+            return FALSE;
+          }
+
+          // If the user is not a member of the meeting.
+          /** @var \Drupal\opigno_moxtra\MeetingInterface $meeting */
+          $meeting = \Drupal::entityTypeManager()
+            ->getStorage('opigno_moxtra_meeting')
+            ->load($step['id']);
+          if (!$meeting->isMember($user->id())) {
+            return FALSE;
+          }
+        }
+        elseif ($step['typology'] === 'ILT') {
+          // If the user is not a member of the ILT.
+          /** @var \Drupal\opigno_ilt\ILTInterface $ilt */
+          $ilt = \Drupal::entityTypeManager()
+            ->getStorage('opigno_ilt')
+            ->load($step['id']);
+          if (!$ilt->isMember($user->id())) {
+            return FALSE;
+          }
+        }
+
+        return TRUE;
+      });
+      $steps = array_map(function ($step) use ($uid) {
+        $step['status'] = opigno_learning_path_get_step_status($step, $uid);
+        $step['attempted'] = opigno_learning_path_is_attempted($step, $uid);
+        $step['progress'] = opigno_learning_path_get_step_progress($step, $uid);
+        return $step;
+      }, $steps);
+    }
+    else {
+      // Load steps from cache table.
+      $results = $this->database
+        ->select('opigno_learning_path_step_achievements', 'a')
+        ->fields('a', [
+          'entity_id',
+          'name',
+          'typology',
+          'score',
+          'time',
+          'completed',
+          'mandatory',
+          'status',
+        ])
+        ->condition('uid', $user->id())
+        ->condition('gid', $group->id())
+        ->condition('parent_id', 0)
+        ->orderBy('position')
+        ->execute()
+        ->fetchAll();
+
+      $steps = array_map(function ($result) use ($uid) {
+        // Convert datetime string to timestamp.
+        if (isset($result->completed)) {
+          $completed = DrupalDateTime::createFromFormat(DrupalDateTime::FORMAT, $result->completed);
+          $completed_timestamp = $completed->getTimestamp();
+        }
+        else {
+          $completed_timestamp = 0;
+        }
+
+        $step = [
+          'id' => $result->entity_id,
+          'name' => $result->name,
+          'typology' => $result->typology,
+          'best score' => $result->score,
+          'time spent' => (int) $result->time,
+          'completed on' => $completed_timestamp,
+          'mandatory' => (int) $result->mandatory,
+          'status' => $result->status,
+          'attempted' => $result->status !== 'pending',
+        ];
+
+        if ($step['typology'] === 'Module') {
+          $step['activities'] = count(opigno_learning_path_get_module_activities($step['id'], $uid));
+        }
+
+        $step['progress'] = opigno_learning_path_get_step_progress($step, $uid);
+
+        return $step;
+      }, $results);
+    }
 
     /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
     $date_formatter = \Drupal::service('date.formatter');
 
+    $status = [
+      'pending' => [
+        'class' => 'lp_summary_step_state_in_progress',
+        'title' => t('Pending'),
+      ],
+      'failed' => [
+        'class' => 'lp_summary_step_state_failed',
+        'title' => t('Failed'),
+      ],
+      'passed' => [
+        'class' => 'lp_summary_step_state_passed',
+        'title' => t('Passed'),
+      ],
+    ];
+
     return [
       '#type' => 'container',
       '#attributes' => [
+        'id' => 'training_steps_' . $group->id(),
         'class' => ['lp_details'],
       ],
-      array_map(function ($step) use ($user, $date_formatter) {
+      array_map(function ($step) use ($group, $uid, $date_formatter) {
         $is_module = $step['typology'] === 'Module';
         $is_course = $step['typology'] === 'Course';
 
+        $time_spent = ($step['attempted'] && $step['time spent'] > 0) ? $date_formatter->formatInterval($step['time spent']) : '&dash;' ;
+        $completed = ($step['attempted'] && $step['completed on'] > 0) ? $date_formatter->format($step['completed on'], 'custom', 'F d Y') : '&dash;' ;
+
         if ($is_module) {
-          $activities = opigno_learning_path_get_module_activities($step['id'], $user->id());
-        }
-        elseif ($is_course) {
-          $activities = opigno_learning_path_get_activities($step['id'], $user->id());
-        }
-        else {
-          $activities = [];
+          $approved_activities = $this->module_approved_activities($group->id(), $step['id']);
+          $approved = $approved_activities . '/' . $step['activities'];
+          $approved_percent = $approved_activities / $step['activities'] * 100;
         }
 
-        $total = count($activities);
-        $attempted = count(array_filter($activities, function ($activity) {
-          return $activity['answers'] > 0;
-        }));
-
-        $progress = $total > 0
-          ? $attempted / $total
-          : 0;
-
-        if ($progress < 1) {
-          $summary = '<span class="lp_summary_step_state_in_progress"></span>'
-            . '<span class="lp_step_summary_title">' . t('Pending') . '</span>';
-        }
-        else {
+        if ($is_course) {
+          $course_steps = $this->course_steps_passed($group, Group::load($step['id']));
+          $passed = $course_steps['passed'] . '/' . $course_steps['total'];
+          $passed_percent = ($course_steps['passed'] / $course_steps['total']) * 100;
           $score = $step['best score'];
-          $min_score = $step['required score'];
-
-          if ($score < $min_score) {
-            $summary = '<span class="lp_summary_step_state_failed"></span>'
-              . '<span class="lp_step_summary_title">' . t('Failed') . '</span>';
-          }
-          else {
-            $summary = '<span class="lp_summary_step_state_passed"></span>'
-              . '<span class="lp_step_summary_title">' . t('Passed') . '</span>';
-          }
-        }
-
-        if ($is_module) {
-          $summary .= t('@progress% completion', [
-            '@progress' => round(100 * $progress),
-          ]);
-        }
-        elseif ($is_course) {
-          $summary .= t('@completion% completion', [
-            '@completion' => round(100 * $progress),
-          ]);
-        }
-
-        $summary .= '<br/>' . t('@score% score', [
-          '@score' => $step['best score'],
-        ]);
-
-        $summary = ['#markup' => $summary];
-
-        if (opigno_learning_path_is_attempted($step, $user->id())) {
-          $rows = [
-            [
-              'data' => $step['time spent'] > 0
-                ? $date_formatter->formatInterval($step['time spent'])
-                : ['#markup' => '&dash;'],
-            ],
-            [
-              'data' => $step['completed on'] > 0
-                ? $date_formatter->format($step['completed on'], 'custom', 'F d Y')
-                : ['#markup' => '&dash;'],
-            ],
-            '',
-          ];
-        }
-        else {
-          $rows = [
-            [
-              'data' => ['#markup' => '&dash;'],
-            ],
-            [
-              'data' => ['#markup' => '&dash;'],
-            ],
-            '',
-          ];
+          $score_percent = $score;
         }
 
         $content = [
@@ -512,6 +697,15 @@ class LearningPathAchievementController extends ControllerBase {
               ],
               '#value' => $step['name'],
             ],
+            [
+              '#type' => 'html_tag',
+              '#tag' => 'span',
+              '#attributes' => [
+                'class' => ['view_trigger'],
+                'data-open' => t('Show details'),
+                'data-close' => t('Hide details')
+              ],
+            ]
           ],
           [
             '#type' => 'container',
@@ -520,7 +714,7 @@ class LearningPathAchievementController extends ControllerBase {
                 ? ['lp_step_content_module']
                 : []),
             ],
-            [
+            ($is_module ? [
               '#type' => 'container',
               '#attributes' => [
                 'class' => ['lp_step_summary_wrapper'],
@@ -528,48 +722,304 @@ class LearningPathAchievementController extends ControllerBase {
               [
                 '#type' => 'container',
                 '#attributes' => [
-                  'class' => ['lp_step_summary'],
+                  'class' => ['lp_step_summary', 'px-3', 'd-flex', 'justify-content-center', 'flex-wrap'],
                 ],
                 [
-                  '#type' => 'table',
+                  '#type' => 'html_tag',
+                  '#tag' => 'div',
                   '#attributes' => [
-                    'class' => ['lp_step_summary_table'],
+                    'class' => [
+                      'lp_step_summary_title',
+                      'h4',
+                      'mb-0',
+                      'text-uppercase',
+                    ],
                   ],
-                  '#header' => [
-                    t('Time spent'),
-                    t('Completed on'),
-                    t('Badges earned'),
+                  '#value' => isset($status[$step['status']])
+                    ? $status[$step['status']]['title'] : $status['pending']['title'],
+                ],
+                [
+                  '#type' => 'html_tag',
+                  '#tag' => 'div',
+                  '#attributes' => [
+                    'class' => [
+                      'lp_step_summary_icon',
+                      isset($status[$step['status']]) ? $status[$step['status']]['class'] : $status['pending']['class'],
+                      'ml-3',
+                    ],
                   ],
-                  '#rows' => [$rows],
+                ],
+                [
+                  '#type' => 'html_tag',
+                  '#tag' => 'div',
+                  '#attributes' => [
+                    'class' => ['ml-5'],
+                  ],
+                  '#value' => '<div class="h4 color-blue mb-0">' . round(100 * $step['progress']) . '%</div><div>' . t('Completion') . '</div>',
                 ],
                 [
                   '#type' => 'container',
                   '#attributes' => [
-                    'class' => ['lp_step_summary_text'],
+                    'class' => [
+                      'lp_step_summary_completion_chart',
+                      'donut-wrapper',
+                      'ml-3',
+                    ],
                   ],
-                  $summary,
-                ],
-                ($is_module
-                  ? [
-                    '#type' => 'container',
+                  [
+                    '#type' => 'html_tag',
+                    '#tag' => 'canvas',
                     '#attributes' => [
-                      'class' => ['lp_step_summary_clickable'],
-                      'data-module-id' => $is_module ? $step['id'] : 0,
+                      'class' => ['donut'],
+                      'data-value' => round(100 * $step['progress']),
+                      'data-width' => 7,
+                      'data-color' => '#5bb4d8',
+                      'data-track-color' => '#fff',
+                      'width' => 67,
+                      'height' => 67,
                     ],
-                    [
-                      '#type' => 'html_tag',
-                      '#tag' => 'span',
-                      '#attributes' => [
-                        'class' => ['lp_step_summary_clickable_title'],
-                      ],
-                      '#value' => $step['name'] . ' &dash; ' . $step['activities'] . ' Activities',
+                    '#value' => '',
+                  ],
+                ],
+                [
+                  '#type' => 'html_tag',
+                  '#tag' => 'div',
+                  '#attributes' => [
+                    'class' => [
+                      'ml-5',
+                      'lp_step_summary_approved'
                     ],
-                  ]
-                  : []),
+                  ],
+                  '#value' => '<div class="h4 color-blue mb-0">' . $approved . '</div><div>' . t('Activities') . '<br />' . t('done') . '</div>',
+                ],
+                [
+                  '#type' => 'container',
+                  '#attributes' => [
+                    'class' => [
+                      'lp_step_summary_approved_chart',
+                      'donut-wrapper',
+                      'ml-3',
+                    ],
+                  ],
+                  [
+                    '#type' => 'html_tag',
+                    '#tag' => 'canvas',
+                    '#attributes' => [
+                      'class' => ['donut'],
+                      'data-value' => $approved_percent,
+                      'data-width' => 7,
+                      'data-color' => '#5bb4d8',
+                      'data-track-color' => '#fff',
+                      'width' => 67,
+                      'height' => 67,
+                    ],
+                    '#value' => '',
+                  ],
+                ],
+                [
+                  '#type' => 'container',
+                  '#attributes' => [
+                    'class' => ['w-100', 'mt-4', 'd-flex', 'justify-content-center'],
+                  ],
+                  [
+                    '#type' => 'html_tag',
+                    '#tag' => 'div',
+                    '#attributes' => [
+                      'class' => [''],
+                    ],
+                    '#value' => '<div class="text-italic">'. t('Time spent') . '</div><div class="color-blue h5">' . $time_spent . '</div>',
+                  ],
+                  [
+                    '#type' => 'html_tag',
+                    '#tag' => 'div',
+                    '#attributes' => [
+                      'class' => ['ml-5'],
+                    ],
+                    '#value' => '<div class="text-italic">'. t('Completed on') . '</div><div class="color-blue h5">' . $completed . '</div>',
+                  ],
+                  [
+                    '#type' => 'html_tag',
+                    '#tag' => 'div',
+                    '#attributes' => [
+                      'class' => ['ml-5'],
+                    ],
+                    '#value' => '<div class="text-italic">'. t('Badges earned') . '<div>@TODO</div></div>',
+                  ],
+                ],
               ],
-              ($is_module ? $this->build_module_panel($step) : []),
-            ],
-            ($is_course ? $this->build_course_steps($step) : []),
+              [
+                '#type' => 'html_tag',
+                '#tag' => 'div',
+                '#attributes' => [
+                  'class' => ['lp_step_summary_clickable'],
+                  'data-training' => $group->id(),
+                  'data-module' => $step['id'],
+                ],
+                '#value' => t('more details'),
+              ],
+              [
+                '#type' => 'container',
+                '#attributes' => [
+                  'id' => 'module_panel_' . $group->id() . '_' . $step['id'],
+                  'class' => ['lp_module_panel'],
+                ],
+              ],
+            ] : []),
+            ($is_course ? [
+              '#type' => 'container',
+              '#attributes' => [
+                'class' => ['lp_step_summary_wrapper'],
+              ],
+              [
+                '#type' => 'container',
+                '#attributes' => [
+                  'class' => ['d-flex', 'px-3', 'd-flex', 'justify-content-center', 'flex-wrap'],
+                ],
+                [
+                  '#type' => 'html_tag',
+                  '#tag' => 'div',
+                  '#attributes' => [
+                    'class' => [''],
+                  ],
+                  '#value' => '<div class="h4 ' . (($passed_percent === 100) ? 'color-green' : 'color-red' ) . ' mb-0">' . $passed . '</div><div>' . t('Module') . '<br />' . t('passed') . '</div>',
+                ],
+                [
+                  '#type' => 'container',
+                  '#attributes' => [
+                    'class' => [
+                      'lp_step_summary_course_step_passed_chart',
+                      'donut-wrapper',
+                      'ml-3',
+                      ($passed_percent === 100) ? 'passed' : 'not_passed' ,
+                    ],
+                  ],
+                  [
+                    '#type' => 'html_tag',
+                    '#tag' => 'canvas',
+                    '#attributes' => [
+                      'class' => ['donut'],
+                      'data-value' => $passed_percent,
+                      'data-width' => 7,
+                      'data-color' => ($passed_percent === 100) ? '#c2e76b' : '#ff5440' ,
+                      'data-track-color' => '#eeeeee',
+                      'width' => 67,
+                      'height' => 67,
+                    ],
+                    '#value' => '',
+                  ],
+                ],
+                [
+                  '#type' => 'html_tag',
+                  '#tag' => 'div',
+                  '#attributes' => [
+                    'class' => ['ml-5'],
+                  ],
+                  '#value' => '<div class="h4 color-blue mb-0">' . round(100 * $step['progress']) . '%</div><div>' . t('Completion') . '</div>',
+                ],
+                [
+                  '#type' => 'container',
+                  '#attributes' => [
+                    'class' => [
+                      'lp_step_summary_completion_chart',
+                      'donut-wrapper',
+                      'ml-3',
+                    ],
+                  ],
+                  [
+                    '#type' => 'html_tag',
+                    '#tag' => 'canvas',
+                    '#attributes' => [
+                      'class' => ['donut'],
+                      'data-value' => round(100 * $step['progress']),
+                      'data-width' => 7,
+                      'data-color' => '#5bb4d8',
+                      'data-track-color' => '#eeeeee',
+                      'width' => 67,
+                      'height' => 67,
+                    ],
+                    '#value' => '',
+                  ],
+                ],
+                [
+                  '#type' => 'html_tag',
+                  '#tag' => 'div',
+                  '#attributes' => [
+                    'class' => ['ml-5'],
+                  ],
+                  '#value' => '<div class="h4 color-blue mb-0">' . $score . '</div><div>' . t('Score') . '</div>',
+                ],
+                [
+                  '#type' => 'container',
+                  '#attributes' => [
+                    'class' => [
+                      'lp_step_summary_approved_chart',
+                      'donut-wrapper',
+                      'ml-3',
+                    ],
+                  ],
+                  [
+                    '#type' => 'html_tag',
+                    '#tag' => 'canvas',
+                    '#attributes' => [
+                      'class' => ['donut'],
+                      'data-value' => $score_percent,
+                      'data-width' => 7,
+                      'data-color' => '#5bb4d8',
+                      'data-track-color' => '#eeeeee',
+                      'width' => 67,
+                      'height' => 67,
+                    ],
+                    '#value' => '',
+                  ],
+                ],
+                [
+                  '#type' => 'container',
+                  '#attributes' => [
+                    'class' => ['ml-5'],
+                  ],
+                  [
+                    '#type' => 'html_tag',
+                    '#tag' => 'div',
+                    '#attributes' => [
+                      'class' => ['text-italic'],
+                    ],
+                    '#value' => t('Time spent'),
+                  ],
+                  [
+                    '#type' => 'html_tag',
+                    '#tag' => 'div',
+                    '#attributes' => [
+                      'class' => ['h4', 'color-blue'],
+                    ],
+                    '#value' => $time_spent,
+                  ],
+                  [
+                    '#type' => 'html_tag',
+                    '#tag' => 'div',
+                    '#attributes' => [
+                      'class' => ['text-italic'],
+                    ],
+                    '#value' => t('Completed on'),
+                  ],
+                  [
+                    '#type' => 'html_tag',
+                    '#tag' => 'div',
+                    '#attributes' => [
+                      'class' => ['h4', 'color-blue'],
+                    ],
+                    '#value' => $completed,
+                  ],
+                ],
+              ],
+              [
+                '#type' => 'html_tag',
+                '#tag' => 'hr',
+                '#attributes' => [
+                  'class' => ['lp_course_steps_wrapper', 'ml-7', 'mr-5', 'my-4'],
+                ],
+              ],
+              $this->build_course_steps($group, Group::load($step['id'])),
+            ] : [])
           ],
         ];
 
@@ -579,18 +1029,94 @@ class LearningPathAchievementController extends ControllerBase {
   }
 
   /**
-   * @param \Drupal\group\Entity\GroupInterface $lp
+   * @param \Drupal\group\Entity\GroupInterface $group
    *
    * @return array
    */
-  protected function build_lp_timeline($lp) {
+  protected function build_training_timeline($group) {
     /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
     $date_formatter = \Drupal::service('date.formatter');
     $user = $this->currentUser();
-    $steps = opigno_learning_path_get_steps($lp->id(), $user->id());
-    $steps = array_filter($steps, function ($step) {
-      return $step['mandatory'];
-    });
+
+    $result = (int) $this->database
+      ->select('opigno_learning_path_achievements', 'a')
+      ->fields('a')
+      ->condition('uid', $user->id())
+      ->condition('gid', $group->id())
+      ->condition('status', 'completed')
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+    if ($result === 0) {
+      // If training is not completed, generate steps.
+      $steps = opigno_learning_path_get_steps($group->id(), $user->id());
+      $steps = array_filter($steps, function ($step) {
+        return $step['mandatory'];
+      });
+      $steps = array_filter($steps, function ($step) use ($user) {
+        if ($step['typology'] === 'Meeting') {
+          // If the user have not the collaborative features role.
+          if (!$user->hasPermission('view meeting entities')) {
+            return FALSE;
+          }
+
+          // If the user is not a member of the meeting.
+          /** @var \Drupal\opigno_moxtra\MeetingInterface $meeting */
+          $meeting = \Drupal::entityTypeManager()
+            ->getStorage('opigno_moxtra_meeting')
+            ->load($step['id']);
+          if (!$meeting->isMember($user->id())) {
+            return FALSE;
+          }
+        }
+        elseif ($step['typology'] === 'ILT') {
+          // If the user is not a member of the ILT.
+          /** @var \Drupal\opigno_ilt\ILTInterface $ilt */
+          $ilt = \Drupal::entityTypeManager()
+            ->getStorage('opigno_ilt')
+            ->load($step['id']);
+          if (!$ilt->isMember($user->id())) {
+            return FALSE;
+          }
+        }
+
+        return TRUE;
+      });
+      $steps = array_map(function ($step) use ($user) {
+        $step['passed'] = opigno_learning_path_is_passed($step, $user->id());
+        return $step;
+      }, $steps);
+    }
+    else {
+      // Load steps from cache table.
+      $results = $this->database
+        ->select('opigno_learning_path_step_achievements', 'a')
+        ->fields('a', [
+          'name', 'status', 'completed',
+        ])
+        ->condition('uid', $user->id())
+        ->condition('gid', $group->id())
+        ->condition('mandatory', 1)
+        ->execute()
+        ->fetchAll();
+
+      $steps = array_map(function ($result) {
+        // Convert datetime string to timestamp.
+        if (isset($result->completed)) {
+          $completed = DrupalDateTime::createFromFormat(DrupalDateTime::FORMAT, $result->completed);
+          $completed_timestamp = $completed->getTimestamp();
+        }
+        else {
+          $completed_timestamp = 0;
+        }
+
+        return [
+          'name' => $result->name,
+          'passed' => $result->status === 'passed',
+          'completed on' => $completed_timestamp,
+        ];
+      }, $results);
+    }
 
     $timeline = [];
     $timeline[] = [
@@ -602,45 +1128,41 @@ class LearningPathAchievementController extends ControllerBase {
       '#value' => '',
     ];
 
-    if (opigno_learning_path_is_attempted($lp, $user->id())) {
-      foreach ($steps as $step) {
-        $completed_on = $step['completed on'] > 0
-          ? $date_formatter->format($step['completed on'], 'custom', 'F d, Y')
-          : '';
+    foreach ($steps as $step) {
+      $completed_on = $step['completed on'] > 0
+        ? $date_formatter->format($step['completed on'], 'custom', 'F d, Y')
+        : '';
 
-        $timeline[] = [
+      $timeline[] = [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => [
+            $step['passed'] ? 'lp_timeline_step_checked' : 'lp_timeline_step',
+          ],
+        ],
+        [
           '#type' => 'container',
           '#attributes' => [
-            'class' => [
-              opigno_learning_path_is_passed($step, $user->id())
-                ? 'lp_timeline_step_checked'
-                : 'lp_timeline_step',
-            ],
+            'class' => ['lp_timeline_step_label'],
           ],
           [
-            '#type' => 'container',
+            '#type' => 'html_tag',
+            '#tag' => 'span',
             '#attributes' => [
-              'class' => ['lp_timeline_step_label'],
+              'class' => ['lp_timeline_step_label_title'],
             ],
-            [
-              '#type' => 'html_tag',
-              '#tag' => 'span',
-              '#attributes' => [
-                'class' => ['lp_timeline_step_label_title'],
-              ],
-              '#value' => $step['name'],
-            ],
-            [
-              '#type' => 'html_tag',
-              '#tag' => 'span',
-              '#attributes' => [
-                'class' => ['lp_timeline_step_label_completed_on'],
-              ],
-              '#value' => $completed_on,
-            ],
+            '#value' => $step['name'],
           ],
-        ];
-      }
+          [
+            '#type' => 'html_tag',
+            '#tag' => 'span',
+            '#attributes' => [
+              'class' => ['lp_timeline_step_label_completed_on'],
+            ],
+            '#value' => $completed_on,
+          ],
+        ],
+      ];
     }
 
     $timeline[] = [
@@ -662,9 +1184,7 @@ class LearningPathAchievementController extends ControllerBase {
         '#attributes' => [
           'class' => [
             'lp_timeline',
-            opigno_learning_path_is_attempted($lp, $user->id())
-              ? 'lp_timeline_not_empty'
-              : 'lp_timeline_empty',
+            'lp_timeline_not_empty',
           ],
         ],
         $timeline,
@@ -673,50 +1193,50 @@ class LearningPathAchievementController extends ControllerBase {
   }
 
   /**
-   * @param \Drupal\group\Entity\GroupInterface $lp
+   * @param \Drupal\group\Entity\GroupInterface $group
    *
    * @return array
    */
-  protected function build_lp_summary($lp) {
-    $id = $lp->id();
-
+  protected function build_training_summary($group) {
+    $gid = $group->id();
     $user = $this->currentUser();
     $uid = $user->id();
-
-    $steps = opigno_learning_path_get_steps($id, $uid);
-    $mandatory_steps = array_filter($steps, function ($step) {
-      return $step['mandatory'];
-    });
-
-    if (!empty($mandatory_steps)) {
-      $score = round(array_sum(array_map(function ($step) {
-        return $step['best score'];
-      }, $mandatory_steps)) / count($mandatory_steps));
-    }
-    else {
-      $score = 0;
-    }
+    $score = opigno_learning_path_get_score($gid, $uid);
 
     /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
     $date_formatter = \Drupal::service('date.formatter');
 
     /** @var \Drupal\group\Entity\GroupContent $member */
-    $member = $lp->getMember($user)->getGroupContent();
+    $member = $group->getMember($user)->getGroupContent();
     $registration = $member->getCreatedTime();
     $registration = $date_formatter->format($registration, 'custom', 'F d, Y');
 
-    $validation = opigno_learning_path_completed_on($id, $uid);
+    $validation = opigno_learning_path_completed_on($gid, $uid);
     $validation = $validation > 0
       ? $date_formatter->format($validation, 'custom', 'F d, Y')
       : '';
 
-    $time_spent = array_sum(array_map(function ($step) {
-      return $step['time spent'];
-    }, $steps));
+    $time_spent = opigno_learning_path_get_time_spent($gid, $uid);
     $time_spent = $date_formatter->formatInterval($time_spent);
 
-    $is_attempted = opigno_learning_path_is_attempted($lp, $uid);
-    $is_passed = opigno_learning_path_is_passed($lp, $uid);
+    $result = $this->database
+      ->select('opigno_learning_path_achievements', 'a')
+      ->fields('a', ['status'])
+      ->condition('uid', $user->id())
+      ->condition('gid', $group->id())
+      ->execute()
+      ->fetchField();
+
+    if ($result !== FALSE) {
+      // Use cached result.
+      $is_attempted = TRUE;
+      $is_passed = $result === 'completed';
+    }
+    else {
+      // Check the actual data.
+      $is_attempted = opigno_learning_path_is_attempted($group, $uid);
+      $is_passed = opigno_learning_path_is_passed($group, $uid);
+    }
 
     if ($is_passed || $is_attempted) {
       $summary = [
@@ -785,9 +1305,8 @@ class LearningPathAchievementController extends ControllerBase {
       $state_class = 'lp_summary_step_state_not_started';
     }
 
-    $gid = $lp->id();
     $cert_text = $this->t('Download certificate');
-    $has_cert = !$lp->get('field_certificate')->isEmpty();
+    $has_cert = !$group->get('field_certificate')->isEmpty();
 
     if ($is_passed && $has_cert) {
       $cert_url = Url::fromUri("internal:/certificate/group/$gid/pdf");
@@ -820,7 +1339,57 @@ class LearningPathAchievementController extends ControllerBase {
     return [
       '#type' => 'container',
       '#attributes' => [
-        'class' => ['lp_summary', 'py-5', 'pr-3', 'pr-md-5'],
+        'class' => ['lp_summary', 'd-flex', 'flex-wrap', 'py-5'],
+      ],
+      // [
+      //   '#type' => 'container',
+      //   '#attributes' => [
+      //     'class' => ['lp_summary_content'],
+      //   ],
+      //   [
+      //     '#type' => 'html_tag',
+      //     '#tag' => 'span',
+      //     '#attributes' => [
+      //       'class' => ['lp_step_summary_title'],
+      //     ],
+      //     '#value' => t('Training Progress'),
+      //   ],
+      //   $summary,
+      // ],
+      [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['lp_summary_content'],
+        ],
+        [
+          '#type' => 'html_tag',
+          '#tag' => 'div',
+          '#attributes' => [
+            'class' => [
+              'lp_step_summary_title',
+              'h4',
+              'mb-0',
+              'text-uppercase',
+            ],
+          ],
+          '#value' => t('Training Progress'),
+        ],
+        [
+          '#type' => 'html_tag',
+          '#tag' => 'div',
+          '#attributes' => [
+            'class' => ['lp_step_summary_score'],
+          ],
+          '#value' => t('Score: @score%', ['@score' => $score]),
+        ]
+      ],
+      [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#attributes' => [
+          'class' => [$state_class],
+        ],
+        '#value' => '',
       ],
       [
         '#type' => 'container',
@@ -834,35 +1403,42 @@ class LearningPathAchievementController extends ControllerBase {
       [
         '#type' => 'container',
         '#attributes' => [
-          'class' => ['lp_summary_content'],
+          'class' => ['mt-4', 'w-100', 'd-flex', 'justify-content-center'],
         ],
         [
           '#type' => 'html_tag',
-          '#tag' => 'span',
+          '#tag' => 'div',
           '#attributes' => [
-            'class' => [$state_class],
+            'class' => ['lp_step_summary_registration', 'font-italic'],
           ],
-          '#value' => '',
+          '#value' => t('Registration date: @date', ['@date' => $registration]),
         ],
         [
           '#type' => 'html_tag',
-          '#tag' => 'span',
+          '#tag' => 'div',
           '#attributes' => [
-            'class' => ['lp_step_summary_title'],
+            'class' => ['lp_step_summary_validation', 'ml-5', 'font-italic'],
           ],
-          '#value' => t('Training Progress'),
+          '#value' => t('Validation date: @date', ['@date' => $validation]),
         ],
-        $summary,
+        [
+          '#type' => 'html_tag',
+          '#tag' => 'div',
+          '#attributes' => [
+            'class' => ['lp_step_summary_time_spent', 'ml-5', 'font-italic'],
+          ],
+          '#value' => t('Time spent: @time', ['@time' => $time_spent]),
+        ],
       ],
     ];
   }
 
   /**
-   * @param \Drupal\group\Entity\GroupInterface $lp
+   * @param \Drupal\group\Entity\GroupInterface $group
    *
    * @return array
    */
-  protected function build_lp($lp) {
+  protected function build_training($group) {
     return [
       '#type' => 'container',
       '#attributes' => [
@@ -875,10 +1451,10 @@ class LearningPathAchievementController extends ControllerBase {
           'class' => ['lp_title', 'px-3', 'px-md-5', 'pt-5', 'pb-4', 'mb-0', 'h4', 'text-uppercase'],
         ],
         '#value' => t('Learning Path : @name', [
-          '@name' => $lp->label(),
+          '@name' => $group->label(),
         ]),
       ],
-      $this->build_lp_timeline($lp),
+      $this->build_training_timeline($group),
       [
         '#type' => 'container',
         '#attributes' => [
@@ -912,12 +1488,19 @@ class LearningPathAchievementController extends ControllerBase {
           ],
         ],
       ],
-      $this->build_lp_summary($lp),
-      $this->build_lp_steps($lp),
+      $this->build_training_summary($group),
+      [
+        '#type' => 'container',
+        '#attributes' => [
+          'id' => 'training_steps_' . $group->id(),
+          'class' => ['lp_details'],
+        ],
+      ],
       [
         '#type' => 'container',
         '#attributes' => [
           'class' => ['lp_details_show'],
+          'data-training' => $group->id(),
         ],
         [
           '#type' => 'html_tag',
@@ -946,44 +1529,141 @@ class LearningPathAchievementController extends ControllerBase {
   }
 
   /**
+   * Loads module panel with a AJAX.
+   *
+   * @param \Drupal\group\Entity\GroupInterface $training
+   * @param null|\Drupal\group\Entity\GroupInterface $course
+   * @param \Drupal\opigno_module\Entity\OpignoModule $opigno_module
+   *
+   * @return \Drupal\Core\Ajax\AjaxResponse
+   */
+  public function course_module_panel_ajax($training, $course, $opigno_module) {
+    $training_id = $training->id();
+    $course_id = $course->id();
+    $module_id = $opigno_module->id();
+    $selector = "#module_panel_${training_id}_${course_id}_${module_id}";
+    $content = $this->build_module_panel($training, $course, $opigno_module);
+    $content['#attributes']['data-ajax-loaded'] = TRUE;
+    $response = new AjaxResponse();
+    $response->addCommand(new ReplaceCommand($selector, $content));
+    return $response;
+  }
+
+  /**
+   * Loads module panel with a AJAX.
+   *
+   * @param \Drupal\group\Entity\GroupInterface $group
+   * @param \Drupal\opigno_module\Entity\OpignoModule $opigno_module
+   *
+   * @return \Drupal\Core\Ajax\AjaxResponse
+   */
+  public function training_module_panel_ajax($group, $opigno_module) {
+    $training_id = $group->id();
+    $module_id = $opigno_module->id();
+    $selector = "#module_panel_${training_id}_${module_id}";
+    $content = $this->build_module_panel($group, NULL, $opigno_module);
+    $content['#attributes']['data-ajax-loaded'] = TRUE;
+    $response = new AjaxResponse();
+    $response->addCommand(new ReplaceCommand($selector, $content));
+    return $response;
+  }
+
+  /**
+   * Loads steps for a training with a AJAX.
+   *
+   * @param \Drupal\group\Entity\Group $group
+   *
+   * @return \Drupal\Core\Ajax\AjaxResponse
+   */
+  public function training_steps_ajax($group) {
+    $selector = '#training_steps_' . $group->id();
+    $content = $this->build_lp_steps($group);
+    $content['#attributes']['data-ajax-loaded'] = TRUE;
+    $response = new AjaxResponse();
+    $response->addCommand(new ReplaceCommand($selector, $content));
+    return $response;
+  }
+
+  /**
+   * @param int $page
+   *
    * @return array
    */
-  public function index() {
+  protected function build_page($page = 0) {
+    $per_page = 5;
+
     $user = $this->currentUser();
+    $uid = $user->id();
 
-    // Get all learning paths.
-    $query = \Drupal::entityQuery('group');
-    $query->condition('type', 'learning_path');
-    $lp_ids = $query->execute();
-    $lps = Group::loadMultiple($lp_ids);
+    $query = $this->database->select('group_content_field_data', 'gc');
+    $query->innerJoin(
+      'groups_field_data',
+      'g',
+      'g.id = gc.gid'
+    );
+    // Opigno Module group content.
+    $query->leftJoin(
+      'group_content_field_data',
+      'gc2',
+      'gc2.gid = gc.gid AND gc2.type = \'group_content_type_162f6c7e7c4fa\''
+    );
+    $query->leftJoin(
+      'opigno_group_content',
+      'ogc',
+      'ogc.entity_id = gc2.entity_id AND ogc.is_mandatory = 1'
+    );
+    $query->leftJoin(
+      'user_module_status',
+      'ums',
+      'ums.user_id = gc.uid AND ums.module = gc2.entity_id AND ums.score >= ogc.success_score_min'
+    );
+    $query->addExpression('max(ums.started)', 'started');
+    $query->addExpression('max(ums.finished)', 'finished');
+    $gids = $query->fields('gc', ['gid'])
+      ->condition('gc.type', 'learning_path-group_membership')
+      ->condition('gc.entity_id', $uid)
+      ->groupBy('gc.gid')
+      ->orderBy('finished', 'DESC')
+      ->orderBy('started', 'DESC')
+      ->orderBy('gc.gid', 'DESC')
+      ->range($page * $per_page, $per_page)
+      ->execute()
+      ->fetchCol();
+    $groups = Group::loadMultiple($gids);
+    return array_map([$this, 'build_training'], $groups);
+  }
 
-    // Filter learning paths that have current user as member.
-    $lps = array_filter($lps, function ($lp) use ($user) {
-      /** @var \Drupal\group\Entity\GroupInterface $lp */
-      return $lp->getMember($user) !== FALSE;
-    });
+  /**
+   * Loads next achievements page with a AJAX.
+   *
+   * @param int $page
+   *
+   * @return \Drupal\Core\Ajax\AjaxResponse
+   */
+  public function page_ajax($page = 0) {
+    $selector = '#achievements-wrapper';
 
-    // Sort learning paths by completion date.
-    usort($lps, function ($lp1, $lp2) use ($user) {
-      $uid = $user->id();
+    $content = $this->build_page($page);
+    if (empty($content)) {
+      throw new NotFoundHttpException();
+    }
 
-      /** @var \Drupal\group\Entity\GroupInterface $lp1 */
-      /** @var \Drupal\group\Entity\GroupInterface $lp2 */
-      $completed1 = opigno_learning_path_completed_on($lp1->id(), $uid);
-      $completed2 = opigno_learning_path_completed_on($lp2->id(), $uid);
+    $response = new AjaxResponse();
+    $response->addCommand(new AppendCommand($selector, $content));
+    return $response;
+  }
 
-      // If both not completed, show attempted first.
-      if ($completed1 === 0 && $completed2 === 0) {
-        $attempted1 = opigno_learning_path_is_attempted($lp1, $uid) ? 1 : 0;
-        $attempted2 = opigno_learning_path_is_attempted($lp2, $uid) ? 1 : 0;
-
-        return $attempted2 - $attempted1;
-      }
-
-      return $completed2 - $completed1;
-    });
-
+  /**
+   * @param int $page
+   *
+   * @return array
+   */
+  public function index($page = 0) {
     $content = [
+      '#type' => 'container',
+      '#attributes' => [
+        'id' => 'achievements-wrapper',
+      ],
       [
         '#type' => 'container',
         '#attributes' => [
@@ -1014,7 +1694,6 @@ class LearningPathAchievementController extends ControllerBase {
           '#value' => t('Only the highest are displayed'),
         ],
       ],
-      array_map([$this, 'build_lp'], $lps),
       '#attached' => [
         'library' => [
           'opigno_learning_path/achievements',
@@ -1022,18 +1701,8 @@ class LearningPathAchievementController extends ControllerBase {
       ],
     ];
 
+    $content[] = $this->build_page($page);
     return $content;
-  }
-
-  /**
-   * Check the access for the achievements page.
-   */
-  public function access(AccountInterface $account) {
-    if ($account->isAnonymous()) {
-      return AccessResult::forbidden();
-    }
-
-    return AccessResult::allowed();
   }
 
 }

@@ -52,5 +52,10 @@ function opigno_learning_path_views_data_alter(array &$data) {
       'help' => t('Returns group user membership status.'),
       'id' => 'group_membership_status',
     ),
+    'filter' => [
+      'title' => t('Group Membership Status filter'),
+      'help' => t('Group Membership Status filter'),
+      'id' => 'opigno_group_membership_status',
+    ],
   );
 }

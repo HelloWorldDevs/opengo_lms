@@ -3,22 +3,18 @@
 namespace Drupal\opigno_learning_path\Controller;
 
 use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
-use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\SettingsCommand;
+use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Form\FormState;
 use Drupal\group\Entity\Group;
-use Drupal\opigno_learning_path\Annotation\LearningPathContentType;
-use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\opigno_learning_path\Entity\LPManagedContent;
 use Drupal\opigno_learning_path\Entity\LPManagedLink;
-use Drupal\opigno_learning_path\LearningPathAccess;
 use Drupal\opigno_learning_path\LearningPathContentTypesManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Drupal\Core\Session\AccountInterface;
-use Drupal\Core\Ajax\SettingsCommand;
 
 /**
  * Controller for all the actions of the Learning Path manager app.
@@ -50,40 +46,16 @@ class LearningPathManagerController extends ControllerBase {
    */
   public function index(Group $group, Request $request)
   {
+    $tempstore = \Drupal::service('user.private_tempstore')->get('opigno_group_manager');
+
     return [
       '#theme' => 'opigno_learning_path_manager',
       '#attached' => ['library' => ['opigno_group_manager/manage_app']],
       '#base_path' => $request->getBasePath(),
       '#base_href' => \Drupal::service('path.current')->getPath(),
-      '#learning_path_id' => $group->id()
+      '#learning_path_id' => $group->id(),
+      '#user_has_info_card' => $tempstore->get('hide_info_card') ? false : true,
     ];
-  }
-
-  /**
-   * Check the access for the results page. @todo correct permission
-   */
-  public function access(Group $group, AccountInterface $account) {
-    if (empty($group) || !is_object($group)) {
-      return AccessResult::forbidden();
-    }
-
-    if ($account->hasPermission('manage group content in any group')) {
-      return AccessResult::allowed();
-    }
-
-    if (!LearningPathAccess::getGroupAccess($group, $account, 'lp_manager')) {
-      return AccessResult::forbidden();
-    }
-
-    if ($group->hasPermission('edit group', $account)) {
-      return AccessResult::forbidden();
-    }
-
-    if ($group->getGroupType()->id() !== 'learning_path') {
-      return AccessResult::forbidden();
-    }
-
-    return AccessResult::allowed();
   }
 
   /**

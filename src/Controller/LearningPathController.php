@@ -2,12 +2,12 @@
 
 namespace Drupal\opigno_learning_path\Controller;
 
-use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Link;
-use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\forum\Controller\ForumController;
+use Drupal\opigno_moxtra\Entity\Workspace;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\tft\Controller\TFTController;
 
@@ -19,7 +19,7 @@ class LearningPathController extends ControllerBase {
    * @return array
    */
   protected function build_step_score_cell($step) {
-    if ($step['typology'] === 'Module' || $step['typology'] === 'Course') {
+    if (in_array($step['typology'], ['Module', 'Course', 'Meeting', 'ILT'])) {
       $score = $step['best score'];
 
       return [
@@ -60,41 +60,26 @@ class LearningPathController extends ControllerBase {
     $user = $this->currentUser();
     $uid = $user->id();
 
-    if ($step['typology'] === 'Module') {
-      $activities = opigno_learning_path_get_module_activities($step['id'], $uid);
-    }
-    elseif ($step['typology'] === 'Course') {
-      $activities = opigno_learning_path_get_activities($step['id'], $uid);
-    }
-    else {
-      return ['#markup' => '&dash;'];
-    }
+    $status = opigno_learning_path_get_step_status($step, $uid);
+    switch ($status) {
+      case 'pending':
+        $markup = '<span class="lp_step_state_pending"></span>' . t('Pending');
+        break;
 
-    $total = count($activities);
-    $attempted = count(array_filter($activities, function ($activity) {
-      return $activity['answers'] > 0;
-    }));
+      case 'failed':
+        $markup = '<span class="lp_step_state_failed"></span>' . t('Failed');
+        break;
 
-    $progress = $total > 0
-      ? $attempted / $total
-      : 0;
+      case 'passed':
+        $markup = '<span class="lp_step_state_passed"></span>' . t('Passed');
+        break;
 
-    if ($progress < 1) {
-      $state = '<span class="lp_step_state_pending"></span>' . t('Pending');
-    }
-    else {
-      $score = $step['best score'];
-      $min_score = $step['required score'];
-
-      if ($score < $min_score) {
-        $state = '<span class="lp_step_state_failed"></span>' . t('Failed');
-      }
-      else {
-        $state = '<span class="lp_step_state_passed"></span>' . t('Passed');
-      }
+      default:
+        $markup = '&dash;';
+        break;
     }
 
-    return ['#markup' => $state];
+    return ['#markup' => $markup];
   }
 
   /**
@@ -134,19 +119,7 @@ class LearningPathController extends ControllerBase {
     $progress = round(100 * $progress);
 
     if (opigno_learning_path_is_passed($group, $uid)) {
-      $steps = opigno_learning_path_get_steps($id, $uid);
-      $mandatory_steps = array_filter($steps, function ($step) {
-        return $step['mandatory'];
-      });
-
-      if (!empty($mandatory_steps)) {
-        $score = round(array_sum(array_map(function ($step) {
-          return $step['best score'];
-        }, $mandatory_steps)) / count($mandatory_steps));
-      }
-      else {
-        $score = 0;
-      }
+      $score = opigno_learning_path_get_score($id, $uid);
 
       /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
       $date_formatter = \Drupal::service('date.formatter');
@@ -247,6 +220,7 @@ class LearningPathController extends ControllerBase {
       '#attached' => [
         'library' => [
           'opigno_learning_path/training_content',
+          'core/drupal.dialog.ajax',
         ],
       ],
     ];
@@ -262,6 +236,7 @@ class LearningPathController extends ControllerBase {
 
     $admin_continue_button = Link::fromTextAndUrl('', $continue_url)->toRenderable();
     $admin_continue_button['#attributes']['class'][] = 'lp_progress_admin_continue';
+    $admin_continue_button['#attributes']['class'][] = 'use-ajax';
     $edit_button = Link::fromTextAndUrl('', $edit_url)->toRenderable();
     $edit_button['#attributes']['class'][] = 'lp_progress_admin_edit';
     $members_button = Link::fromTextAndUrl('', $members_url)->toRenderable();
@@ -270,15 +245,14 @@ class LearningPathController extends ControllerBase {
     $continue_button_text = $this->t('Continue Training');
     $continue_button = Link::fromTextAndUrl($continue_button_text, $continue_url)->toRenderable();
     $continue_button['#attributes']['class'][] = 'lp_progress_continue';
+    $continue_button['#attributes']['class'][] = 'use-ajax';
 
     $buttons = [];
-    if ($user->hasPermission('manage group content in any group')
-      || $group->hasPermission('edit group', $user)) {
+    if ($group->access('update', $user)) {
       $buttons[] = $admin_continue_button;
       $buttons[] = $edit_button;
     }
-    elseif ($user->hasPermission('manage group members in any group')
-      || $group->hasPermission('administer members', $user)) {
+    elseif ($group->access('administer members', $user)) {
       $buttons[] = $admin_continue_button;
       $buttons[] = $members_button;
     }
@@ -304,8 +278,50 @@ class LearningPathController extends ControllerBase {
     /** @var \Drupal\group\Entity\Group $group */
     $group = \Drupal::routeMatch()->getParameter('group');
     $user = \Drupal::currentUser();
+    $content = [
+      '#attached' => [
+        'library' => [
+          'core/drupal.dialog.ajax',
+        ],
+      ],
+    ];
+
+    // If not a member.
+    if (!$group->getMember($user)
+      || !$user->isAuthenticated() && $group->field_learning_path_visibility->value === 'semiprivate') {
+      return $content;
+    }
 
     $steps = opigno_learning_path_get_steps($group->id(), $user->id());
+    $steps = array_filter($steps, function ($step) use ($user) {
+      if ($step['typology'] === 'Meeting') {
+        // If the user have not the collaborative features role.
+        if (!$user->hasPermission('view meeting entities')) {
+          return FALSE;
+        }
+
+        // If the user is not a member of the meeting.
+        /** @var \Drupal\opigno_moxtra\MeetingInterface $meeting */
+        $meeting = \Drupal::entityTypeManager()
+          ->getStorage('opigno_moxtra_meeting')
+          ->load($step['id']);
+        if (!$meeting->isMember($user->id())) {
+          return FALSE;
+        }
+      }
+      elseif ($step['typology'] === 'ILT') {
+        // If the user is not a member of the ILT.
+        /** @var \Drupal\opigno_ilt\ILTInterface $ilt */
+        $ilt = \Drupal::entityTypeManager()
+          ->getStorage('opigno_ilt')
+          ->load($step['id']);
+        if (!$ilt->isMember($user->id())) {
+          return FALSE;
+        }
+      }
+
+      return TRUE;
+    });
     $steps = array_map(function ($step) use ($user) {
       $sub_title = '';
       $score = $this->build_step_score_cell($step);
@@ -319,6 +335,41 @@ class LearningPathController extends ControllerBase {
         ]);
 
         $rows = array_map([$this, 'build_course_row'], $course_steps);
+      }
+
+      $title = $step['name'];
+
+      if ($step['typology'] === 'Meeting') {
+        /** @var \Drupal\opigno_moxtra\MeetingInterface $meeting */
+        $meeting = $this->entityTypeManager()
+          ->getStorage('opigno_moxtra_meeting')
+          ->load($step['id']);
+        $start_date = $meeting->getStartDate();
+        $end_date = $meeting->getEndDate();
+      }
+      elseif ($step['typology'] === 'ILT') {
+        /** @var \Drupal\opigno_ilt\ILTInterface $ilt */
+        $ilt = $this->entityTypeManager()
+          ->getStorage('opigno_ilt')
+          ->load($step['id']);
+        $start_date = $ilt->getStartDate();
+        $end_date = $ilt->getEndDate();
+      }
+
+      if (isset($start_date) && isset($end_date)) {
+        $start_date = DrupalDateTime::createFromFormat(
+          DrupalDateTime::FORMAT,
+          $start_date
+        );
+        $end_date = DrupalDateTime::createFromFormat(
+          DrupalDateTime::FORMAT,
+          $end_date
+        );
+
+        $title .= ' / ' . $this->t('@start to @end', [
+            '@start' => $start_date->format('jS F Y - g:i A'),
+            '@end' => $end_date->format('g:i A'),
+          ]);
       }
 
       return [
@@ -347,7 +398,7 @@ class LearningPathController extends ControllerBase {
             '#attributes' => [
               'class' => ['lp_step_title'],
             ],
-            '#value' => $step['name'],
+            '#value' => $title,
           ],
         ],
         [
@@ -461,10 +512,10 @@ class LearningPathController extends ControllerBase {
       ];
     }, $steps);
 
-    $TFTController = new TFTController();
-    $listGroup = $TFTController->listGroup($group->id());
+    // $TFTController = new TFTController();
+    // $listGroup = $TFTController->listGroup($group->id());
+    $tft_url = Url::fromRoute('tft.group', ['group' => $group->id()])->toString();
 
-    $content = [];
     $content['tabs'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['lp_tabs', 'nav', 'mb-4']],
@@ -476,10 +527,6 @@ class LearningPathController extends ControllerBase {
 
     $content['tabs'][] = [
       '#markup' => '<a class="lp_tabs_link" data-toggle="tab" href="#documents-library">' . t('Documents Library') . '</a>',
-    ];
-
-    $content['tabs'][] = [
-      '#markup' => '<a class="lp_tabs_link" data-toggle="tab" href="#collaborative-workspace">' . t('Collaborative Workspace') . '</a>',
     ];
 
     $content['tab-content'] = [
@@ -496,14 +543,87 @@ class LearningPathController extends ControllerBase {
     $content['tab-content'][] = [
       '#type' => 'container',
       '#attributes' => ['id' => 'documents-library', 'class' => ['tab-pane', 'fade']],
-      $listGroup,
+      [
+        '#type' => 'html_tag',
+        '#tag' => 'iframe',
+        '#attributes' => [
+          'src' => $tft_url,
+          'frameborder' => 0,
+          'width' => '100%',
+          'height' => '600px',
+        ]
+      ],
+      // $listGroup,
     ];
 
-    $content['tab-content'][] = [
-      '#type' => 'container',
-      '#attributes' => ['id' => 'collaborative-workspace', 'class' => ['tab-pane', 'fade']],
-      '#markup' => 'collaborative-workspace',
-    ];
+    $is_moxtra_enabled = \Drupal::hasService('opigno_moxtra.workspace_controller');
+    if ($is_moxtra_enabled) {
+      $has_workspace_field = $group->hasField('field_workspace');
+      $has_workspace_access = $user->hasPermission('view workspace entities');
+      if ($has_workspace_field && $has_workspace_access) {
+        /** @var \Drupal\opigno_moxtra\Controller\WorkspaceController $workspace_controller */
+        $workspace_controller = \Drupal::service('opigno_moxtra.workspace_controller');
+
+        if ($group->get('field_workspace')->getValue() &&
+          $workspace_id = $group->get('field_workspace')->getValue()[0]['target_id']
+        ) {
+          $workspace_url = Url::fromRoute('opigno_moxtra.workspace.iframe', ['opigno_moxtra_workspace' => $workspace_id])->toString();
+
+          $content['tabs'][] = [
+            '#markup' => '<a class="lp_tabs_link" data-toggle="tab" href="#collaborative-workspace">' . t('Collaborative Workspace') . '</a>',
+          ];
+        }
+
+        $workspace_tab = [
+          '#type' => 'container',
+          '#attributes' => [
+            'id' => 'collaborative-workspace',
+            'class' => ['tab-pane', 'fade'],
+          ],
+          'content' => [
+            '#type' => 'container',
+            '#attributes' => [
+              'class' => ['row'],
+            ],
+            (isset($workspace_url)) ? [
+              '#type' => 'html_tag',
+              '#tag' => 'iframe',
+              '#attributes' => [
+                'src' => $workspace_url,
+                'frameborder' => 0,
+                'width' => '100%',
+                'height' => '600px',
+              ]
+            ] : [],
+            // 'workspace_list' => [
+            //   '#type' => 'container',
+            //   '#attributes' => [
+            //     'class' => ['col-md-4'],
+            //   ],
+            //   'content' => $workspace_controller->workspaceList(),
+            // ],
+            // 'workspace' => [
+            //   '#type' => 'container',
+            //   '#attributes' => [
+            //     'class' => ['col-md-8'],
+            //   ],
+            //   'content' => [
+            //     '#markup' => $this->t('No collaborative workspace was found for this group ! Please contact your system administrator.'),
+            //   ],
+            // ],
+          ],
+        ];
+
+        // $workspace_id = $group->get('field_workspace')->getValue()[0]['target_id'];
+        // $workspace_url = Url::fromRoute('opigno_moxtra.workspace.iframe', ['opigno_moxtra_workspace' => $workspace_id])->toString();
+        // $workspace = Workspace::load($workspace_id);
+        // if ($workspace !== NULL) {
+        //   $workspace_tab['content']['workspace']['content'] = $workspace_controller->index($workspace);
+        // }
+        //
+        $content['tab-content'][] = $workspace_tab;
+      }
+    }
 
     $has_enable_forum_field = $group->hasField('field_learning_path_enable_forum');
     $has_forum_field = $group->hasField('field_learning_path_forum');
@@ -515,8 +635,9 @@ class LearningPathController extends ControllerBase {
         $forum_tid = $forum_field[0]['target_id'];
         if ($enable_forum && _opigno_forum_access($forum_tid, $user)) {
           $forum_term = Term::load($forum_tid);
-          $forum_controller = ForumController::create(\Drupal::getContainer());
-          $forum = $forum_controller->forumPage($forum_term);
+          $forum_url = Url::fromRoute('forum.page', ['taxonomy_term' => $forum_tid])->toString();
+          // $forum_controller = ForumController::create(\Drupal::getContainer());
+          // $forum = $forum_controller->forumPage($forum_term);
 
           $content['tabs'][] = [
             '#markup' => '<a class="lp_tabs_link" data-toggle="tab" href="#forum">' . t('Forum') . '</a>',
@@ -528,32 +649,27 @@ class LearningPathController extends ControllerBase {
               'id' => 'forum',
               'class' => ['tab-pane', 'fade'],
             ],
-            'forum' => $forum,
+            [
+              '#type' => 'html_tag',
+              '#tag' => 'iframe',
+              '#attributes' => [
+                'src' => $forum_url,
+                'frameborder' => 0,
+                'width' => '100%',
+                'height' => '600px',
+              ]
+            ],
+            // 'forum' => $forum,
           ];
         }
       }
     }
 
-    $content[] = [
-      '#attached' => [
-        'library' => [
-          'opigno_learning_path/training_content',
-        ],
-      ],
+    $content['#attached']['library'][] = [
+      'opigno_learning_path/training_content',
     ];
 
     return $content;
-  }
-
-  /**
-   * Check the access for the learning path page.
-   */
-  public function access(AccountInterface $account) {
-    if ($account->isAnonymous()) {
-      return AccessResult::forbidden();
-    }
-
-    return AccessResult::allowed();
   }
 
 }

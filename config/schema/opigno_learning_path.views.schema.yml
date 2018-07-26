@@ -1,0 +1,3 @@
+views.filter.opigno_group_membership_status:
+  type: views.filter.in_operator
+  label: 'Group Membership Status'

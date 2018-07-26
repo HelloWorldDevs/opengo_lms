@@ -14,3 +14,4 @@ permissions:
   - 'update own group_membership content'
   - 'leave group'
   - 'view group'
+  - 'view own results'

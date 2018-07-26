@@ -43,26 +43,19 @@ class StepsBlock extends BlockBase {
   }
 
   protected function buildState($step) {
-    $is_attempted = $step['attempts'] > 0;
-    $is_passed = $step['best score'] >= $step['required score'];
-
-    if ($is_attempted) {
-      if ($is_passed) {
-        $state = '<span class="lp_steps_block_step_passed"></span>'
-          . $this->t('Passed');
-      }
-      else {
-        $state = '<span class="lp_steps_block_step_failed"></span>'
-          . $this->t('Failed');
-      }
-    }
-    else {
-      $state = '<span class="lp_steps_block_step_pending"></span>';
-    }
-
+    $uid = \Drupal::currentUser()->id();
+    $status = opigno_learning_path_get_step_status($step, $uid);
+    $markups = [
+      'pending' => '<span class="lp_steps_block_step_pending"></span>',
+      'failed' => '<span class="lp_steps_block_step_failed"></span>'
+        . $this->t('Failed'),
+      'passed' => '<span class="lp_steps_block_step_passed"></span>'
+        . $this->t('Passed'),
+    ];
+    $markup = isset($markups[$status]) ? $markups[$status] : '&dash;';
     return [
       'data' => [
-        '#markup' => $state,
+        '#markup' => $markup,
       ],
     ];
   }
@@ -75,7 +68,6 @@ class StepsBlock extends BlockBase {
 
     $uid = $user->id();
     $gid = OpignoGroupContext::getCurrentGroupId();
-    $cid = OpignoGroupContext::getCurrentGroupContentId();
 
     if (!isset($gid)) {
       return [];
@@ -98,19 +90,39 @@ class StepsBlock extends BlockBase {
       }
     });
 
-    // Calculate score.
-    $mandatory_steps = array_filter($steps, function ($step) {
-      return $step['mandatory'];
-    });
-    if (!empty($mandatory_steps)) {
-      $score = round(array_sum(array_map(function ($step) {
-        return $step['best score'];
-      }, $mandatory_steps)) / count($mandatory_steps));
-    }
-    else {
-      $score = 0;
-    }
+    /** @var \Drupal\user\UserInterface $user */
+    $user = \Drupal::currentUser();
+    $steps = array_filter($steps, function ($step) use ($user) {
+      if ($step['typology'] === 'Meeting') {
+        // If the user have not the collaborative features role.
+        if (!$user->hasPermission('view meeting entities')) {
+          return FALSE;
+        }
 
+        // If the user is not a member of the meeting.
+        /** @var \Drupal\opigno_moxtra\MeetingInterface $meeting */
+        $meeting = \Drupal::entityTypeManager()
+          ->getStorage('opigno_moxtra_meeting')
+          ->load($step['id']);
+        if (!$meeting->isMember($user->id())) {
+          return FALSE;
+        }
+      }
+      elseif ($step['typology'] === 'ILT') {
+        // If the user is not a member of the ILT.
+        /** @var \Drupal\opigno_ilt\ILTInterface $ilt */
+        $ilt = \Drupal::entityTypeManager()
+          ->getStorage('opigno_ilt')
+          ->load($step['id']);
+        if (!$ilt->isMember($user->id())) {
+          return FALSE;
+        }
+      }
+
+      return TRUE;
+    });
+
+    $score = opigno_learning_path_get_score($gid, $uid);
     $progress = opigno_learning_path_progress($gid, $uid);
     $progress = round(100 * $progress);
 

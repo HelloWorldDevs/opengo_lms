@@ -2,14 +2,11 @@
 
 namespace Drupal\opigno_learning_path\Controller;
 
-use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Link;
-use Drupal\Core\Session\AccountInterface;
 use Drupal\group\Entity\Group;
 use Drupal\group\Entity\GroupInterface;
 use Drupal\opigno_group_manager\OpignoGroupContentTypesManager;
-use Drupal\opigno_learning_path\LearningPathAccess;
 use Drupal\opigno_learning_path\LearningPathValidator;
 use Drupal\opigno_module\Entity\OpignoModule;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -51,6 +48,8 @@ class LearningPathContentController extends ControllerBase {
     $view_type = ($group->get('type')->getString() == 'opigno_course')
       ? 'manager' : 'modules';
 
+    $tempstore = \Drupal::service('user.private_tempstore')->get('opigno_group_manager');
+
     return [
       '#theme' => 'opigno_learning_path_courses',
       '#attached' => ['library' => ['opigno_group_manager/manage_app']],
@@ -59,6 +58,7 @@ class LearningPathContentController extends ControllerBase {
       '#learning_path_id' => $group->id(),
       '#view_type' => $view_type,
       '#next_link' => isset($next_link) ? render($next_link) : NULL,
+      '#user_has_info_card' => $tempstore->get('hide_info_card') ? false : true,
     ];
   }
 
@@ -69,6 +69,7 @@ class LearningPathContentController extends ControllerBase {
     // Check if user has uncompleted steps.
     LearningPathValidator::stepsValidate($group);
 
+    $tempstore = \Drupal::service('user.private_tempstore')->get('opigno_group_manager');
     $next_link = $this->getNextLink($group);
     return [
       '#theme' => 'opigno_learning_path_modules',
@@ -78,6 +79,7 @@ class LearningPathContentController extends ControllerBase {
       '#learning_path_id' => $group->id(),
       '#module_context' => 'false',
       '#next_link' => isset($next_link) ? render($next_link) : NULL,
+      '#user_has_info_card' => $tempstore->get('hide_info_card') ? false : true,
     ];
   }
 
@@ -89,14 +91,22 @@ class LearningPathContentController extends ControllerBase {
 
       $user = \Drupal::currentUser();
       if ($current_step == 4
-        && !$user->hasPermission('manage group members in any group')
-        && !$group->hasPermission('administer members', $user)) {
+        && !$group->access('administer members', $user)) {
         // Hide link if user can't access members overview tab.
         return NULL;
       }
 
-      $next_step = ($current_step < 5) ? $current_step + 1 : NULL;
-      $link_text = !$next_step ? t('Publish') : t('Next');
+      $group_type_id = $group->getGroupType()->id();
+      if ($group_type_id === 'learning_path') {
+        $next_step = ($current_step < 5) ? $current_step + 1 : NULL;
+        $link_text = !$next_step ? t('Publish') : t('Next');
+      }
+      elseif ($group_type_id === 'opigno_course' && $current_step < 3) {
+        $link_text = t('Next');
+      }
+      else {
+        return $next_link;
+      }
       $next_link = Link::createFromRoute($link_text, 'opigno_learning_path.content_steps', [
         'group' => $group->id(),
         'current' => ($current_step) ? $current_step : 0,
@@ -112,37 +122,6 @@ class LearningPathContentController extends ControllerBase {
     }
 
     return $next_link;
-  }
-
-  /**
-   * Check the access for the Learning path content pages.
-   *
-   * @todo correct permission.
-   */
-  public function access(Group $group, AccountInterface $account) {
-    if (empty($group) || !is_object($group)) {
-      return AccessResult::forbidden();
-    }
-
-    if ($account->hasPermission('manage group content in any group')) {
-      // Allow platform-level content managers to access.
-      return AccessResult::allowed();
-    }
-
-    if (!LearningPathAccess::getGroupAccess($group, $account, 'lp_manager')) {
-      return AccessResult::forbidden();
-    }
-
-    if (!$group->hasPermission('edit group', $account)) {
-      return AccessResult::forbidden();
-    }
-
-    $type = $group->getGroupType()->id();
-    if ($type !== 'learning_path' && $type !== 'opigno_course') {
-      return AccessResult::forbidden();
-    }
-
-    return AccessResult::allowed();
   }
 
   /**

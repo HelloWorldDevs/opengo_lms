@@ -40,8 +40,16 @@ class OpignoLearningPathTakeLink extends FieldPluginBase {
     }
     // Take the bundle and build the take link.
     if ($bundle == 'learning_path') {
-      return Link::createFromRoute($link_text, 'opigno_learning_path.steps.start', ['group' => $learnign_path->id()])
-        ->toString();
+      return Link::createFromRoute(
+        $link_text,
+        'opigno_learning_path.steps.start',
+        ['group' => $learnign_path->id()],
+        [
+          'attributes' => [
+            'class' => ['use-ajax'],
+          ],
+        ]
+      )->toString();
     }
     else {
       return '';

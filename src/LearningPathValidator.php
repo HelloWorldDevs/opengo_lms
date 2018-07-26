@@ -43,126 +43,172 @@ class LearningPathValidator {
   }
 
   /**
-   *  Redirect user if one of learning path steps aren't completed.
+   * Checks if module have at least one activity.
+   *
+   * @param \Drupal\opigno_module\Entity\OpignoModule $module
+   *   Opigno Module Entity.
+   * @param int $redirect_step
+   *   Step to redirect.
+   *
+   * @return bool
+   *   Is module valid.
+   */
+  protected static function moduleValidate($module, &$redirect_step) {
+    $activities = $module->getModuleActivities();
+    $is_valid = !empty($activities);
+    if (!$is_valid && ($redirect_step === NULL || $redirect_step >= 4)) {
+      $redirect_step = 4;
+
+      // Show message only if user click on "next" button from current route.
+      $current_route = \Drupal::service('current_route_match');
+      $current_step = (int) $current_route->getParameter('current');
+      if ($current_step === $redirect_step) {
+        $messenger = \Drupal::messenger();
+        $messenger->addError(t('Please, add at least one activity to @module module!', [
+          '@module' => $module->label(),
+        ]));
+      }
+    }
+
+    return $is_valid;
+  }
+
+  /**
+   * Checks if course has at least one module, and all modules are valid.
+   *
+   * @param int $course_id
+   *   Opigno Course Group ID.
+   * @param int $redirect_step
+   *   Step to redirect.
+   *
+   * @return bool
+   *   Is course valid.
+   */
+  protected static function courseValidate($course_id, &$redirect_step) {
+    $contents = OpignoGroupManagedContent::loadByGroupId($course_id);
+    $is_valid = !empty($contents);
+    if (!$is_valid && ($redirect_step === NULL || $redirect_step >= 3)) {
+      $redirect_step = 3;
+
+      // Show message only if user click on "next" button from current route.
+      $current_route = \Drupal::service('current_route_match');
+      $current_step = (int) $current_route->getParameter('current');
+      if ($current_step === $redirect_step) {
+        $messenger = \Drupal::messenger();
+        $messenger->addError(t('Please, add to course at least one module!'));
+      }
+    }
+    else {
+      foreach ($contents as $course_cid => $course_content) {
+        // Check if all modules in course has at least one activity.
+        $module_id = $course_content->getEntityId();
+        $module = OpignoModule::load($module_id);
+        if (!static::moduleValidate($module, $redirect_step)) {
+          $is_valid = FALSE;
+        }
+      }
+    }
+
+    return $is_valid;
+  }
+
+  /**
+   * Redirect user if one of learning path steps aren't completed.
    *
    * @param \Drupal\group\Entity\Group $group
    *
    * @return bool|\Symfony\Component\HttpFoundation\RedirectResponse
    */
-  public static function stepsValidate(Group $group)  {
-    $group_type = opigno_learning_path_get_group_type();
-    $current_step = opigno_learning_path_get_current_step();
-    $current_route = \Drupal::routeMatch()->getRouteName();
+  public static function stepsValidate(Group $group) {
     $messenger = \Drupal::messenger();
-    $url_param = \Drupal::service('current_route_match');
-    $current = $url_param->getParameter('current');
+
+    $current_route = \Drupal::service('current_route_match');
+    $current_route_name = $current_route->getRouteName();
+    $current_route_step = (int) $current_route->getParameter('current');
+
+    // Validate only group type "learning_path".
+    $group_type = opigno_learning_path_get_group_type();
+    if ($group_type !== 'learning_path') {
+      return TRUE;
+    }
+
     // Step 1 doesn't need validation because it has form validation.
-    if ($current_step == 1) {
-      return;
+    $current_step = (int) opigno_learning_path_get_current_step();
+    if ($current_step === 1) {
+      return TRUE;
     };
-    // Validate group type "learning_path".
-    if ($group_type == 'learning_path') {
-      // Route with invalid step.
-      $route = '';
-      // Get all training content.
-      $contents = OpignoGroupManagedContent::loadByGroupId($group->id());
-      // Learning path is empty
-      if (empty($contents)) {
-        $step = 2;
-        $route = array_search($step, opigno_learning_path_get_routes_steps());
-        // Show message only if user click on "next" button from current route.
-        if ($current == strval($step)) {
-            $messenger->addError("Please, add some course or module!");
+
+    $redirect_step = NULL;
+
+    // Get all training content.
+    $contents = OpignoGroupManagedContent::loadByGroupId($group->id());
+    if (empty($contents)) {
+      // Learning path is empty.
+      $redirect_step = 2;
+
+      // Show message only if user click on "next" button from current route.
+      if ($current_route_step === $redirect_step) {
+        $messenger->addError(t('Please, add some course or module!'));
+      }
+    }
+    else {
+      // Learning path is created and not empty.
+      // Skip 4 step if learning path hasn't any courses.
+      $group_courses = $group->getContent('subgroup:opigno_course');
+      if (empty($group_courses)
+        && $current_route_name === 'opigno_learning_path.learning_path_courses') {
+        $redirect_step = 4;
+      }
+
+      // Check if training has at least one mandatory entity.
+      $has_mandatory = self::hasMandatoryItem($contents);
+      if (!$has_mandatory) {
+        $redirect_step = 2;
+
+        // Show message only if user click
+        // on "next" button from current route.
+        if ($current_route_step === $redirect_step) {
+          $messenger->addError(t('At least one entity must be mandatory!'));
         }
       }
-      // Learning path is created and not empty
       else {
-        // Skip 4 step if learning path hasn't any courses.
-        $group_courses = $group->getContent('subgroup:opigno_course');
-        if (empty($group_courses) && $current_route == 'opigno_learning_path.learning_path_courses') {
-          $step = 4;
-          $route = array_search($step, opigno_learning_path_get_routes_steps());
-          // $messenger->addError("You can't visit this page because you didn't add any course with modules!");
-        }
-
-        // Check if training has at least one mandatory entity.
-        $has_mandatory = self::hasMandatoryItem($contents);
-        if (!$has_mandatory) {
-          $step = 2;
-          $route = array_search($step, opigno_learning_path_get_routes_steps());
-          // Show message only if user click on "next" button from current route.
-          if ($current == strval($step)) {
-          $messenger->addError("At least one entity must be mandatory!");
-          }
-        }
-        else {
-          foreach ($contents as $cid => $content) {
-            $type_id = $content->getGroupContentTypeId();
-            if ($type_id === 'ContentTypeModule') {
-              // Check if all modules has at least one activity.
+        foreach ($contents as $cid => $content) {
+          $type_id = $content->getGroupContentTypeId();
+          switch ($type_id) {
+            case 'ContentTypeModule':
               $module_id = $content->getEntityId();
               $module = OpignoModule::load($module_id);
-              $activities = $module->getModuleActivities();
-              // If at least one module hasn't activity.
-              if (empty($activities)) {
-                $step = 4;
-                $route = array_search($step, opigno_learning_path_get_routes_steps());
-                // Show message only if user click on "next" button from current route.
-                if ($current == strval($step)) {
-                  $messenger->addError("Please, add at least one activity to {$module->label()} module!");
-                }
-              }
-            }
-            else {
-              if ($type_id === 'ContentTypeCourse') {
-                $contents = OpignoGroupManagedContent::loadByGroupId($content->getEntityId());
-                // Check if each course has at least one module.
-                if (empty($contents)) {
-                  $step = 3;
-                  $route = array_search($step, opigno_learning_path_get_routes_steps());
-                  // Show message only if user click on "next" button from current route.
-                  if ($current == strval($step)) {
-                    $messenger->addError("Please, add to course at least one module!");
-                  }
-                }
-                else {
-                  foreach ($contents as $cid => $content) {
-                    // Check if all modules in course has at least one activity.
-                    $module_id = $content->getEntityId();
-                    $module = OpignoModule::load($module_id);
-                    $activities = $module->getModuleActivities();
-                    // If at least one module hasn't activity.
-                    if (empty($activities)) {
-                      $step = 4;
-                      $route = array_search($step, opigno_learning_path_get_routes_steps());
-                      // Show message only if user click on "next" button from current route.
-                      if ($current == strval($step)) {
-                        $messenger->addError("Please, add at least one activity to {$module->label()} module!");
-                      }
-                    }
-                  }
-                }
-              }
-            }
+              static::moduleValidate($module, $redirect_step);
+              break;
+
+            case 'ContentTypeCourse':
+              $course_id = $content->getEntityId();
+              static::courseValidate($course_id, $redirect_step);
+              break;
           }
         }
       }
-      if (!empty($route)) {
-        if ($route == $current_route) {
-          // Prevent redirect from current route
-          return;
-        };
-        // Redirect to incompleted step.
-        $response = new RedirectResponse(Url::fromRoute($route, ['group' => $group->id()])->toString());
-        return $response->send();
-      };
     }
-    // If validation is passed successful.
-    return;
+
+    if (isset($redirect_step)) {
+      $redirect_route_name = array_search($redirect_step, opigno_learning_path_get_routes_steps());
+      if ($redirect_route_name === $current_route_name) {
+        // Prevent redirect from current route.
+        return FALSE;
+      };
+
+      // Redirect to incomplete step.
+      $response = new RedirectResponse(Url::fromRoute($redirect_route_name, [
+        'group' => $group->id(),
+      ])->toString());
+      return $response->send();
+    }
+
+    return TRUE;
   }
 
   /**
-   *  Check if training has at least one mandatory content.
+   * Check if training has at least one mandatory content.
    *
    * @param array
    *

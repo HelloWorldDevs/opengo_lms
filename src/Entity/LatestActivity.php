@@ -18,6 +18,7 @@ use Drupal\opigno_learning_path\LatestActivityInterface;
  *   handlers = {
  *     "view_builder" = "Drupal\Core\Entity\EntityViewBuilder",
  *     "views_data" = "Drupal\views\EntityViewsData",
+ *     "access" = "Drupal\opigno_learning_path\LatestActivityAccessControlHandler",
  *   },
  *   base_table = "opigno_latest_group_activity",
  *   entity_keys = {
@@ -68,20 +69,14 @@ class LatestActivity extends ContentEntityBase implements LatestActivityInterfac
   /**
    * {@inheritdoc}
    */
-  public function getTraining() {
-    $value = $this->get('training')->getValue();
-
-    if (!isset($value)) {
-      return NULL;
-    }
-
-    return $value[0]['target_id'];
+  public function getTrainingId() {
+    return $this->get('training')->target_id;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function setTraining($id) {
+  public function setTrainingId($id) {
     $this->set('training', $id);
     return $this;
   }
@@ -89,21 +84,45 @@ class LatestActivity extends ContentEntityBase implements LatestActivityInterfac
   /**
    * {@inheritdoc}
    */
-  public function getModule() {
-    $value = $this->get('module')->getValue();
-
-    if (!isset($value)) {
-      return NULL;
-    }
-
-    return $value[0]['target_id'];
+  public function getTraining() {
+    return $this->get('training')->entity;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function setModule($id) {
+  public function setTraining($training) {
+    $this->set('training', $training->id());
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getModuleId() {
+    return $this->get('module')->target_id;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setModuleId($id) {
     $this->set('module', $id);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getModule() {
+    return $this->get('module')->entity;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setModule($module) {
+    $this->set('module', $module->id());
     return $this;
   }
 
@@ -154,8 +173,8 @@ class LatestActivity extends ContentEntityBase implements LatestActivityInterfac
     }
     else {
       $activity = LatestActivity::create();
-      $activity->setTraining($training_id);
-      $activity->setModule($module_id);
+      $activity->setTrainingId($training_id);
+      $activity->setModuleId($module_id);
     }
 
     $timestamp = \Drupal::time()->getRequestTime();

@@ -173,7 +173,44 @@ display:
           hide_alter_empty: true
           entity_type: group
           plugin_id: opigno_learning_path_progress
-      filters: {  }
+      filters:
+        opigno_group_membership:
+          id: opigno_group_membership
+          table: groups_field_data
+          field: opigno_group_membership
+          relationship: training
+          group_type: group
+          admin_label: ''
+          operator: '='
+          value: '1'
+          group: 1
+          exposed: false
+          expose:
+            operator_id: ''
+            label: ''
+            description: ''
+            use_operator: false
+            operator: ''
+            identifier: ''
+            required: false
+            remember: false
+            multiple: false
+            remember_roles:
+              authenticated: authenticated
+          is_grouped: false
+          group_info:
+            label: ''
+            description: ''
+            identifier: ''
+            optional: true
+            widget: select
+            multiple: false
+            remember: false
+            default_group: All
+            default_group_multiple: {  }
+            group_items: {  }
+          entity_type: group
+          plugin_id: opigno_group_membership_boolean
       sorts:
         timestamp:
           id: timestamp
@@ -202,10 +239,27 @@ display:
           relationship: none
           group_type: group
           admin_label: Group
-          required: false
+          required: true
           entity_type: opigno_latest_group_activity
           entity_field: training
           plugin_id: standard
+        group_content_id:
+          id: group_content_id
+          table: groups_field_data
+          field: group_content_id
+          relationship: training
+          group_type: group
+          admin_label: 'Group content'
+          required: false
+          group_content_plugins:
+            group_membership: group_membership
+            'subgroup:learning_path': '0'
+            'subgroup:opigno_class': '0'
+            'subgroup:opigno_course': '0'
+            opigno_module_group: '0'
+            opigno_moxtra_meeting_group: '0'
+          entity_type: group
+          plugin_id: group_to_group_content
       arguments: {  }
       display_extenders: {  }
       group_by: true

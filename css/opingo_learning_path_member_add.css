@@ -1,26 +1,23 @@
-.group-content-learning-path-group-membership-add-form {
+.group-content-learning-path-group-membership-add-form,
+.group-content-opigno-class-group-membership-add-form {
   background-color: #f6f6f6;
   color: #585857;
-  padding: 45px 55px 15px;
+  padding: 3rem 3.75rem 2rem;
 }
 
 @media (max-width: 768px) {
-  .group-content-learning-path-group-membership-add-form {
+  .group-content-learning-path-group-membership-add-form,
+  .group-content-opigno-class-group-membership-add-form {
     padding: 45px 15px 15px;
   }
 }
 
-.group-content-learning-path-group-membership-add-form #edit-btn-create, #btn_member_add {
-  background-color: #c3e86c;
-  color: #fff;
+.group-content-learning-path-group-membership-add-form #edit-btn-create, #btn_member_add,
+.group-content-opigno-class-group-membership-add-form #edit-btn-create, #btn_member_add {
   float: right;
-  font-weight: 700;
-  height: 60px;
+  padding: 15px 25px;
   margin-bottom: 50px;
-  padding-top: 15px;
   text-align: center;
-  text-transform: uppercase;
-  width: 245px;
 }
 
 @media (max-width: 768px) {
@@ -43,11 +40,6 @@
     margin: 45px 15px 50px;
     width: calc(100% - 30px);
   }
-}
-
-.group-content-learning-path-group-membership-add-form #edit-btn-create:hover, #btn_member_add:hover {
-  background-color: #9faf5b;
-  text-decoration: none;
 }
 
 .group-content-learning-path-group-membership-add-form .form-item-training-users-autocomplete {
@@ -79,6 +71,7 @@
   height: 280px;
   padding: 30px;
   overflow-y: auto;
+  border: 0;
 }
 
 .group-content-learning-path-group-membership-add-form .multiselect-btns ul {
@@ -121,21 +114,13 @@
   }
 }
 
-.group-content-learning-path-group-membership-add-form .multiselect-selected label {
-  margin-left: 40px;
-}
-
-@media (max-width: 768px) {
-  .group-content-learning-path-group-membership-add-form .multiselect-selected label {
-    margin-left: 0;
-  }
-}
-
 .group-content-learning-path-group-membership-add-form #training_users {
   background: #fff;
   height: 280px;
   padding: 30px;
   overflow-y: auto;
+  border: 0;
+  margin-left: 0;
 }
 
 .group-content-learning-path-group-membership-add-form #training_users .username {
@@ -172,7 +157,7 @@
   margin-left: 10px;
 }
 
-.group-content-learning-path-group-membership-add-form #edit-send-message + label {
+.group-content-learning-path-group-membership-add-form #edit-send-message+label {
   width: unset;
 }
 
@@ -182,22 +167,12 @@
 }
 
 .group-content-learning-path-group-membership-add-form #edit-submit {
-  background-color: #c3e86c;
-  color: #fff;
-  font-weight: 700;
-  height: 60px;
-  margin: 0 -55px;
-  text-transform: uppercase;
-  width: calc(100% + 110px);
+  padding: 25px;
+  width: 100%;
 }
 
 @media (max-width: 768px) {
   .group-content-learning-path-group-membership-add-form #edit-submit {
-    margin: 0 -15px;
-    width: calc(100% + 30px);
+    width: 100%;
   }
-}
-
-.group-content-learning-path-group-membership-add-form #edit-submit:hover {
-  background-color: #9faf5b;
 }

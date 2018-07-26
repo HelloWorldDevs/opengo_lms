@@ -53,49 +53,6 @@ class LearningPathAccess {
   }
 
   /**
-   * Returns group user access flag depending on group visibility.
-   */
-  public static function getGroupAccess(Group $group, AccountInterface $account, $page = NULL) {
-    $access = TRUE;
-    $visibility = $group->field_learning_path_visibility->value;
-    $validation = $group->field_requires_validation->value;
-    $is_member = ($membership = $group->getMember($account)) ? TRUE : FALSE;
-    $status = $is_member ? LearningPathAccess::getMembershipStatus($membership->getGroupContent()->id()) : NULL;
-    // Check for the Group owner.
-    if ($group->getOwnerId() == $account->id()) {
-      $access = TRUE;
-    }
-    else {
-      switch ($visibility) {
-        case 'public':
-          break;
-
-        case 'semiprivate':
-          $anonymous = $group->field_anonymous_visibility->value;
-          if (($anonymous && $account->id() === 0) || ($page && !$is_member)) {
-            $access = FALSE;
-          }
-          if ($validation && $page && !LearningPathAccess::statusGroupValidation($group, $account)) {
-            $access = FALSE;
-          }
-          break;
-
-        case 'private':
-          $roles = $account->getRoles();
-          if ((!$is_member && !in_array('administrator', $roles)) || ($is_member && $status == 3)) {
-            $access = FALSE;
-          }
-          if (!LearningPathAccess::statusGroupValidation($group, $account)) {
-            $access = FALSE;
-          }
-          break;
-      }
-    }
-
-    return $access;
-  }
-
-  /**
    * Returns Opigno course/module access flag.
    */
   public static function getGroupContentAccess(EntityInterface $entity, AccountInterface $account) {
@@ -107,7 +64,9 @@ class LearningPathAccess {
 
       if ($contents = array_shift($contents)) {
         $learningPath = $contents->getGroup();
-        if ($learningPath && !LearningPathAccess::getGroupAccess($learningPath, $account)) {
+        if (isset($learningPath)
+          && $learningPath->getEntityTypeId() === 'learning_path'
+          && !$learningPath->access('view', $account)) {
           $access = FALSE;
         }
       }
@@ -157,12 +116,15 @@ class LearningPathAccess {
         && $group->get('field_learning_path_visibility')->getValue() === 'semiprivate';
       $group_requires_validation = $group->hasField('field_requires_validation')
         && $group->get('field_requires_validation')->getValue();
-
-      if (!$group_is_semiprivate || !$group_requires_validation) {
-        $user_join = $membership->getEntity()->id() == $membership->getOwnerId();
+      $user_join = $membership->getEntity()->id() == $membership->getOwnerId();
+      if (!($group_is_semiprivate && $group_requires_validation) && $user_join) {
         // Add 'student' role if user is self-join group
         // and group is not semiprivate with validation.
-        $membership->set('group_roles', $user_join ? ['learning_path-student'] : []);
+        $roles = $membership->get('group_roles')->getValue();
+        if (!in_array('learning_path-student', $roles)) {
+          $roles[] = 'learning_path-student';
+          $membership->set('group_roles', $roles);
+        }
       }
     }
 
@@ -255,8 +217,15 @@ class LearningPathAccess {
     $gid = $group->id();
     $visibility = $group->field_learning_path_visibility->value;
     $validation = $group->field_requires_validation->value;
-    $status = in_array($visibility, ['semiprivate', 'private'])
-      && $validation ? 2 : 1;
+    $is_new = $membership->isNew();
+    $user_join = $membership->getEntity()->id() == $membership->getOwnerId();
+    if ($is_new && $user_join) {
+      $status = in_array($visibility, ['semiprivate', 'private'])
+        && $validation ? 2 : 1;
+    }
+    else {
+      $status = 1;
+    }
 
     $query = \Drupal::database()
       ->merge('opigno_learning_path_group_user_status')
@@ -284,10 +253,7 @@ class LearningPathAccess {
         if ($membership->isNew()
           && $membership->getEntity()->id() == $membership->getOwnerId()) {
           $messenger = \Drupal::messenger();
-          if ($status == 1) {
-            $messenger->addMessage(t('Thanks for subscription!'));
-          }
-          elseif ($status == 2) {
+          if ($status == 2) {
             $messenger->addMessage(t('Thanks for subscription! Administrator activate your subscription soon.'));
           }
         }
@@ -302,12 +268,14 @@ class LearningPathAccess {
     $query = \Drupal::database()->delete('opigno_learning_path_group_user_status')
       ->condition('mid', $membership->id());
     $result = $query->execute();
-
     if ($result) {
-      $uid = $membership->entity_id->entity->id();
+      /** @var \Drupal\group\Entity\GroupContentInterface $membership */
+      $entity = $membership->getEntity();
       $group = $membership->getGroup();
-      if ($group->bundle() == 'learning_path') {
-        $token = \Drupal::moduleHandler()->moduleExists('token') ? TRUE : FALSE;
+      if (isset($entity) && isset($group)
+        && $group->bundle() == 'learning_path') {
+        $uid = $entity->id();
+        $token = \Drupal::moduleHandler()->moduleExists('token');
         LearningPathAccess::notifyUsersByMail($group, $uid, NULL, $token);
       }
     }
