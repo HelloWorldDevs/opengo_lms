@@ -2984,3 +2984,18 @@ function opigno_learning_path_get_modules_ids_by_group(Group $group) {
   }
   return $modules;
 }
+
+/**
+ * Implements hook_library_info_alter().
+ */
+function opigno_learning_path_library_info_alter(&$libraries, $extension) {
+  // Make possible to load Dropzone library from profile folder.
+  if ($extension == 'dropzonejs' && \Drupal::moduleHandler()->moduleExists('dropzonejs')) {
+    $js = drupal_get_path("profile", "opigno_lms") . '/libraries/dropzone/dist/min/dropzone.min.js';
+    $css = drupal_get_path("profile", "opigno_lms") . '/libraries/dropzone/dist/min/dropzone.min.css';
+    if (file_exists($js) && file_exists($css)) {
+      $libraries['dropzonejs']['js'] = ['/' . $js => []];
+      $libraries['dropzonejs']['css']['theme'] = ['/' . $css => []];
+    }
+  }
+}
