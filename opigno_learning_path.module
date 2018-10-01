@@ -2932,22 +2932,21 @@ function opigno_learning_path_check_opigno_lms_updates() {
  *
  */
 function opigno_learning_path_get_current_opigno_lms_release() {
-  $messenger = \Drupal::messenger();
-
   $profile = \Drupal::installProfile();
+  if ($profile != 'opigno_lms') {
+    return FALSE;
+  };
   $info = system_get_info('module', $profile);
-
-  if (!empty($info) && isset($info['project'])) {
-    if ($info['project'] == 'opigno_lms') {
-      if (!isset($info['version'])) {
-        $messenger->addWarning(t('Opigno LMS version is undefined!'));
-      }
-      else {
-        return $info['version'];
-      }
+  if (!empty($info) && isset($info['version'])) {
+    if (!isset($info['version'])) {
+      \Drupal::logger('opigno_learning_path')
+        ->notice(t('Opigno LMS version is undefined!'));
+      return FALSE;
+    }
+    else {
+      return $info['version'];
     }
   }
-
   return FALSE;
 }
 
