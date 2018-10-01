@@ -18,4 +18,7 @@ dependencies:
   - opigno_module_group
   - opigno_notification
   - opigno_group_manager
+  - entity_browser
+  - dropzonejs
+  - dropzonejs_eb_widget
 configure: opigno_learning_path.learning_path_settings

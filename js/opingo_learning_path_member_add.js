@@ -4,6 +4,16 @@
       var $training_users = $('#training_users', context);
       var $training_users_available = $('#training_users-available', context);
       var $training_users_autocomplete = $('#training_users_autocomplete', context);
+      var $dropdown = $('.ui-widget.ui-widget-content');
+
+      function hideDropdown() {
+        $dropdown.addClass('invisible');
+      }
+
+      function setDropdownDefault() {
+        $dropdown.removeClass('invisible');
+      }
+
       $training_users_autocomplete
           .once('autocompleteselect')
           .on('autocompleteselect', function (e, ui) {
@@ -21,6 +31,8 @@
                   + '</option>';
               $training_users_available.append(option_html);
             }
+
+            hideDropdown();
           });
       $training_users_autocomplete
           .once('autocompleteresponse')
@@ -42,8 +54,14 @@
                   + option.label
                   + '</option>';
               $training_users_available.append(option_html);
+
             });
+            hideDropdown();
           });
+
+      $training_users_autocomplete.on('blur', function() {
+        setDropdownDefault();
+      })
     },
   };
 

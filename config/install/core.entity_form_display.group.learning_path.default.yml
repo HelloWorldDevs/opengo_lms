@@ -7,16 +7,14 @@ dependencies:
     - field.field.group.learning_path.field_learning_path_category
     - field.field.group.learning_path.field_learning_path_description
     - field.field.group.learning_path.field_learning_path_duration
-    - field.field.group.learning_path.field_learning_path_enable_forum
     - field.field.group.learning_path.field_learning_path_folder
-    - field.field.group.learning_path.field_learning_path_image
+    - field.field.group.learning_path.field_learning_path_media_image
     - field.field.group.learning_path.field_learning_path_published
     - field.field.group.learning_path.field_learning_path_visibility
     - field.field.group.learning_path.field_requires_validation
     - group.type.learning_path
-    - image.style.thumbnail
   module:
-    - image
+    - entity_browser
     - text
 id: group.learning_path.default
 targetEntityType: group
@@ -59,19 +57,26 @@ content:
     type: string_textfield
     region: content
   field_learning_path_enable_forum:
+    type: boolean_checkbox
     weight: 5
+    region: content
     settings:
       display_label: true
     third_party_settings: {  }
-    type: boolean_checkbox
-    region: content
-  field_learning_path_image:
+  field_learning_path_media_image:
     weight: 9
     settings:
-      progress_indicator: throbber
-      preview_image_style: thumbnail
+      entity_browser: media_entity_browser_groups
+      field_widget_display: rendered_entity
+      field_widget_remove: true
+      open: true
+      selection_mode: selection_append
+      field_widget_display_settings:
+        view_mode: image_only
+      field_widget_edit: false
+      field_widget_replace: false
     third_party_settings: {  }
-    type: image_image
+    type: entity_browser_entity_reference
     region: content
   field_learning_path_visibility:
     weight: 2
@@ -79,6 +84,13 @@ content:
     third_party_settings: {  }
     type: options_select
     region: content
+  field_lp_price:
+    type: number
+    weight: 10
+    region: content
+    settings:
+      placeholder: '0.00'
+    third_party_settings: {  }
   field_requires_validation:
     weight: 3
     settings:
@@ -96,6 +108,8 @@ content:
     third_party_settings: {  }
 hidden:
   field_learning_path_folder: true
+  field_learning_path_forum: true
   field_learning_path_published: true
+  field_workspace: true
   path: true
   uid: true

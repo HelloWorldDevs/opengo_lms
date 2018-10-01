@@ -50,7 +50,7 @@ class LearningPathAdminSettingsForm extends ConfigFormBase {
     $form['opigno_learning_path_mail']['opigno_learning_path_notify_admin'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Notify administrators'),
-      '#description' => $this->t('If checked administrators will be notified on Learning Path groups updates.'),
+      '#description' => $this->t('If checked administrators will be notified on trainings updates.'),
       '#default_value' => $config->get('opigno_learning_path_notify_admin'),
     ];
     $form['opigno_learning_path_mail']['opigno_learning_path_notify_admin_mails'] = [
@@ -84,7 +84,7 @@ class LearningPathAdminSettingsForm extends ConfigFormBase {
     $form['opigno_learning_path_mail']['opigno_learning_path_notify_users'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Notify users'),
-      '#description' => $this->t('If checked users will be notified on Learning Path groups updates connected to user.'),
+      '#description' => $this->t('If checked users will be notified on training updates.'),
       '#default_value' => $config->get('opigno_learning_path_notify_users'),
     ];
     $form['opigno_learning_path_mail']['opigno_learning_path_notify_user_user_subscribed'] = [

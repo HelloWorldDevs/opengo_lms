@@ -4,6 +4,7 @@ namespace Drupal\opigno_learning_path\Form;
 
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\ReplaceCommand;
+use Drupal\Core\Ajax\HtmlCommand;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\group\Entity\Group;
@@ -72,6 +73,7 @@ class LearningPathCreateClassForm extends FormBase {
       ],
       // Allow modifying option with AJAX.
       '#validated' => TRUE,
+      '#prefix' => '<div id="learning_path_create_class_form_messages" class="alert-danger"></div>',
     ];
 
     $form['create'] = [
@@ -98,12 +100,27 @@ class LearningPathCreateClassForm extends FormBase {
    * Handles AJAX form submit.
    */
   public function submitFormAjax(array $form, FormStateInterface $form_state) {
+    $response = new AjaxResponse();
     $form = \Drupal::formBuilder()->getForm('Drupal\opigno_learning_path\Form\LearningPathCreateMemberForm');
 
-    $response = new AjaxResponse();
-    $response->addCommand(new ReplaceCommand('#learning_path_create_class_form', $form));
+    if ($form_state->hasValidateError) {
+      $response->addCommand(new HtmlCommand('#learning_path_create_class_form_messages', $this->t('Please select at least one user')));
+    }
+    else {
+      $response->addCommand(new ReplaceCommand('#learning_path_create_class_form', $form));
+    }
+
     return $response;
   }
+
+  /**
+    * {@inheritdoc}
+    */
+   public function validateForm(array &$form, FormStateInterface $form_state) {
+     if (empty($form_state->getValue('users'))) {
+       $form_state->hasValidateError = true;
+     }
+   }
 
   /**
    * {@inheritdoc}

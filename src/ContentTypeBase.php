@@ -52,7 +52,7 @@ abstract class ContentTypeBase extends PluginBase implements ContentTypeInterfac
    *
    * @return \Drupal\Core\Url The URL to use to start the "test" for a student.
    */
-  public function getStartContentUrl($content_id) {
+  public function getStartContentUrl($content_id, $group_id = NULL) {
     return $this->getViewContentUrl($content_id);
   }
 

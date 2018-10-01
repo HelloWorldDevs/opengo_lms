@@ -266,3 +266,46 @@ function _opigno_learning_path_create_step_achievements_table() {
     $schema->createTable($table_name, $table);
   }
 }
+
+/**
+ * Create new field in learning_path group type.
+ */
+function opigno_learning_path_update_8008() {
+  $config_path = drupal_get_path('module', 'opigno_learning_path')
+    . '/config/install';
+
+  // Update configs from install folder.
+  $storage = new FileStorage($config_path);
+
+  $data = $storage->read('field.storage.group.field_learning_path_media_image');
+  if (!FieldStorageConfig::loadByName($data['entity_type'], $data['field_name'])) {
+    FieldStorageConfig::create($data)->save();
+  }
+
+  $data = $storage->read('field.field.group.learning_path.field_learning_path_media_image');
+  if (!FieldConfig::loadByName($data['entity_type'], $data['bundle'], $data['field_name'])) {
+    FieldConfig::create($data)->save();
+  }
+}
+
+/**
+ * Update view and media_browser_widget configs.
+ */
+function opigno_learning_path_update_8009() {
+  $config_path = drupal_get_path('module', 'opigno_learning_path')
+    . '/config/optional';
+  /* @var Drupal\Core\Config\CachedStorage $config_storage */
+
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+
+  $configs = [
+    'entity_browser.browser.media_entity_browser_groups',
+    'views.view.media_browser_images',
+  ];
+
+  foreach ($configs as $item) {
+    $data = $storage->read($item);
+    $config_storage->write($item, $data);
+  }
+}

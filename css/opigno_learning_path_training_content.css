@@ -58,6 +58,10 @@
   background-size: 22px;
 }
 
+.lp_progress_continue + .ajax-progress {
+  display: none !important;
+}
+
 /* .lp_progress_continue::before {
   content: '';
   display: block;

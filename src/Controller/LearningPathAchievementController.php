@@ -18,6 +18,7 @@ use Drupal\opigno_module\Entity\OpignoActivity;
 use Drupal\opigno_module\Entity\OpignoModule;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Drupal\opigno_module\OpignoModuleBadges;
 
 class LearningPathAchievementController extends ControllerBase {
 
@@ -462,7 +463,12 @@ class LearningPathAchievementController extends ControllerBase {
       '#type' => 'container',
       '#attributes' => [
         'id' => 'course_steps_' . $course->id(),
-        'class' => ['lp_course_steps_wrapper', 'ml-7', 'mr-5', 'mb-5'],
+        'class' => [
+          'lp_course_steps_wrapper',
+          'ml-md-7',
+          'mr-md-5',
+          'mb-5'
+        ],
       ],
       [
         '#type' => 'html_tag',
@@ -669,6 +675,15 @@ class LearningPathAchievementController extends ControllerBase {
           $score_percent = $score;
         }
 
+        // Get existing badge count.
+        $badges = 0;
+        if (\Drupal::moduleHandler()->moduleExists('opigno_module') && ($is_course || $is_module)) {
+          $result = OpignoModuleBadges::opignoModuleGetBadges($uid, $group->id(), $step['typology'], $step['id']);
+          if ($result) {
+            $badges = $result;
+          }
+        }
+
         $content = [
           '#type' => 'container',
           '#attributes' => [
@@ -722,99 +737,121 @@ class LearningPathAchievementController extends ControllerBase {
               [
                 '#type' => 'container',
                 '#attributes' => [
-                  'class' => ['lp_step_summary', 'px-3', 'd-flex', 'justify-content-center', 'flex-wrap'],
-                ],
-                [
-                  '#type' => 'html_tag',
-                  '#tag' => 'div',
-                  '#attributes' => [
-                    'class' => [
-                      'lp_step_summary_title',
-                      'h4',
-                      'mb-0',
-                      'text-uppercase',
-                    ],
+                  'class' => [
+                    'lp_step_summary',
+                    'px-3'
                   ],
-                  '#value' => isset($status[$step['status']])
-                    ? $status[$step['status']]['title'] : $status['pending']['title'],
-                ],
-                [
-                  '#type' => 'html_tag',
-                  '#tag' => 'div',
-                  '#attributes' => [
-                    'class' => [
-                      'lp_step_summary_icon',
-                      isset($status[$step['status']]) ? $status[$step['status']]['class'] : $status['pending']['class'],
-                      'ml-3',
-                    ],
-                  ],
-                ],
-                [
-                  '#type' => 'html_tag',
-                  '#tag' => 'div',
-                  '#attributes' => [
-                    'class' => ['ml-5'],
-                  ],
-                  '#value' => '<div class="h4 color-blue mb-0">' . round(100 * $step['progress']) . '%</div><div>' . t('Completion') . '</div>',
                 ],
                 [
                   '#type' => 'container',
                   '#attributes' => [
                     'class' => [
-                      'lp_step_summary_completion_chart',
-                      'donut-wrapper',
-                      'ml-3',
+                      'w-100',
+                      'd-md-flex',
+                      'justify-content-start',
+                      'flex-wrap'
+                    ]
+                  ],
+                  [
+                    '#type' => 'html_tag',
+                    '#tag' => 'div',
+                    '#attributes' => [
+                      'class' => [
+                        'lp_step_summary_title',
+                        'h4',
+                        'mb-0',
+                        'text-uppercase',
+                      ],
+                    ],
+                    '#value' => isset($status[$step['status']])
+                      ? $status[$step['status']]['title'] : $status['pending']['title'],
+                  ],
+                  [
+                    '#type' => 'html_tag',
+                    '#tag' => 'div',
+                    '#attributes' => [
+                      'class' => [
+                        'lp_step_summary_icon',
+                        isset($status[$step['status']]) ? $status[$step['status']]['class'] : $status['pending']['class'],
+                        'ml-3',
+                        'mr-auto'
+                      ],
                     ],
                   ],
                   [
                     '#type' => 'html_tag',
-                    '#tag' => 'canvas',
+                    '#tag' => 'div',
                     '#attributes' => [
-                      'class' => ['donut'],
-                      'data-value' => round(100 * $step['progress']),
-                      'data-width' => 7,
-                      'data-color' => '#5bb4d8',
-                      'data-track-color' => '#fff',
-                      'width' => 67,
-                      'height' => 67,
+                      'class' => ['ml-0', 'ml-md-5', 'mr-3', 'pull-left'],
                     ],
-                    '#value' => '',
+                    '#value' => '<div class="h4 color-blue mb-0">' . round(100 * $step['progress']) . '%</div><div>' . t('Completion') . '</div>',
                   ],
-                ],
-                [
-                  '#type' => 'html_tag',
-                  '#tag' => 'div',
-                  '#attributes' => [
-                    'class' => [
-                      'ml-5',
-                      'lp_step_summary_approved'
+                  [
+                    '#type' => 'container',
+                    '#attributes' => [
+                      'class' => [
+                        'lp_step_summary_completion_chart',
+                        'donut-wrapper',
+                        'ml-3',
+                        'mr-auto',
+                        'mb-3',
+                        'mb-md-0'
+                      ],
                     ],
-                  ],
-                  '#value' => '<div class="h4 color-blue mb-0">' . $approved . '</div><div>' . t('Activities') . '<br />' . t('done') . '</div>',
-                ],
-                [
-                  '#type' => 'container',
-                  '#attributes' => [
-                    'class' => [
-                      'lp_step_summary_approved_chart',
-                      'donut-wrapper',
-                      'ml-3',
+                    [
+                      '#type' => 'html_tag',
+                      '#tag' => 'canvas',
+                      '#attributes' => [
+                        'class' => ['donut'],
+                        'data-value' => round(100 * $step['progress']),
+                        'data-width' => 7,
+                        'data-color' => '#5bb4d8',
+                        'data-track-color' => '#fff',
+                        'width' => 67,
+                        'height' => 67,
+                      ],
+                      '#value' => '',
                     ],
                   ],
                   [
                     '#type' => 'html_tag',
-                    '#tag' => 'canvas',
+                    '#tag' => 'div',
                     '#attributes' => [
-                      'class' => ['donut'],
-                      'data-value' => $approved_percent,
-                      'data-width' => 7,
-                      'data-color' => '#5bb4d8',
-                      'data-track-color' => '#fff',
-                      'width' => 67,
-                      'height' => 67,
+                      'class' => [
+                        'ml-0',
+                        'ml-md-5',
+                        'lp_step_summary_approved',
+                        'mr-3',
+                        'pull-left'
+                      ],
                     ],
-                    '#value' => '',
+                    '#value' => '<div class="h4 color-blue mb-0">' . $approved . '</div><div>' . t('Activities') . '<br />' . t('done') . '</div>',
                   ],
+                  [
+                    '#type' => 'container',
+                    '#attributes' => [
+                      'class' => [
+                        'lp_step_summary_approved_chart',
+                        'donut-wrapper',
+                        'ml-3',
+                        'mr-auto'
+                      ],
+                    ],
+                    [
+                      '#type' => 'html_tag',
+                      '#tag' => 'canvas',
+                      '#attributes' => [
+                        'class' => ['donut'],
+                        'data-value' => $approved_percent,
+                        'data-width' => 7,
+                        'data-color' => '#5bb4d8',
+                        'data-track-color' => '#fff',
+                        'width' => 67,
+                        'height' => 67,
+                      ],
+                      '#value' => '',
+                    ],
+                  ]
                 ],
                 [
                   '#type' => 'container',
@@ -843,7 +880,7 @@ class LearningPathAchievementController extends ControllerBase {
                     '#attributes' => [
                       'class' => ['ml-5'],
                     ],
-                    '#value' => '<div class="text-italic">'. t('Badges earned') . '<div>@TODO</div></div>',
+                    '#value' => '<div class="text-italic">' . t('Badges earned') . '</div><div class="color-blue h5">' . $badges . '</div>',
                   ],
                 ],
               ],
@@ -873,13 +910,18 @@ class LearningPathAchievementController extends ControllerBase {
               [
                 '#type' => 'container',
                 '#attributes' => [
-                  'class' => ['d-flex', 'px-3', 'd-flex', 'justify-content-center', 'flex-wrap'],
+                  'class' => [
+                    'px-3',
+                    'd-md-flex',
+                    'justify-content-center',
+                    'flex-wrap'
+                  ],
                 ],
                 [
                   '#type' => 'html_tag',
                   '#tag' => 'div',
                   '#attributes' => [
-                    'class' => [''],
+                    'class' => ['float-left', 'mr-3', 'mr-md-0'],
                   ],
                   '#value' => '<div class="h4 ' . (($passed_percent === 100) ? 'color-green' : 'color-red' ) . ' mb-0">' . $passed . '</div><div>' . t('Module') . '<br />' . t('passed') . '</div>',
                 ],
@@ -890,6 +932,8 @@ class LearningPathAchievementController extends ControllerBase {
                       'lp_step_summary_course_step_passed_chart',
                       'donut-wrapper',
                       'ml-3',
+                      'mb-3',
+                      'mb-md-0',
                       ($passed_percent === 100) ? 'passed' : 'not_passed' ,
                     ],
                   ],
@@ -912,7 +956,7 @@ class LearningPathAchievementController extends ControllerBase {
                   '#type' => 'html_tag',
                   '#tag' => 'div',
                   '#attributes' => [
-                    'class' => ['ml-5'],
+                    'class' => ['ml-md-5', 'float-left', 'mr-3', 'mr-md-0'],
                   ],
                   '#value' => '<div class="h4 color-blue mb-0">' . round(100 * $step['progress']) . '%</div><div>' . t('Completion') . '</div>',
                 ],
@@ -923,6 +967,8 @@ class LearningPathAchievementController extends ControllerBase {
                       'lp_step_summary_completion_chart',
                       'donut-wrapper',
                       'ml-3',
+                      'mb-3',
+                      'mb-md-0'
                     ],
                   ],
                   [
@@ -944,7 +990,7 @@ class LearningPathAchievementController extends ControllerBase {
                   '#type' => 'html_tag',
                   '#tag' => 'div',
                   '#attributes' => [
-                    'class' => ['ml-5'],
+                    'class' => ['ml-md-5', 'float-left', 'mr-3', 'mr-md-0'],
                   ],
                   '#value' => '<div class="h4 color-blue mb-0">' . $score . '</div><div>' . t('Score') . '</div>',
                 ],
@@ -955,6 +1001,8 @@ class LearningPathAchievementController extends ControllerBase {
                       'lp_step_summary_approved_chart',
                       'donut-wrapper',
                       'ml-3',
+                      'mb-3',
+                      'mb-md-0'
                     ],
                   ],
                   [
@@ -975,7 +1023,7 @@ class LearningPathAchievementController extends ControllerBase {
                 [
                   '#type' => 'container',
                   '#attributes' => [
-                    'class' => ['ml-5'],
+                    'class' => ['ml-md-5'],
                   ],
                   [
                     '#type' => 'html_tag',
@@ -1009,13 +1057,36 @@ class LearningPathAchievementController extends ControllerBase {
                     ],
                     '#value' => $completed,
                   ],
+                  [
+                    '#type' => 'html_tag',
+                    '#tag' => 'div',
+                    '#attributes' => [
+                      'class' => ['text-italic'],
+                    ],
+                    '#value' => t('Badges earned'),
+                  ],
+                  [
+                    '#type' => 'html_tag',
+                    '#tag' => 'div',
+                    '#attributes' => [
+                      'class' => ['h4', 'color-blue'],
+                    ],
+                    '#value' => $badges,
+                  ],
                 ],
               ],
               [
                 '#type' => 'html_tag',
                 '#tag' => 'hr',
                 '#attributes' => [
-                  'class' => ['lp_course_steps_wrapper', 'ml-7', 'mr-5', 'my-4'],
+                  'class' => [
+                    'lp_course_steps_wrapper',
+                    'ml-3',
+                    'ml-md-7',
+                    'mr-3',
+                    'mr-md-5',
+                    'my-4'
+                  ],
                 ],
               ],
               $this->build_course_steps($group, Group::load($step['id'])),
@@ -1417,7 +1488,7 @@ class LearningPathAchievementController extends ControllerBase {
           '#type' => 'html_tag',
           '#tag' => 'div',
           '#attributes' => [
-            'class' => ['lp_step_summary_validation', 'ml-5', 'font-italic'],
+            'class' => ['lp_step_summary_validation', 'ml-3', 'ml-md-5', 'font-italic'],
           ],
           '#value' => t('Validation date: @date', ['@date' => $validation]),
         ],
@@ -1425,7 +1496,7 @@ class LearningPathAchievementController extends ControllerBase {
           '#type' => 'html_tag',
           '#tag' => 'div',
           '#attributes' => [
-            'class' => ['lp_step_summary_time_spent', 'ml-5', 'font-italic'],
+            'class' => ['lp_step_summary_time_spent', 'ml-3', 'ml-md-5', 'font-italic'],
           ],
           '#value' => t('Time spent: @time', ['@time' => $time_spent]),
         ],
@@ -1450,7 +1521,7 @@ class LearningPathAchievementController extends ControllerBase {
         '#attributes' => [
           'class' => ['lp_title', 'px-3', 'px-md-5', 'pt-5', 'pb-4', 'mb-0', 'h4', 'text-uppercase'],
         ],
-        '#value' => t('Learning Path : @name', [
+        '#value' => t('Training : @name', [
           '@name' => $group->label(),
         ]),
       ],
@@ -1484,7 +1555,7 @@ class LearningPathAchievementController extends ControllerBase {
             '#attributes' => [
               'class' => ['lp_timeline_info_tooltip'],
             ],
-            '#value' => t('In your timeline are shown only successfully passed mandatory steps from your Learning Path'),
+            '#value' => t('In your timeline are shown only successfully passed mandatory steps from your training'),
           ],
         ],
       ],
@@ -1683,7 +1754,7 @@ class LearningPathAchievementController extends ControllerBase {
           '#attributes' => [
             'class' => ['lp_info_text'],
           ],
-          '#value' => t('Consult your results and download the certificates for the learning paths.'),
+          '#value' => t('Consult your results and download the certificates for the trainings.'),
         ],
         [
           '#type' => 'html_tag',

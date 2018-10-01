@@ -2,13 +2,13 @@
 
 (function ($, Drupal) {
   Drupal.behaviors.opignoLearningPathGlobal = {
-    attach(context, settings) {
+    attach: function (context, settings) {
       if (this.inIframe()) {
         $('html').addClass('inIframe');
       }
     },
 
-    inIframe() {
+    inIframe: function () {
       try {
         return window.self !== window.top;
       }

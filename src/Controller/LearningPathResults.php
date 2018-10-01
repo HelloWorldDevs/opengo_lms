@@ -40,11 +40,10 @@ class LearningPathResults extends ControllerBase {
         continue;
       }
 
-      $created_date = DrupalDateTime::createFromTimestamp($result->getCreatedTime());
       $rows[] = [
         $result->getUser()->getUsername(),
         $result->hasPassed() ? 'Passed' : 'Not passed',
-        $created_date->format('d/m/Y H:i'),
+        \Drupal::service('date.formatter')->format($result->getCreatedTime(), 'short'),
         Link::createFromRoute('Delete', 'opigno_learning_path.results.delete', [
           'group' => $group->id(),
           'result' => $result->id(),
@@ -56,7 +55,7 @@ class LearningPathResults extends ControllerBase {
     $form = [];
     $form['results_table'] = [
       '#type' => 'table',
-      '#headers' => ['Username', 'Result', 'Date', 'Actions'],
+      '#header' => ['Username', 'Result', 'Date', 'Actions'],
       '#rows' => $rows,
     ];
     return $form;

@@ -333,7 +333,7 @@ class LearningPathAccess {
           $mails = explode("\r\n", $mails);
           foreach ($mails as $to) {
             if (!empty($to) && !empty($message)) {
-              LearningPathAccess::sendMail($to, $subject, $message);
+              LearningPathAccess::sendMail($to, $subject, $message, $params);
             }
           }
         }
@@ -354,7 +354,7 @@ class LearningPathAccess {
         LearningPathAccess::replaceGroupUserTokens($message, $params, $token);
 
         if (!empty($to) && !empty($message)) {
-          LearningPathAccess::sendMail($to, $subject, $message);
+          LearningPathAccess::sendMail($to, $subject, $message, $params);
         }
       }
     }
@@ -386,7 +386,7 @@ class LearningPathAccess {
   /**
    * Sends mail.
    */
-  public static function sendMail($to, $subject, $message) {
+  public static function sendMail($to, $subject, $message, $params = []) {
     $langcode = \Drupal::currentUser()->getPreferredLangcode();
     $mailManager = \Drupal::service('plugin.manager.mail');
     $module = 'opigno_learning_path';

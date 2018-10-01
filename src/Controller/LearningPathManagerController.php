@@ -15,6 +15,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use \Drupal\file\Entity\File;
 
 /**
  * Controller for all the actions of the Learning Path manager app.
@@ -85,7 +86,11 @@ class LearningPathManagerController extends ControllerBase {
     }
 
     $entity = $form_state->getBuildInfo()['callback_object']->getEntity();
-    $file = ($entity->get('field_course_image')->getValue()) ? \Drupal\file\Entity\File::load($entity->get('field_course_image')->getValue()[0]['target_id']) : null ;
+    // Load image.
+    $media = $entity->get('field_course_media_image')->entity;
+    $file = isset($media)
+      ? File::load($media->get('field_media_image')->getValue[0]['target_id'])
+      : NULL;
 
     $item = [];
     $item['cid'] = $entity->id();

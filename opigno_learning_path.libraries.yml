@@ -135,3 +135,15 @@ steps_validate:
     - core/jquery
     - core/jquery.once
     - core/drupalSettings
+
+opigno_dropzonejs_widgets:
+  version: VERSION
+  css:
+    theme:
+      css/opigno_dropzonejs_widgets.css: {}
+  js:
+    js/opigno_dropzonejs_widgets.js: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - core/drupalSettings

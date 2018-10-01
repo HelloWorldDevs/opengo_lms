@@ -121,12 +121,22 @@ class DefaultTwigExtension extends \Twig_Extension {
       $validation = $group->field_requires_validation->value;
       $is_member = $group->getMember($account) !== FALSE;
       $is_anonymous = $account->id() === 0;
+      $module_commerce_enabled = \Drupal::moduleHandler()->moduleExists('opigno_commerce');
+
+      // If training is paid.
+      if ($module_commerce_enabled
+        && $group->hasField('field_lp_price')
+        && $group->get('field_lp_price')->value != 0
+        && !$is_member) {
+
+        return '';
+      }
 
       if ($visibility == 'semiprivate' && $validation) {
         $joinLabel = t('Request group membership');
       }
       else {
-        $joinLabel = t('Subscribe to group');
+        $joinLabel = t('Subscribe to training');
       }
 
       if ($is_anonymous) {
@@ -186,15 +196,29 @@ class DefaultTwigExtension extends \Twig_Extension {
     $is_anonymous = $account->id() === 0;
     $member_pending = $visibility === 'semiprivate' && $validation
       && !LearningPathAccess::statusGroupValidation($group, $account);
+    $module_commerce_enabled = \Drupal::moduleHandler()->moduleExists('opigno_commerce');
 
-    if ($visibility === 'public' && $is_anonymous) {
+    if (
+      $module_commerce_enabled
+      && $group->hasField('field_lp_price')
+      && $group->get('field_lp_price')->value != 0
+      && !$group->getMember($account)) {
+      // Get currency code.
+      $cs = \Drupal::service('commerce_store.current_store');
+      $store_default = $cs->getStore();
+      $default_currency = $store_default ? $store_default->getDefaultCurrencyCode() : '';
+
+      $text = t('Add to cart') . ' / ' . $group->get('field_lp_price')->value . ' ' . $default_currency;
+      $route = 'opigno_commerce.subscribe_with_payment';
+    }
+    elseif ($visibility === 'public' && $is_anonymous) {
       $text = t('Start');
       $route = 'opigno_learning_path.steps.start';
       $attributes['class'][] = 'use-ajax';
       $attributes['class'][] = 'start-link';
     }
     elseif (!$group->getMember($account)) {
-      $text = ($current_route == 'entity.group.canonical') ? t('Subscribe to group') : t('Learn more');
+      $text = ($current_route == 'entity.group.canonical') ? t('Subscribe to training') : t('Learn more');
       $route = ($current_route == 'entity.group.canonical') ? 'entity.group.join' : 'entity.group.canonical';
       if ($current_route == 'entity.group.canonical') {
         $attributes['class'][] = 'join-link';

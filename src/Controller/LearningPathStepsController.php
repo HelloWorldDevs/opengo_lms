@@ -92,7 +92,30 @@ class LearningPathStepsController extends ControllerBase {
       if (in_array($step['typology'], ['Meeting', 'ILT'])) {
         // If training starts with a mandatory live meeting
         // or instructor-led training, check requirements.
-        if ($step['mandatory'] === 1) {
+        $is_mandatory = $step['mandatory'] === 1;
+
+        if ($step['typology'] === 'Meeting') {
+          /** @var \Drupal\opigno_moxtra\MeetingInterface $entity */
+          $entity = $this->entityTypeManager()
+            ->getStorage('opigno_moxtra_meeting')
+            ->load($step['id']);
+
+          if (!$entity->isMember($uid)) {
+            $is_mandatory = FALSE;
+          }
+        }
+        elseif ($step['typology'] === 'ILT') {
+          /** @var \Drupal\opigno_ilt\ILTInterface $entity */
+          $entity = $this->entityTypeManager()
+            ->getStorage('opigno_ilt')
+            ->load($step['id']);
+
+          if (!$entity->isMember($uid)) {
+            $is_mandatory = FALSE;
+          }
+        }
+
+        if ($is_mandatory) {
           $name = $step['name'];
           $required = $step['required score'];
           if ($required > 0) {
@@ -102,7 +125,8 @@ class LearningPathStepsController extends ControllerBase {
                 $course_entity->getGroupContentTypeId()
               );
               $current_step_url = $course_content_type->getStartContentUrl(
-                $course_entity->getEntityId()
+                $course_entity->getEntityId(),
+                $gid
               );
 
               $content = [
@@ -221,7 +245,7 @@ class LearningPathStepsController extends ControllerBase {
       $content = OpignoGroupManagedContent::load($step_resumed_cid);
       // Find and load the content type linked to this content.
       $content_type = $this->content_type_manager->createInstance($content->getGroupContentTypeId());
-      $step_url = $content_type->getStartContentUrl($content->getEntityId());
+      $step_url = $content_type->getStartContentUrl($content->getEntityId(), $group->id());
       // Before redirecting, keep the content ID in context.
       OpignoGroupContext::setCurrentContentId($step_resumed_cid);
       OpignoGroupContext::setGroupId($group->id());
@@ -257,7 +281,7 @@ class LearningPathStepsController extends ControllerBase {
 
     // Finally, get the "start" URL
     //   If no URL, show a message.
-    $step_url = $content_type->getStartContentUrl($first_step->getEntityId());
+    $step_url = $content_type->getStartContentUrl($first_step->getEntityId(), $group->id());
     if (empty($step_url)) {
       $content = [
         '#type' => 'markup',
@@ -345,13 +369,14 @@ class LearningPathStepsController extends ControllerBase {
       $name = $current_step['name'];
       $required = $current_step['required score'];
       if ($required > 0) {
-        if ($current_step['best score'] < $required) {
+        if ($current_step['current attempt score'] < $required) {
           $course_entity = OpignoGroupManagedContent::load($current_step['cid']);
           $course_content_type = $this->content_type_manager->createInstance(
             $course_entity->getGroupContentTypeId()
           );
           $current_step_url = $course_content_type->getStartContentUrl(
-            $course_entity->getEntityId()
+            $course_entity->getEntityId(),
+            $gid
           );
 
           OpignoGroupContext::setGroupId($group->id());
@@ -396,7 +421,8 @@ class LearningPathStepsController extends ControllerBase {
               $module_content->getGroupContentTypeId()
             );
             $module_url = $module_content_type->getStartContentUrl(
-              $module_content->getEntityId()
+              $module_content->getEntityId(),
+              $gid
             );
 
             OpignoGroupContext::setGroupId($group->id());
@@ -436,7 +462,30 @@ class LearningPathStepsController extends ControllerBase {
       $next_step_index < $count
       && in_array(($next_step = $steps[$next_step_index])['typology'], $skip_types);
       ++$next_step_index) {
-      if ($next_step['mandatory'] === 1) {
+      $is_mandatory = $next_step['mandatory'] === 1;
+
+      if ($next_step['typology'] === 'Meeting') {
+        /** @var \Drupal\opigno_moxtra\MeetingInterface $entity */
+        $entity = $this->entityTypeManager()
+          ->getStorage('opigno_moxtra_meeting')
+          ->load($next_step['id']);
+
+        if (!$entity->isMember($uid)) {
+          $is_mandatory = FALSE;
+        }
+      }
+      elseif ($next_step['typology'] === 'ILT') {
+        /** @var \Drupal\opigno_ilt\ILTInterface $entity */
+        $entity = $this->entityTypeManager()
+          ->getStorage('opigno_ilt')
+          ->load($next_step['id']);
+
+        if (!$entity->isMember($uid)) {
+          $is_mandatory = FALSE;
+        }
+      }
+
+      if ($is_mandatory) {
         $name = $next_step['name'];
         $required = $next_step['required score'];
         // But if the live meeting or instructor-led training is
@@ -471,10 +520,9 @@ class LearningPathStepsController extends ControllerBase {
 
     // If there is no next step, show a message.
     if ($next_step === NULL) {
-      return [
-        '#type' => 'markup',
-        '#markup' => '<p>No next content provided</p>',
-      ];
+      // Redirect to training home page.
+      $this->messenger()->addWarning(t('You reached the last content of that training.'));
+      return $this->redirect('entity.group.canonical', ['group' => $group->id()]);
     }
 
     // Load next step entity.
@@ -486,7 +534,7 @@ class LearningPathStepsController extends ControllerBase {
 
     // Finally, redirect the user to the next step URL.
     $next_step_content_type = $this->content_type_manager->createInstance($next_step->getGroupContentTypeId());
-    $next_step_url = $next_step_content_type->getStartContentUrl($next_step->getEntityId());
+    $next_step_url = $next_step_content_type->getStartContentUrl($next_step->getEntityId(), $group->id());
     return $this->redirect($next_step_url->getRouteName(), $next_step_url->getRouteParameters(), $next_step_url->getOptions());
   }
 

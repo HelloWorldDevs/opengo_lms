@@ -39,54 +39,19 @@
  * @ingroup themeable
  */
 #}
-
 <div{{ attributes.addclass('group-opigno-course') }}>
-
   {{ title_prefix }}
   {% if not page %}
-    <h2{{ title_attributes }}>
+    <h3{{ title_attributes }}>
       <a href="{{ url }}" rel="bookmark">{{ label }}</a>
-    </h2>
+    </h3>
   {% endif %}
   {{ title_suffix }}
   <div class="row">
-    {% if opigno_catalog_is_member(group.id()) %}
-      {{ get_progress() }}
-    {% endif %}
-    <div class="col-md-4">
-      <section>
-        <h2 class="h4 bg-primary color-white text-uppercase mb-0 px-3 py-2">{{ 'Information'|t }}</h2>
-        <div class="content bg-light py-2 pr-3">
-          <div class="lp-image">
-            {% if content.field_learning_path_media_image[0] %}
-              {{ content.field_learning_path_media_image }}
-            {% else %}
-              {{ opigno_catalog_get_default_image('learning_path') }}
-            {% endif %}
-          </div>
-          <div class="duration d-flex px-2 py-2 bg-white mt-2">
-            <div class="label">{{ 'Length'|t }}</div>
-            <div class="value text-right ml-auto">{{ group.field_learning_path_duration.value }}</div>
-          </div>
-          <div class="category d-flex px-2 py-2 bg-white mt-2">
-            <div class="label">{{ 'Subject'|t }}</div>
-            <div class="value text-right ml-auto">{{ learning_path_category }}</div>
-          </div>
-        </div>
-        {{ get_join_group_link(null, null, {'class': ['opigno-quiz-app-course-button', 'bg-success', 'color-white', 'd-block', 'px-2', 'py-2', 'text-center', 'text-uppercase', 'join-link']}) }}
-      </section>
-    </div>
     <div id="group-content" {{ content_attributes.addClass('col-md-8') }}>
-      <h2 class="h4 bg-primary text-uppercase color-white mb-0 px-3 py-2">{{ 'About this training'|t }}</h2>
-      <div class="content bg-light px-2 pt-2">
         <div class="bg-white px-3 py-3">
-          {{ content|without('field_learning_path_media_image', 'field_learning_path_duration', 'field_learning_path_category') }}
+            {{ content.field_learning_path_description }}
         </div>
-      </div>
-      {{ get_start_link(null, {'class': ['opigno-quiz-app-course-button', 'bg-success', 'color-white', 'd-block', 'px-2', 'py-2', 'text-center', 'text-uppercase']}) }}
-    </div>
-    <div class="col-12">
-      {{ get_training_content() }}
     </div>
   </div>
 </div>

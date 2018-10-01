@@ -7,8 +7,11 @@
 namespace Drupal\opigno_learning_path\Plugin\Block;
 
 use Drupal\Core\Block\BlockBase;
+use Drupal\Core\Link;
 use Drupal\group\Entity\Group;
+use Drupal\opigno_group_manager\Entity\OpignoGroupManagedContent;
 use Drupal\opigno_group_manager\OpignoGroupContext;
+use Drupal\Core\Cache\Cache;
 
 /**
  * Provides a 'article' block.
@@ -59,6 +62,14 @@ class StepsBlock extends BlockBase {
       ],
     ];
   }
+  
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheContexts() {
+    //Every new route this block will rebuild
+    return Cache::mergeContexts(parent::getCacheContexts(), array('route'));
+  }
 
   /**
    * {@inheritdoc}
@@ -67,13 +78,22 @@ class StepsBlock extends BlockBase {
     $user = \Drupal::currentUser();
 
     $uid = $user->id();
-    $gid = OpignoGroupContext::getCurrentGroupId();
+    $route_name = \Drupal::routeMatch()->getRouteName();
+    if ($route_name == 'opigno_module.group.answer_form') {
+      $group = \Drupal::routeMatch()->getParameter('group');
+      $gid = $group->id();
+    }
+    else {
+      $gid = OpignoGroupContext::getCurrentGroupId();
+    }
 
     if (!isset($gid)) {
       return [];
     }
 
-    $group = Group::load($gid);
+    if (empty($group)) {
+      $group = Group::load($gid);
+    }
     $title = $group->label();
 
     $group_steps = opigno_learning_path_get_steps($gid, $uid);
@@ -136,14 +156,41 @@ class StepsBlock extends BlockBase {
       $state_class = 'lp_steps_block_summary_state_pending';
       $state_title = $this->t('In progress');
     }
+    // Get group context.
+    $cid = OpignoGroupContext::getCurrentGroupContentId();
+    $gid = OpignoGroupContext::getCurrentGroupId();
+    $step_info = [];
+    // Reindex steps array.
+    $steps = array_values($steps);
+    for ($i = 0; $i < count($steps); $i++) {
+      // Build link for first step.
+      if ($i == 0) {
+        // Load first step entity.
+        $first_step = OpignoGroupManagedContent::load($steps[$i]['cid']);
+        /* @var \Drupal\opigno_group_manager\OpignoGroupContentTypesManager $content_types_manager*/
+        $content_types_manager = \Drupal::service('opigno_group_manager.content_types.manager');
+        $content_type = $content_types_manager->createInstance($first_step->getGroupContentTypeId());
+        $step_url = $content_type->getStartContentUrl($first_step->getEntityId(), $gid);
+        $link = Link::createFromRoute($steps[$i]['name'], $step_url->getRouteName(), $step_url->getRouteParameters())
+          ->toString();
+      }
+      else {
+        // Get link to module.
+        $parent_content_id = $steps[$i - 1]['cid'];
+        $link = Link::createFromRoute($steps[$i]['name'], 'opigno_learning_path.steps.next', [
+          'group' => $gid,
+          'parent_content' => $parent_content_id,
+        ])
+          ->toString();
+      }
 
-    $steps = array_map(function ($step) {
-      return [
-        $step['name'],
-        $this->buildScore($step),
-        $this->buildState($step),
-      ];
-    }, $steps);
+      array_push($step_info, [
+        $link,
+        $this->buildScore($steps[$i]),
+        $this->buildState($steps[$i]),
+      ]);
+
+    }
 
     $summary = [
       '#type' => 'container',
@@ -209,7 +256,7 @@ class StepsBlock extends BlockBase {
           t('Score'),
           t('State'),
         ],
-        '#rows' => $steps,
+        '#rows' => $step_info,
         '#attributes' => [
           'class' => ['lp_steps_block_table'],
         ],

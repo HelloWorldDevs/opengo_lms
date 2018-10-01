@@ -102,6 +102,9 @@ class LearningPathCreateUserForm extends FormBase {
     $user->activate();
     $user->save();
 
+    // Notify user for creating account.
+    _user_mail_notify('register_admin_created', $user);
+
     // Assign the user to the learning path.
     $group = $this->getRequest()->get('group');
     if ($group !== NULL) {

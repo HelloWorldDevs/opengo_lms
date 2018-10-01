@@ -130,7 +130,7 @@ class LPResult extends ContentEntityBase {
    * {@inheritdoc}
    */
   public function isStarted() {
-    return (bool) $this->get('started') != 0;
+    return (bool) $this->get('started')->value != 0;
   }
 
   /**
@@ -145,7 +145,7 @@ class LPResult extends ContentEntityBase {
    * {@inheritdoc}
    */
   public function isFinished() {
-    return (bool) $this->get('finished') != 0;
+    return (bool) $this->get('finished')->value != 0;
   }
 
   /**

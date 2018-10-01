@@ -1,5 +1,6 @@
 .group-content-learning-path-group-membership-add-form,
-.group-content-opigno-class-group-membership-add-form {
+.group-content-opigno-class-group-membership-add-form,
+.opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form {
   background-color: #f6f6f6;
   color: #585857;
   padding: 3rem 3.75rem 2rem;
@@ -7,13 +8,15 @@
 
 @media (max-width: 768px) {
   .group-content-learning-path-group-membership-add-form,
-  .group-content-opigno-class-group-membership-add-form {
+  .group-content-opigno-class-group-membership-add-form,
+  .opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form {
     padding: 45px 15px 15px;
   }
 }
 
 .group-content-learning-path-group-membership-add-form #edit-btn-create, #btn_member_add,
-.group-content-opigno-class-group-membership-add-form #edit-btn-create, #btn_member_add {
+.group-content-opigno-class-group-membership-add-form #edit-btn-create, #btn_member_add,
+.opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form #edit-btn-create {
   float: right;
   padding: 15px 25px;
   margin-bottom: 50px;
@@ -56,7 +59,8 @@
   width: 250px !important;
 }
 
-.group-content-learning-path-group-membership-add-form #training_users_autocomplete {
+.group-content-learning-path-group-membership-add-form #training_users_autocomplete,
+.opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form #training_users_autocomplete{
   padding: 20px 30px;
   margin-bottom: 20px;
 }
@@ -66,7 +70,8 @@
   font-style: italic;
 }
 
-.group-content-learning-path-group-membership-add-form #training_users-available {
+.group-content-learning-path-group-membership-add-form #training_users-available,
+.opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form #training_users-available {
   background: #fff;
   height: 280px;
   padding: 30px;
@@ -74,12 +79,15 @@
   border: 0;
 }
 
-.group-content-learning-path-group-membership-add-form .multiselect-btns ul {
+.group-content-learning-path-group-membership-add-form .multiselect-btns ul,
+.opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form .multiselect-btns ul {
   margin: 10px 20px 0 20px !important;
 }
 
 .group-content-learning-path-group-membership-add-form .multiselect-add,
-.group-content-learning-path-group-membership-add-form .multiselect-remove {
+.group-content-learning-path-group-membership-add-form .multiselect-remove,
+.opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form .multiselect-add,
+.opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form .multiselect-remove {
   display: block;
   height: 23px !important;
   margin: 0 auto;
@@ -88,22 +96,27 @@
 }
 
 .group-content-learning-path-group-membership-add-form .multiselect-add:hover,
-.group-content-learning-path-group-membership-add-form .multiselect-remove:hover {
+.group-content-learning-path-group-membership-add-form .multiselect-remove:hover,
+.opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form .multiselect-add:hover,
+.opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form .multiselect-remove:hover {
   background-position: unset !important;
 }
 
-.group-content-learning-path-group-membership-add-form .multiselect-add {
+.group-content-learning-path-group-membership-add-form .multiselect-add,
+.opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form .multiselect-add {
   margin-top: 120px !important;
   background-image: url('../img/add_user.png') !important;
 }
 
 @media (max-width: 768px) {
-  .group-content-learning-path-group-membership-add-form .multiselect-add {
+  .group-content-learning-path-group-membership-add-form .multiselect-add,
+  .opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form .multiselect-add {
     margin-top: 1rem;
   }
 }
 
-.group-content-learning-path-group-membership-add-form .multiselect-remove {
+.group-content-learning-path-group-membership-add-form .multiselect-remove,
+.opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form .multiselect-remove {
   margin-top: 10px !important;
   background-image: url('../img/remove_user.png') !important;
 }
@@ -114,7 +127,8 @@
   }
 }
 
-.group-content-learning-path-group-membership-add-form #training_users {
+.group-content-learning-path-group-membership-add-form #training_users,
+.opigno-moxtra-create-workspace-form.opigno-moxtra-workspace-form #training_users {
   background: #fff;
   height: 280px;
   padding: 30px;
