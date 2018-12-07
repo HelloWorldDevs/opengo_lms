@@ -422,13 +422,13 @@ display:
           multi_type: separator
           separator: ', '
           field_api_classes: false
-          set_precision: false
-          precision: 0
-          decimal: .
-          format_plural: false
-          format_plural_string: !!binary MQNAY291bnQ=
-          prefix: ''
-          suffix: ''
+#          set_precision: false
+#          precision: 0
+#          decimal: .
+#          format_plural: false
+#          format_plural_string: !!binary MQNAY291bnQ=
+#          prefix: ''
+#          suffix: ''
           plugin_id: field
         opigno_lp_progress:
           id: opigno_lp_progress

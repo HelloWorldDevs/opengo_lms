@@ -143,7 +143,8 @@
 }
 
 .class .class_member_toggle_sm,
-.class .class_member_toggle_cm {
+.class .class_member_toggle_cm,
+.class .class_member_toggle_class_manager {
   background-color: #fff;
   display: block;
   font-size: 0;
@@ -153,14 +154,17 @@
 }
 
 .class .class_member_toggle_sm:hover,
-.class .class_member_toggle_cm:hover {
+.class .class_member_toggle_cm:hover,
+.class .class_member_toggle_class_manager:hover {
   background-color: #fff;
 }
 
 .class .class_member_toggle_sm_active,
 .class .class_member_toggle_cm_active,
+.class .class_member_toggle_class_manager_active,
 .class .class_member_toggle_sm_active:hover,
-.class .class_member_toggle_cm_active:hover {
+.class .class_member_toggle_cm_active:hover,
+.class .class_member_toggle_class_manager_active:hover {
   background-color: #c3e86c;
 }
 

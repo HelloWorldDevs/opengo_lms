@@ -21,4 +21,5 @@ dependencies:
   - entity_browser
   - dropzonejs
   - dropzonejs_eb_widget
+  - opigno_alter_entity_autocomplete
 configure: opigno_learning_path.learning_path_settings

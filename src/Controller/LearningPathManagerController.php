@@ -53,7 +53,7 @@ class LearningPathManagerController extends ControllerBase {
       '#theme' => 'opigno_learning_path_manager',
       '#attached' => ['library' => ['opigno_group_manager/manage_app']],
       '#base_path' => $request->getBasePath(),
-      '#base_href' => \Drupal::service('path.current')->getPath(),
+      '#base_href' => $request->getPathInfo(),
       '#learning_path_id' => $group->id(),
       '#user_has_info_card' => $tempstore->get('hide_info_card') ? false : true,
     ];
@@ -82,6 +82,8 @@ class LearningPathManagerController extends ControllerBase {
 
     // If errors, returns the form with errors and messages.
     if ($form_state->hasAnyErrors()) {
+      // Add class for displaying form errors in iframe.
+      $form['#attributes']['class'][] = 'lp-content-item-errors';
       return $form;
     }
 

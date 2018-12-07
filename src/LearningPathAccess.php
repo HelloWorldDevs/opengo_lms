@@ -84,12 +84,17 @@ class LearningPathAccess {
       $visibility = $group->field_learning_path_visibility->value;
       $validation = $group->field_requires_validation->value;
       $status = LearningPathAccess::getMembershipStatus($membership->getGroupContent()->id());
+      $required_trainings = self::hasUncompletedRequiredTrainings($group, $account);
 
       if ($visibility === 'semiprivate' && $validation) {
         // For semi-private groups with validation status should be 'Active'.
         if ($status != 1) {
           $access = FALSE;
         }
+      }
+      // If user unfinished required trainings.
+      elseif ($required_trainings) {
+        $access = FALSE;
       }
       else {
         // For another groups status should be not 'Blocked'.
@@ -223,6 +228,10 @@ class LearningPathAccess {
       $status = in_array($visibility, ['semiprivate', 'private'])
         && $validation ? 2 : 1;
     }
+    elseif (!empty($_SESSION['opigno_learning_path_group_membership_edit']['user_status'])) {
+      $status = $_SESSION['opigno_learning_path_group_membership_edit']['user_status'];
+      unset($_SESSION['opigno_learning_path_group_membership_edit']);
+    }
     else {
       $status = 1;
     }
@@ -254,7 +263,9 @@ class LearningPathAccess {
           && $membership->getEntity()->id() == $membership->getOwnerId()) {
           $messenger = \Drupal::messenger();
           if ($status == 2) {
-            $messenger->addMessage(t('Thanks for subscription! Administrator activate your subscription soon.'));
+            $messenger->addMessage(t('Thanks ! The subscription to that training requires the validation of an administrator or a teacher. 
+              You will receive an email as soon as your subscription has been validated.')
+            );
           }
         }
       }
@@ -459,6 +470,75 @@ class LearningPathAccess {
       ];
       $schema->createTable('opigno_learning_path_group_user_status', $spec);
     }
+  }
+
+  /**
+   * @param \Drupal\group\Entity\Group $group
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *
+   * @return bool | array
+   * Return FALSE or Array with unfinished training.
+   */
+  public static function hasUncompletedRequiredTrainings(Group $group, AccountInterface $account) {
+    $trainings = $group->get('field_required_trainings')->getValue();
+    if (!$trainings) {
+      return FALSE;
+    }
+
+    $database = \Drupal::database();
+    // Array of uncompleted required trainings.
+    $uncompleted = [];
+    if (is_array($trainings)) {
+      for ($i = 0; $i < count($trainings); $i++) {
+        $gid = $trainings[$i]['target_id'];
+        // Check that training is completed.
+        $is_completed = $database->select('opigno_learning_path_achievements', 'a')
+          ->fields('a')
+          ->condition('uid', $account->id())
+          ->condition('gid', $gid)
+          ->condition('status', 'completed')
+          ->execute()->fetchObject();
+        if (!$is_completed) {
+          array_push($uncompleted, $gid);
+        }
+      }
+    }
+
+    return $uncompleted;
+  }
+
+  /**
+   * @param \Drupal\group\Entity\Group $group
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *
+   * @return bool
+   *   Check if user has access to Class or Course.
+   */
+  public static function checkCourseClassAccess(Group $group, AccountInterface $account) {
+    $access = FALSE;
+    $type = $group->getGroupType()->id();
+    // Check for class.
+    if ($type == 'opigno_class') {
+      $is_member = $group->getMember($account);
+      $access = $is_member ? TRUE : FALSE;
+    }
+    // Check for course.
+    elseif ($type == 'opigno_course') {
+      $database = Database::getConnection();
+      // Get all trainings where user is a member and course is a content.
+      $query = $database->select('opigno_group_content', 'ogc');
+      $query->leftJoin('group_content_field_data', 'gc', 'ogc.group_id = gc.gid');
+      $results = $query->fields('ogc', ['group_id'])
+        ->condition('ogc.entity_id', $group->id())
+        ->condition('ogc.group_content_type_id', 'ContentTypeCourse')
+        ->condition('gc.type', 'learning_path-group_membership')
+        ->condition('gc.entity_id', $account->id())
+        ->execute()->fetchAll();
+
+      $access = $results ? TRUE : FALSE;
+    }
+
+    return $access;
   }
 
 }

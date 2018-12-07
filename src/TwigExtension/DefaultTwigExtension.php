@@ -3,6 +3,7 @@
 namespace Drupal\opigno_learning_path\TwigExtension;
 
 use Drupal\Core\Link;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\Url;
 use Drupal\group\Entity\Group;
 use Drupal\opigno_learning_path\Controller\LearningPathController;
@@ -114,7 +115,7 @@ class DefaultTwigExtension extends \Twig_Extension {
     }
 
     $route_name = $route->getRouteName();
-    $access = isset($group) && $group->access('view', $account);
+    $access = isset($group) && $group->access('view', $account) && $group->hasPermission('join group', $account);
     if ($route_name == 'entity.group.canonical' && $access) {
       $link = NULL;
       $visibility = $group->field_learning_path_visibility->value;
@@ -177,6 +178,11 @@ class DefaultTwigExtension extends \Twig_Extension {
   }
 
   function get_start_link($group = NULL, $attributes = []) {
+    $user = \Drupal::currentUser();
+    if ($user->isAnonymous()) {
+      return [];
+    }
+
     if (!$group) {
       $group = \Drupal::routeMatch()->getParameter('group');
     }
@@ -197,6 +203,7 @@ class DefaultTwigExtension extends \Twig_Extension {
     $member_pending = $visibility === 'semiprivate' && $validation
       && !LearningPathAccess::statusGroupValidation($group, $account);
     $module_commerce_enabled = \Drupal::moduleHandler()->moduleExists('opigno_commerce');
+    $required_trainings = LearningPathAccess::hasUncompletedRequiredTrainings($group, $account);
 
     if (
       $module_commerce_enabled
@@ -218,14 +225,19 @@ class DefaultTwigExtension extends \Twig_Extension {
       $attributes['class'][] = 'start-link';
     }
     elseif (!$group->getMember($account)) {
-      $text = ($current_route == 'entity.group.canonical') ? t('Subscribe to training') : t('Learn more');
-      $route = ($current_route == 'entity.group.canonical') ? 'entity.group.join' : 'entity.group.canonical';
-      if ($current_route == 'entity.group.canonical') {
-        $attributes['class'][] = 'join-link';
+      if ($group->hasPermission('join group', $account)) {
+        $text = ($current_route == 'entity.group.canonical') ? t('Subscribe to training') : t('Learn more');
+        $route = ($current_route == 'entity.group.canonical') ? 'entity.group.join' : 'entity.group.canonical';
+        if ($current_route == 'entity.group.canonical') {
+          $attributes['class'][] = 'join-link';
+        }
+      }
+      else {
+        return '';
       }
     }
-    elseif ($member_pending) {
-      $text = t('Approval Pending');
+    elseif ($member_pending || $required_trainings) {
+      $text = $required_trainings ? t('Prerequisites Pending') : t('Approval Pending');
       $route = 'entity.group.canonical';
       $attributes['class'][] = 'approval-pending-link';
     }
@@ -250,6 +262,10 @@ class DefaultTwigExtension extends \Twig_Extension {
   }
 
   function get_progress() {
+    $user = \Drupal::currentUser();
+    if ($user->isAnonymous()) {
+      return [];
+    }
     $controller = new LearningPathController();
     $content = $controller->progress();
     return render($content);

@@ -183,21 +183,15 @@ class LearningPathAchievementController extends ControllerBase {
     }, $activities);
 
     if (!empty($attempts)) {
-      usort($attempts, function ($a, $b) {
-        /** @var \Drupal\opigno_module\Entity\UserModuleStatus $a */
-        /** @var \Drupal\opigno_module\Entity\UserModuleStatus $b */
-        $b_score = opigno_learning_path_get_attempt_score($b);
-        $a_score = opigno_learning_path_get_attempt_score($a);
-        return $b_score - $a_score;
-      });
-
-      $best_attempt = reset($attempts);
-      $max_score = $best_attempt->calculateMaxScore();
-      $score_percent = opigno_learning_path_get_attempt_score($best_attempt);
+      // If "newest" score - get the last attempt,
+      // else - get the best attempt.
+      $attempt = $this->getTargetAttempt($attempts, $module);
+      $max_score = $attempt->calculateMaxScore();
+      $score_percent = opigno_learning_path_get_attempt_score($attempt);
       $score = round($score_percent * $max_score / 100);
     }
     else {
-      $best_attempt = NULL;
+      $attempt = NULL;
       $max_score = !empty($activities)
         ? array_sum(array_map(function ($activity) use ($module) {
           return (int) $this->get_activity_max_score($module, $activity);
@@ -207,11 +201,11 @@ class LearningPathAchievementController extends ControllerBase {
       $score = 0;
     }
 
-    $activities = array_map(function ($activity) use ($user, $module, $best_attempt) {
+    $activities = array_map(function ($activity) use ($user, $module, $attempt) {
       /** @var \Drupal\opigno_module\Entity\OpignoActivity $activity */
       /** @var \Drupal\opigno_module\Entity\OpignoAnswer $answer */
-      $answer = isset($best_attempt)
-        ? $activity->getUserAnswer($module, $best_attempt, $user)
+      $answer = isset($attempt)
+        ? $activity->getUserAnswer($module, $attempt, $user)
         : NULL;
       $score = isset($answer) ? $answer->getScore() : 0;
       $max_score = (int) $this->get_activity_max_score($module, $activity);
@@ -326,11 +320,11 @@ class LearningPathAchievementController extends ControllerBase {
           '#value' => t('Activities Overview'),
         ],
         $activities,
-        (isset($best_attempt)
+        (isset($attempt)
           ? [
             Link::createFromRoute('Details', 'opigno_module.module_result', [
               'opigno_module' => $module->id(),
-              'user_module_status' => $best_attempt->id(),
+              'user_module_status' => $attempt->id(),
             ])->toRenderable(),
           ]
           : []),
@@ -366,21 +360,15 @@ class LearningPathAchievementController extends ControllerBase {
     }, $activities);
 
     if (!empty($attempts)) {
-      usort($attempts, function ($a, $b) {
-        /** @var \Drupal\opigno_module\Entity\UserModuleStatus $a */
-        /** @var \Drupal\opigno_module\Entity\UserModuleStatus $b */
-        $b_score = opigno_learning_path_get_attempt_score($b);
-        $a_score = opigno_learning_path_get_attempt_score($a);
-        return $b_score - $a_score;
-      });
-
-      $best_attempt = reset($attempts);
-      $max_score = $best_attempt->calculateMaxScore();
-      $score_percent = opigno_learning_path_get_attempt_score($best_attempt);
+      // If "newest" score - get the last attempt,
+      // else - get the best attempt.
+      $attempt = $this->getTargetAttempt($attempts, $module);
+      $max_score = $attempt->calculateMaxScore();
+      $score_percent = opigno_learning_path_get_attempt_score($attempt);
       $score = round($score_percent * $max_score / 100);
     }
     else {
-      $best_attempt = NULL;
+      $attempt = NULL;
       $max_score = !empty($activities)
         ? array_sum(array_map(function ($activity) use ($module) {
           return (int) $this->get_activity_max_score($module, $activity);
@@ -390,11 +378,11 @@ class LearningPathAchievementController extends ControllerBase {
       $score = 0;
     }
 
-    $activities = array_map(function ($activity) use ($user, $module, $best_attempt) {
+    $activities = array_map(function ($activity) use ($user, $module, $attempt) {
       /** @var \Drupal\opigno_module\Entity\OpignoActivity $activity */
       /** @var \Drupal\opigno_module\Entity\OpignoAnswer $answer */
-      $answer = isset($best_attempt)
-        ? $activity->getUserAnswer($module, $best_attempt, $user)
+      $answer = isset($attempt)
+        ? $activity->getUserAnswer($module, $attempt, $user)
         : NULL;
       $score = isset($answer) ? $answer->getScore() : 0;
       $max_score = (int) $this->get_activity_max_score($module, $activity);
@@ -654,7 +642,7 @@ class LearningPathAchievementController extends ControllerBase {
         'id' => 'training_steps_' . $group->id(),
         'class' => ['lp_details'],
       ],
-      array_map(function ($step) use ($group, $uid, $date_formatter) {
+      array_map(function ($step) use ($group, $uid, $date_formatter, $status) {
         $is_module = $step['typology'] === 'Module';
         $is_course = $step['typology'] === 'Course';
 
@@ -737,121 +725,120 @@ class LearningPathAchievementController extends ControllerBase {
               [
                 '#type' => 'container',
                 '#attributes' => [
-                  'class' => [
-                    'lp_step_summary',
-                    'px-3'
-                  ],
+                  'class' => ['lp_step_summary', 'px-3'],
                 ],
                 [
                   '#type' => 'container',
                   '#attributes' => [
-                    'class' => [
-                      'w-100',
-                      'd-md-flex',
-                      'justify-content-start',
-                      'flex-wrap'
-                    ]
-                  ],
-                  [
-                    '#type' => 'html_tag',
-                    '#tag' => 'div',
-                    '#attributes' => [
-                      'class' => [
-                        'lp_step_summary_title',
-                        'h4',
-                        'mb-0',
-                        'text-uppercase',
-                      ],
-                    ],
-                    '#value' => isset($status[$step['status']])
-                      ? $status[$step['status']]['title'] : $status['pending']['title'],
-                  ],
-                  [
-                    '#type' => 'html_tag',
-                    '#tag' => 'div',
-                    '#attributes' => [
-                      'class' => [
-                        'lp_step_summary_icon',
-                        isset($status[$step['status']]) ? $status[$step['status']]['class'] : $status['pending']['class'],
-                        'ml-3',
-                        'mr-auto'
-                      ],
-                    ],
-                  ],
-                  [
-                    '#type' => 'html_tag',
-                    '#tag' => 'div',
-                    '#attributes' => [
-                      'class' => ['ml-0', 'ml-md-5', 'mr-3', 'pull-left'],
-                    ],
-                    '#value' => '<div class="h4 color-blue mb-0">' . round(100 * $step['progress']) . '%</div><div>' . t('Completion') . '</div>',
-                  ],
-                  [
+                    'class' => ['row']
+                  ], [
                     '#type' => 'container',
                     '#attributes' => [
-                      'class' => [
-                        'lp_step_summary_completion_chart',
-                        'donut-wrapper',
-                        'ml-3',
-                        'mr-auto',
-                        'mb-3',
-                        'mb-md-0'
-                      ],
-                    ],
-                    [
+                      'class' => ['col-lg-4', 'col-md-2', 'd-sm-flex', 'd-md-block', 'd-lg-flex', 'mb-4', 'mb-md-0']
+                    ], [
                       '#type' => 'html_tag',
-                      '#tag' => 'canvas',
+                      '#tag' => 'div',
                       '#attributes' => [
-                        'class' => ['donut'],
-                        'data-value' => round(100 * $step['progress']),
-                        'data-width' => 7,
-                        'data-color' => '#5bb4d8',
-                        'data-track-color' => '#fff',
-                        'width' => 67,
-                        'height' => 67,
+                        'class' => [
+                          'lp_step_summary_title',
+                          'h4',
+                          'mb-0',
+                          'mb-md-3',
+                          'mb-lg-0',
+                          'text-uppercase',
+                        ],
                       ],
-                      '#value' => '',
-                    ],
-                  ],
-                  [
-                    '#type' => 'html_tag',
-                    '#tag' => 'div',
-                    '#attributes' => [
-                      'class' => [
-                        'ml-0',
-                        'ml-md-5',
-                        'lp_step_summary_approved',
-                        'mr-3',
-                        'pull-left'
+                      '#value' => isset($status[$step['status']])
+                        ? $status[$step['status']]['title'] : $status['pending']['title'],
+                    ], [
+                      '#type' => 'html_tag',
+                      '#tag' => 'div',
+                      '#attributes' => [
+                        'class' => [
+                          'lp_step_summary_icon',
+                          isset($status[$step['status']]) ? $status[$step['status']]['class'] : $status['pending']['class'],
+                          'ml-3',
+                          'ml-md-0',
+                          'ml-lg-3',
+                        ],
                       ],
                     ],
-                    '#value' => '<div class="h4 color-blue mb-0">' . $approved . '</div><div>' . t('Activities') . '<br />' . t('done') . '</div>',
-                  ],
-                  [
+                  ], [
                     '#type' => 'container',
                     '#attributes' => [
-                      'class' => [
-                        'lp_step_summary_approved_chart',
-                        'donut-wrapper',
-                        'ml-3',
-                        'mr-auto'
-                      ],
-                    ],
-                    [
+                      'class' => ['col-lg-4', 'col-md-5', 'mb-4', 'mb-md-0']
+                    ], [
                       '#type' => 'html_tag',
-                      '#tag' => 'canvas',
+                      '#tag' => 'div',
                       '#attributes' => [
-                        'class' => ['donut'],
-                        'data-value' => $approved_percent,
-                        'data-width' => 7,
-                        'data-color' => '#5bb4d8',
-                        'data-track-color' => '#fff',
-                        'width' => 67,
-                        'height' => 67,
+                        'class' => ['ml-0', 'ml-md-5', 'mr-3', 'pull-left'],
                       ],
-                      '#value' => '',
+                      '#value' => '<div class="h4 color-blue mb-0">' . round(100 * $step['progress']) . '%</div><div>' . t('Completion') . '</div>',
+                    ], [
+                      '#type' => 'container',
+                      '#attributes' => [
+                        'class' => [
+                          'lp_step_summary_completion_chart',
+                          'donut-wrapper',
+                          'ml-3',
+                        ],
+                      ], [
+                        '#type' => 'html_tag',
+                        '#tag' => 'canvas',
+                        '#attributes' => [
+                          'class' => ['donut'],
+                          'data-value' => round(100 * $step['progress']),
+                          'data-width' => 7,
+                          'data-color' => '#5bb4d8',
+                          'data-track-color' => '#fff',
+                          'width' => 67,
+                          'height' => 67,
+                        ],
+                        '#value' => '',
+                      ],
                     ],
-                  ]
+                  ], [
+                    '#type' => 'container',
+                    '#attributes' => [
+                      'class' => ['col-lg-4', 'col-md-5']
+                    ], [
+                      '#type' => 'html_tag',
+                      '#tag' => 'div',
+                      '#attributes' => [
+                        'class' => [
+                          'ml-0',
+                          'ml-md-5',
+                          'lp_step_summary_approved',
+                          'mr-3',
+                          'pull-left'
+                        ],
+                      ],
+                      '#value' => '<div class="h4 color-blue mb-0">' . $approved . '</div><div>' . t('Activities') . '<br />' . t('done') . '</div>',
+                    ], [
+                      '#type' => 'container',
+                      '#attributes' => [
+                        'class' => [
+                          'lp_step_summary_approved_chart',
+                          'donut-wrapper',
+                          'ml-3',
+                          'mr-auto'
+                        ],
+                      ], [
+                        '#type' => 'html_tag',
+                        '#tag' => 'canvas',
+                        '#attributes' => [
+                          'class' => ['donut'],
+                          'data-value' => $approved_percent,
+                          'data-width' => 7,
+                          'data-color' => '#5bb4d8',
+                          'data-track-color' => '#fff',
+                          'width' => 67,
+                          'height' => 67,
+                        ],
+                        '#value' => '',
+                      ],
+                    ],
+                  ],
                 ],
                 [
                   '#type' => 'container',
@@ -870,7 +857,7 @@ class LearningPathAchievementController extends ControllerBase {
                     '#type' => 'html_tag',
                     '#tag' => 'div',
                     '#attributes' => [
-                      'class' => ['ml-5'],
+                      'class' => ['ml-3', 'ml-md-5'],
                     ],
                     '#value' => '<div class="text-italic">'. t('Completed on') . '</div><div class="color-blue h5">' . $completed . '</div>',
                   ],
@@ -878,7 +865,7 @@ class LearningPathAchievementController extends ControllerBase {
                     '#type' => 'html_tag',
                     '#tag' => 'div',
                     '#attributes' => [
-                      'class' => ['ml-5'],
+                      'class' => ['ml-3', 'ml-md-5'],
                     ],
                     '#value' => '<div class="text-italic">' . t('Badges earned') . '</div><div class="color-blue h5">' . $badges . '</div>',
                   ],
@@ -1204,12 +1191,11 @@ class LearningPathAchievementController extends ControllerBase {
         ? $date_formatter->format($step['completed on'], 'custom', 'F d, Y')
         : '';
 
+      $status = opigno_learning_path_get_step_status($step, $user->id());
       $timeline[] = [
         '#type' => 'container',
         '#attributes' => [
-          'class' => [
-            $step['passed'] ? 'lp_timeline_step_checked' : 'lp_timeline_step',
-          ],
+          'class' => ['lp_timeline_step', $status],
         ],
         [
           '#type' => 'container',
@@ -1702,6 +1688,35 @@ class LearningPathAchievementController extends ControllerBase {
       ->fetchCol();
     $groups = Group::loadMultiple($gids);
     return array_map([$this, 'build_training'], $groups);
+  }
+
+  /**
+   * Get last or best user attempt for Module.
+   *
+   * @param array $attempts
+   *   User module attempts.
+   * @param \Drupal\opigno_module\Entity\OpignoModule $module
+   *   Module.
+   *
+   * @return \Drupal\opigno_module\Entity\UserModuleStatus
+   *   $attempt
+   */
+  protected function getTargetAttempt(array $attempts, OpignoModule $module) {
+    if ($module->getKeepResultsOption() == 'newest') {
+      $attempt = end($attempts);
+    }
+    else {
+      usort($attempts, function ($a, $b) {
+        /** @var \Drupal\opigno_module\Entity\UserModuleStatus $a */
+        /** @var \Drupal\opigno_module\Entity\UserModuleStatus $b */
+        $b_score = opigno_learning_path_get_attempt_score($b);
+        $a_score = opigno_learning_path_get_attempt_score($a);
+        return $b_score - $a_score;
+      });
+      $attempt = reset($attempts);
+    }
+
+    return $attempt;
   }
 
   /**

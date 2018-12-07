@@ -125,6 +125,25 @@
         return false;
       });
 
+      $('.class_member_toggle_class_manager').once('click').click(function (e) {
+        e.preventDefault();
+
+        var $this = $(this);
+
+        $.ajax({
+          url: '/group/' + gid + '/learning-path/members/toggle-role',
+          data: {
+            uid: this.id.match(/(\d+)$/)[1],
+            role: drupalSettings.opigno_learning_path.class_manager_role,
+          },
+        })
+          .done(function (data) {
+            $this.toggleClass('class_member_toggle_class_manager_active');
+          });
+
+        return false;
+      });
+
       $('#class_members_search').once('autocompleteselect').on('autocompleteselect', function (e, ui) {
         e.preventDefault();
 

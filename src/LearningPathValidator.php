@@ -95,7 +95,7 @@ class LearningPathValidator {
       $current_step = (int) $current_route->getParameter('current');
       if ($current_step === $redirect_step) {
         $messenger = \Drupal::messenger();
-        $messenger->addError(t('Please, add to course at least one module!'));
+        $messenger->addError(t('Please make sure that every course contains at least one module.'));
       }
     }
     else {

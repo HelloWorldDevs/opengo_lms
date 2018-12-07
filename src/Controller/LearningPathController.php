@@ -10,6 +10,7 @@ use Drupal\forum\Controller\ForumController;
 use Drupal\opigno_moxtra\Entity\Workspace;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\tft\Controller\TFTController;
+use Drupal\opigno_learning_path\LearningPathAccess;
 
 class LearningPathController extends ControllerBase {
 
@@ -292,6 +293,14 @@ class LearningPathController extends ControllerBase {
       return $content;
     }
 
+    // Check if membership has status 'pending'.
+    $visibility = $group->field_learning_path_visibility->value;
+    $validation = $group->field_requires_validation->value;
+    $account = \Drupal::currentUser();
+    $member_pending = $visibility === 'semiprivate' && $validation
+      && !LearningPathAccess::statusGroupValidation($group, $account);
+    if ($member_pending) return $content;
+
     $steps = opigno_learning_path_get_steps($group->id(), $user->id());
     $steps = array_filter($steps, function ($step) use ($user) {
       if ($step['typology'] === 'Meeting') {
@@ -433,6 +442,15 @@ class LearningPathController extends ControllerBase {
                 ],
                 '#value' => $sub_title,
               ],
+              !empty($step['description']) ?
+              [
+                '#type' => 'html_tag',
+                '#tag' => 'div',
+                '#attributes' => [
+                  'class' => ['lp_step_summary_description'],
+                ],
+                '#value' => $step['description'],
+              ] : [],
             ],
             [
               '#type' => 'table',
@@ -665,9 +683,7 @@ class LearningPathController extends ControllerBase {
       }
     }
 
-    $content['#attached']['library'][] = [
-      'opigno_learning_path/training_content',
-    ];
+    $content['#attached']['library'][] = 'opigno_learning_path/training_content';
 
     return $content;
   }

@@ -85,15 +85,15 @@ class StepsBlock extends BlockBase {
     }
     else {
       $gid = OpignoGroupContext::getCurrentGroupId();
-    }
-
-    if (!isset($gid)) {
-      return [];
+      if (isset($gid) && is_numeric($gid)) {
+        $group = Group::load($gid);
+      }
     }
 
     if (empty($group)) {
-      $group = Group::load($gid);
+      return [];
     }
+
     $title = $group->label();
 
     $group_steps = opigno_learning_path_get_steps($gid, $uid);
@@ -158,6 +158,9 @@ class StepsBlock extends BlockBase {
     }
     // Get group context.
     $cid = OpignoGroupContext::getCurrentGroupContentId();
+    if (!$cid) {
+      return [];
+    }
     $gid = OpignoGroupContext::getCurrentGroupId();
     $step_info = [];
     // Reindex steps array.

@@ -26,13 +26,15 @@ class LearningPathMembersForm extends FormBase {
   public function buildForm(array $form, FormStateInterface $form_state) {
     $student_manager_role = 'learning_path-user_manager';
     $content_manager_role = 'learning_path-content_manager';
+    $class_manager_role = 'opigno_class-class_manager';
 
     /** @var \Drupal\group\Entity\Group $group */
     $group = \Drupal::routeMatch()->getParameter('group');
+    $group_bundle = $group->bundle();
 
     // If not a learning_path or class, returns
     // default '/group/{group}/members' view.
-    if (!in_array($group->bundle(), [
+    if (!in_array($group_bundle, [
       'opigno_class',
       'learning_path',
     ])) {
@@ -85,26 +87,28 @@ class LearningPathMembersForm extends FormBase {
 
     $individual_members = $users;
 
-    $form[] = [
-      '#type' => 'container',
-      '#attributes' => [
-        'class' => ['class'],
-      ],
-      'search' => [
-        '#type' => 'textfield',
-        '#autocomplete_route_name' => 'opigno_learning_path.membership.find_users_in_group_autocomplete',
-        '#autocomplete_route_parameters' => [
-          'group' => $group->id(),
-        ],
-        '#placeholder' => t('Search a user'),
+    if ($group_bundle != 'opigno_class') {
+      $form[] = [
+        '#type' => 'container',
         '#attributes' => [
-          'id' => 'class_members_search',
-          'class' => [
-            'class_members_search',
+          'class' => ['class'],
+        ],
+        'search' => [
+          '#type' => 'textfield',
+          '#autocomplete_route_name' => 'opigno_learning_path.membership.find_users_in_group_autocomplete',
+          '#autocomplete_route_parameters' => [
+            'group' => $group->id(),
+          ],
+          '#placeholder' => t('Search a user'),
+          '#attributes' => [
+            'id' => 'class_members_search',
+            'class' => [
+              'class_members_search',
+            ],
           ],
         ],
-      ],
-    ];
+      ];
+    }
 
     foreach ($classes as $class) {
       $members = array_filter($users, function ($user) use ($class) {
@@ -214,7 +218,7 @@ class LearningPathMembersForm extends FormBase {
     }
 
     if (!empty($individual_members)) {
-      $rows = array_map(function ($member_info) use ($group, $student_manager_role, $content_manager_role) {
+      $rows = array_map(function ($member_info) use ($group, $student_manager_role, $content_manager_role, $class_manager_role) {
         /** @var \Drupal\group\Entity\GroupContentInterface $user_group_content */
         $user_group_content = $member_info['group content'];
         $member_since_value = $user_group_content
@@ -227,6 +231,7 @@ class LearningPathMembersForm extends FormBase {
         $roles = $member->getRoles();
         $has_sm_role = isset($roles[$student_manager_role]);
         $has_cm_role = isset($roles[$content_manager_role]);
+        $has_class_manager_role = isset($roles[$class_manager_role]);
 
         $visibility = $group->field_learning_path_visibility->value;
         $validation = $group->field_requires_validation->value;
@@ -279,6 +284,18 @@ class LearningPathMembersForm extends FormBase {
                   'id' => 'class_member_toggle_cm_' . $user_entity->id(),
                   'class' => array_merge(['class_member_toggle_cm'],
                     $has_cm_role ? ['class_member_toggle_cm_active'] : []),
+                ],
+              ],
+            ],
+            [
+              'data' => [
+                '#type' => 'submit',
+                '#value' => $this->t('Toggle Class Manager'),
+                '#submit' => [],
+                '#attributes' => [
+                  'id' => 'class_member_toggle_class_manager_' . $user_entity->id(),
+                  'class' => array_merge(['class_member_toggle_class_manager'],
+                    $has_class_manager_role ? ['class_member_toggle_class_manager_active'] : []),
                 ],
               ],
             ],
@@ -344,6 +361,7 @@ class LearningPathMembersForm extends FormBase {
             ],
             $this->t('Student Manager'),
             $this->t('Content Manager'),
+            $this->t('Class Manager'),
             '',
           ],
           '#rows' => $rows,
@@ -379,11 +397,32 @@ class LearningPathMembersForm extends FormBase {
       ];
     }
 
+    // Remove not needed roles for classes.
+    if ($group_bundle == 'opigno_class') {
+      unset($form[0]['title']);
+      foreach ($form[0]['members']['#rows'] as $key => $row) {
+        unset($form[0]['members']['#rows'][$key]['data'][2]);
+        unset($form[0]['members']['#rows'][$key]['data'][3]);
+      }
+
+      unset($form[0]['members']['#header'][2]);
+      unset($form[0]['members']['#header'][3]);
+    }
+    // Remove not needed roles for learning paths.
+    elseif ($group_bundle == 'learning_path') {
+      $last_key = end(array_keys($form));
+      foreach ($form[$last_key]['members']['#rows'] as $key => $row) {
+        unset($form[$last_key]['members']['#rows'][$key]['data'][4]);
+      }
+      unset($form[$last_key]['members']['#header'][4]);
+    }
+
     $form['#attached']['library'][] = 'opigno_learning_path/member_overview';
     $form['#attached']['library'][] = 'opigno_learning_path/member_add';
     $form['#attached']['drupalSettings']['opigno_learning_path']['gid'] = $group->id();
     $form['#attached']['drupalSettings']['opigno_learning_path']['student_manager_role'] = $student_manager_role;
     $form['#attached']['drupalSettings']['opigno_learning_path']['content_manager_role'] = $content_manager_role;
+    $form['#attached']['drupalSettings']['opigno_learning_path']['class_manager_role'] = $class_manager_role;
     return $form;
   }
 

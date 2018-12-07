@@ -13,6 +13,7 @@ use Drupal\opigno_group_manager\Entity\OpignoGroupManagedContent;
 use Drupal\opigno_group_manager\OpignoGroupContentTypesManager;
 use Drupal\opigno_group_manager\OpignoGroupContext;
 use Drupal\opigno_learning_path\Entity\LPResult;
+use Drupal\opigno_learning_path\LearningPathAccess;
 use Drupal\opigno_learning_path\LearningPathValidator;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -357,7 +358,7 @@ class LearningPathStepsController extends ControllerBase {
     $current_step = NULL;
     $current_step_index = 0;
     for ($i = 0; $i < $count - 1; ++$i) {
-      if ($steps[$i]['cid'] === $cid) {
+      if ($steps[$i]['cid'] === $cid || $steps[$i]['required score'] > $steps[$i]['current attempt score']) {
         $current_step_index = $i;
         $current_step = $steps[$i];
         break;
@@ -460,8 +461,9 @@ class LearningPathStepsController extends ControllerBase {
     $skip_types = ['Meeting', 'ILT'];
     for ($next_step_index = $current_step_index + 1;
       $next_step_index < $count
-      && in_array(($next_step = $steps[$next_step_index])['typology'], $skip_types);
+      && in_array($steps[$next_step_index]['typology'], $skip_types);
       ++$next_step_index) {
+      $next_step = $steps[$next_step_index];
       $is_mandatory = $next_step['mandatory'] === 1;
 
       if ($next_step['typology'] === 'Meeting') {
@@ -660,6 +662,28 @@ class LearningPathStepsController extends ControllerBase {
 
     // If no no score and content is mandatory, return forbidden.
     if ($user_score === FALSE && $parent_content->isMandatory()) {
+      return AccessResult::forbidden();
+    }
+
+    return AccessResult::allowed();
+  }
+
+  /**
+   * Check if the user has access to start the Learning Path.
+   *
+   * @return \Drupal\Core\Access\AccessResultAllowed|\Drupal\Core\Access\AccessResultForbidden
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   */
+  public function startAccess(Group $group) {
+    $user = $this->currentUser();
+    $group_visibility = $group->get('field_learning_path_visibility')->getValue()[0]['value'];
+
+    if ($user->isAnonymous() && $group_visibility != 'public') {
+      return AccessResult::forbidden();
+    }
+
+    $access = LearningPathAccess::statusGroupValidation($group, $user);
+    if ($access === FALSE) {
       return AccessResult::forbidden();
     }
 

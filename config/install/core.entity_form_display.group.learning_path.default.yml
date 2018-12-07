@@ -11,6 +11,7 @@ dependencies:
     - field.field.group.learning_path.field_learning_path_media_image
     - field.field.group.learning_path.field_learning_path_published
     - field.field.group.learning_path.field_learning_path_visibility
+    - field.field.group.learning_path.field_required_trainings
     - field.field.group.learning_path.field_requires_validation
     - group.type.learning_path
   module:
@@ -91,6 +92,15 @@ content:
     settings:
       placeholder: '0.00'
     third_party_settings: {  }
+  field_required_trainings:
+    weight: 11
+    settings:
+      match_operator: CONTAINS
+      size: 60
+      placeholder: 'Training name'
+    third_party_settings: {  }
+    type: entity_reference_autocomplete_tags
+    region: content
   field_requires_validation:
     weight: 3
     settings:

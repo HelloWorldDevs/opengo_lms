@@ -21,7 +21,7 @@ opigno_learning_path.manager.get_items:
     _controller: '\Drupal\opigno_learning_path\Controller\LearningPathManagerController::getItems'
     mainItem: null
   requirements:
-    _entity_access: 'group.view'
+    _entity_access: 'group.take'
   options:
     parameters:
       group:
@@ -34,7 +34,7 @@ opigno_learning_path.manager.get_positions:
     _controller: '\Drupal\opigno_learning_path\Controller\LearningPathManagerController::getPositions'
     mainItem: null
   requirements:
-    _entity_access: 'group.view'
+    _entity_access: 'group.take'
   options:
     parameters:
       group:
@@ -150,7 +150,7 @@ opigno_learning_path.manager.get_available_items:
     _controller: '\Drupal\opigno_learning_path\Controller\LearningPathManagerController::getAvailableItems'
     mainItem: null
   requirements:
-    _entity_access: 'group.view'
+    _entity_access: 'group.take'
   options:
     parameters:
       group:
@@ -163,7 +163,7 @@ opigno_learning_path.manager.get_available_item_types:
     _controller: '\Drupal\opigno_learning_path\Controller\LearningPathManagerController::getItemTypes'
     mainItem: null
   requirements:
-    _entity_access: 'group.view'
+    _entity_access: 'group.take'
   options:
     parameters:
       group:
@@ -239,7 +239,8 @@ opigno_learning_path.steps.start:
     _controller: '\Drupal\opigno_learning_path\Controller\LearningPathStepsController::start'
     _title: 'Learning Path start'
   requirements:
-    _entity_access: 'group.view'
+    _entity_access: 'group.take'
+    _custom_access: '\Drupal\opigno_learning_path\Controller\LearningPathStepsController::startAccess'
   options:
     parameters:
       group:
@@ -253,7 +254,7 @@ opigno_learning_path.steps.next:
     _controller: '\Drupal\opigno_learning_path\Controller\LearningPathStepsController::nextStep'
     _title: 'Next'
   requirements:
-    _entity_access: 'group.view'
+    _entity_access: 'group.take'
   options:
     parameters:
       group:
@@ -267,7 +268,7 @@ opigno_learning_path.steps.finish:
     _controller: '\Drupal\opigno_learning_path\Controller\LearningPathStepsController::finish'
     _title: 'Finished'
   requirements:
-    _entity_access: 'group.view'
+    _entity_access: 'group.take'
   options:
     parameters:
       group:
@@ -281,7 +282,7 @@ opigno_learning_path.steps.steps:
     _controller: '\Drupal\opigno_learning_path\Controller\LearningPathStepsController::listSteps'
     _title: 'Steps'
   requirements:
-    _entity_access: 'group.view'
+    _entity_access: 'group.take'
   options:
     parameters:
       group:
@@ -295,7 +296,7 @@ opigno_learning_path.content_steps:
     _controller: '\Drupal\opigno_learning_path\Controller\LearningPathStepsController::contentSteps'
     _title: 'Steps'
   requirements:
-    _entity_access: 'group.view'
+    _entity_access: 'group.take'
     current: \d+
   options:
     parameters:
@@ -312,7 +313,7 @@ opigno_learning_path.results:
     _title: 'Results'
     mode: 'results'
   requirements:
-    _entity_access: 'group.view'
+    _entity_access: 'group.take'
   options:
     parameters:
       group:
@@ -382,7 +383,7 @@ opigno_learning_path.courses.get_items:
   defaults:
     _controller: '\Drupal\opigno_learning_path\Controller\LearningPathContentController::getCourses'
   requirements:
-    _entity_access: 'group.view'
+    _entity_access: 'group.take'
   options:
     parameters:
       group:
@@ -409,7 +410,7 @@ opigno_learning_path.modules.get_items:
   defaults:
     _controller: '\Drupal\opigno_learning_path\Controller\LearningPathContentController::getModules'
   requirements:
-    _entity_access: 'group.view'
+    _entity_access: 'group.take'
   options:
     parameters:
       group:

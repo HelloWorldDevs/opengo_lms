@@ -54,7 +54,7 @@ class LearningPathContentController extends ControllerBase {
       '#theme' => 'opigno_learning_path_courses',
       '#attached' => ['library' => ['opigno_group_manager/manage_app']],
       '#base_path' => $request->getBasePath(),
-      '#base_href' => \Drupal::service('path.current')->getPath(),
+      '#base_href' => $request->getPathInfo(),
       '#learning_path_id' => $group->id(),
       '#view_type' => $view_type,
       '#next_link' => isset($next_link) ? render($next_link) : NULL,
@@ -75,7 +75,7 @@ class LearningPathContentController extends ControllerBase {
       '#theme' => 'opigno_learning_path_modules',
       '#attached' => ['library' => ['opigno_group_manager/manage_app']],
       '#base_path' => $request->getBasePath(),
-      '#base_href' => \Drupal::service('path.current')->getPath(),
+      '#base_href' => $request->getPathInfo(),
       '#learning_path_id' => $group->id(),
       '#module_context' => 'false',
       '#next_link' => isset($next_link) ? render($next_link) : NULL,
@@ -197,8 +197,9 @@ class LearningPathContentController extends ControllerBase {
       $query = $db_connection->select('opigno_activity', 'oa');
       $query->fields('oa', ['id']);
       $query->fields('omr', ['omr_pid', 'child_id']);
+      $query->addJoin('inner', 'opigno_activity_field_data', 'oafd', 'oa.id = oafd.id');
       $query->addJoin('inner', 'opigno_module_relationship', 'omr', 'oa.id = omr.child_id');
-      $query->condition('oa.status', 1);
+      $query->condition('oafd.status', 1);
       $query->condition('omr.parent_id', $opigno_module->id());
       if ($opigno_module->getRevisionId()) {
         $query->condition('omr.parent_vid', $opigno_module->getRevisionId());
@@ -219,7 +220,7 @@ class LearningPathContentController extends ControllerBase {
     /* @var $db_connection \Drupal\Core\Database\Connection */
     $db_connection = \Drupal::service('database');
     $query = $db_connection->select('opigno_activity', 'oa');
-    $query->fields('oa', ['id', 'vid', 'type', 'name']);
+    $query->fields('oafd', ['id', 'vid', 'type', 'name']);
     $query->fields('omr', [
       'weight',
       'max_score',
@@ -229,8 +230,9 @@ class LearningPathContentController extends ControllerBase {
       'child_id',
       'child_vid',
     ]);
+    $query->addJoin('inner', 'opigno_activity_field_data', 'oafd', 'oa.id = oafd.id');
     $query->addJoin('inner', 'opigno_module_relationship', 'omr', 'oa.id = omr.child_id');
-    $query->condition('oa.status', 1);
+    $query->condition('oafd.status', 1);
     $query->condition('omr.parent_id', $opigno_module->id());
     if ($opigno_module->getRevisionId()) {
       $query->condition('omr.parent_vid', $opigno_module->getRevisionId());

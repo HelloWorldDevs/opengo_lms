@@ -111,7 +111,7 @@ class LearningPathCreateUserForm extends FormBase {
       $group->addMember($user);
     }
 
-    $this->messenger()->addMessage($this->t('New user profile created'));
+    $this->messenger()->addMessage($this->t('The new user has been created'));
   }
 
 }

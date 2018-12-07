@@ -53,8 +53,7 @@
 
 .lp_timeline_begin,
 .lp_timeline_end,
-.lp_timeline_step,
-.lp_timeline_step_checked {
+.lp_timeline_step {
   background-repeat: no-repeat;
   background-position: center;
   height: 106px;
@@ -84,16 +83,12 @@
 }
 
 .lp_timeline_step {
+  position: relative;
   background-image: url('../img/timeline_unchecked.png');
 }
 
-.lp_timeline_step_checked {
+.lp_timeline_step.passed {
   background-image: url('../img/timeline_checked.png');
-}
-
-.lp_timeline_step,
-.lp_timeline_step_checked {
-  position: relative;
 }
 
 .lp_timeline_step_label {

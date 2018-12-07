@@ -8,6 +8,10 @@ html.inIframe .alert {
   display: none !important;
 }
 
+html.inIframe .lp-content-item-errors .alert {
+  display: block !important;
+}
+
 html.inIframe body {
   padding-top: 0 !important;
 }

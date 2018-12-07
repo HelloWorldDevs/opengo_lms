@@ -114,6 +114,7 @@ achievements:
     - core/jquery
     - core/jquery.once
     - core/drupalSettings
+    - core/drupal.ajax
 
 creation_steps:
   version: VERSION
@@ -127,14 +128,13 @@ steps_block:
     theme:
       css/steps_block.css: {}
 
-steps_validate:
-  version: VERSION
+training_main_page:
+  version: 1.x
   js:
-    js/opigno_learning_path_steps_validate.js: {}
+    js/opigno_learning_path_training_main_page.js: {}
   dependencies:
     - core/jquery
     - core/jquery.once
-    - core/drupalSettings
 
 opigno_dropzonejs_widgets:
   version: VERSION

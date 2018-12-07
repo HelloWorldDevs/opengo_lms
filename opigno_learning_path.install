@@ -5,6 +5,7 @@
  * Install, update and uninstall functions for the module.
  */
 
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Core\Config\FileStorage;
@@ -308,4 +309,50 @@ function opigno_learning_path_update_8009() {
     $data = $storage->read($item);
     $config_storage->write($item, $data);
   }
+}
+
+/**
+ * Creates required trainings field in the learning path group type.
+ */
+function opigno_learning_path_update_8010() {
+  $config_path = drupal_get_path('module', 'opigno_learning_path')
+    . '/config/install';
+  $storage = new FileStorage($config_path);
+
+  $data = $storage->read('field.storage.group.field_required_trainings');
+  if (!FieldStorageConfig::loadByName($data['entity_type'], $data['field_name'])) {
+    FieldStorageConfig::create($data)->save();
+  }
+
+  $data = $storage->read('field.field.group.learning_path.field_required_trainings');
+  if (!FieldConfig::loadByName($data['entity_type'], $data['bundle'], $data['field_name'])) {
+    FieldConfig::create($data)->save();
+  }
+
+  /* @var Drupal\Core\Config\CachedStorage $config_storage */
+  $config_storage = \Drupal::service('config.storage');
+
+  $configs = [
+    'core.entity_form_display.group.learning_path.default',
+    'core.entity_view_display.group.learning_path.default',
+  ];
+  foreach ($configs as $item) {
+    $data = $storage->read($item);
+    $config_storage->write($item, $data);
+  }
+
+}
+
+/**
+ * Add "learning_path" field to "user_module_status".
+ */
+function opigno_learning_path_update_8011() {
+  $definition = BaseFieldDefinition::create('entity_reference')
+    ->setLabel(t('Learning path'))
+    ->setDescription(t('The learning path whose context the module was taken in.'))
+    ->setSetting('target_type', 'group')
+    ->setSetting('target_bundles', ['learning_path' => 'learning_path']);
+
+  \Drupal::entityDefinitionUpdateManager()
+    ->installFieldStorageDefinition('learning_path', 'user_module_status', 'opigno_learning_path', $definition);
 }
