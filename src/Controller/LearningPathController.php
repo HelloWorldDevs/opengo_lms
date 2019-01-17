@@ -6,18 +6,15 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
-use Drupal\forum\Controller\ForumController;
-use Drupal\opigno_moxtra\Entity\Workspace;
-use Drupal\taxonomy\Entity\Term;
-use Drupal\tft\Controller\TFTController;
 use Drupal\opigno_learning_path\LearningPathAccess;
 
+/**
+ * Class LearningPathController.
+ */
 class LearningPathController extends ControllerBase {
 
   /**
-   * @param array $step
-   *
-   * @return array
+   * Returns step score cell.
    */
   protected function build_step_score_cell($step) {
     if (in_array($step['typology'], ['Module', 'Course', 'Meeting', 'ILT'])) {
@@ -53,9 +50,7 @@ class LearningPathController extends ControllerBase {
   }
 
   /**
-   * @param array $step
-   *
-   * @return array
+   * Returns step state cell.
    */
   protected function build_step_state_cell($step) {
     $user = $this->currentUser();
@@ -64,15 +59,15 @@ class LearningPathController extends ControllerBase {
     $status = opigno_learning_path_get_step_status($step, $uid);
     switch ($status) {
       case 'pending':
-        $markup = '<span class="lp_step_state_pending"></span>' . t('Pending');
+        $markup = '<span class="lp_step_state_pending"></span>' . $this->t('Pending');
         break;
 
       case 'failed':
-        $markup = '<span class="lp_step_state_failed"></span>' . t('Failed');
+        $markup = '<span class="lp_step_state_failed"></span>' . $this->t('Failed');
         break;
 
       case 'passed':
-        $markup = '<span class="lp_step_state_passed"></span>' . t('Passed');
+        $markup = '<span class="lp_step_state_passed"></span>' . $this->t('Passed');
         break;
 
       default:
@@ -84,9 +79,7 @@ class LearningPathController extends ControllerBase {
   }
 
   /**
-   * @param array $step
-   *
-   * @return array
+   * Returns course row.
    */
   protected function build_course_row($step) {
     $result = $this->build_step_score_cell($step);
@@ -106,7 +99,7 @@ class LearningPathController extends ControllerBase {
   }
 
   /**
-   * @return array
+   * Returns progress.
    */
   public function progress() {
     /** @var \Drupal\group\Entity\GroupInterface $group */
@@ -149,7 +142,7 @@ class LearningPathController extends ControllerBase {
           '#attributes' => [
             'class' => ['lp_progress_summary_title'],
           ],
-          '#value' => t('Passed'),
+          '#value' => $this->t('Passed'),
         ],
         [
           '#type' => 'html_tag',
@@ -157,7 +150,7 @@ class LearningPathController extends ControllerBase {
           '#attributes' => [
             'class' => ['lp_progress_summary_score'],
           ],
-          '#value' => t('Average score : @score%', [
+          '#value' => $this->t('Average score : @score%', [
             '@score' => $score,
           ]),
         ],
@@ -167,7 +160,7 @@ class LearningPathController extends ControllerBase {
           '#attributes' => [
             'class' => ['lp_progress_summary_date'],
           ],
-          '#value' => t('Completed on @date', [
+          '#value' => $this->t('Completed on @date', [
             '@date' => $completed,
           ]),
         ],
@@ -191,7 +184,7 @@ class LearningPathController extends ControllerBase {
           '#attributes' => [
             'class' => ['lp_progress_label'],
           ],
-          '#value' => t('Global Training Progress'),
+          '#value' => $this->t('Global Training Progress'),
         ],
         [
           '#type' => 'html_tag',
@@ -273,7 +266,7 @@ class LearningPathController extends ControllerBase {
   }
 
   /**
-   * @return array
+   * Returns training content.
    */
   public function trainingContent() {
     /** @var \Drupal\group\Entity\Group $group */
@@ -299,7 +292,9 @@ class LearningPathController extends ControllerBase {
     $account = \Drupal::currentUser();
     $member_pending = $visibility === 'semiprivate' && $validation
       && !LearningPathAccess::statusGroupValidation($group, $account);
-    if ($member_pending) return $content;
+    if ($member_pending) {
+      return $content;
+    }
 
     $steps = opigno_learning_path_get_steps($group->id(), $user->id());
     $steps = array_filter($steps, function ($step) use ($user) {
@@ -339,7 +334,7 @@ class LearningPathController extends ControllerBase {
 
       if ($step['typology'] === 'Course') {
         $course_steps = opigno_learning_path_get_steps($step['id'], $user->id());
-        $sub_title = t('@count Modules', [
+        $sub_title = $this->t('@count Modules', [
           '@count' => count($course_steps),
         ]);
 
@@ -376,9 +371,9 @@ class LearningPathController extends ControllerBase {
         );
 
         $title .= ' / ' . $this->t('@start to @end', [
-            '@start' => $start_date->format('jS F Y - g:i A'),
-            '@end' => $end_date->format('g:i A'),
-          ]);
+          '@start' => $start_date->format('jS F Y - g:i A'),
+          '@end' => $end_date->format('g:i A'),
+        ]);
       }
 
       return [
@@ -458,8 +453,8 @@ class LearningPathController extends ControllerBase {
                 'class' => ['lp_step_summary_details'],
               ],
               '#header' => [
-                t('Score'),
-                t('State'),
+                $this->t('Score'),
+                $this->t('State'),
               ],
               '#rows' => [
                 [
@@ -487,9 +482,9 @@ class LearningPathController extends ControllerBase {
                   'class' => ['lp_step_details'],
                 ],
                 '#header' => [
-                  t('Module'),
-                  t('Score'),
-                  t('State'),
+                  $this->t('Module'),
+                  $this->t('Score'),
+                  $this->t('State'),
                 ],
                 '#rows' => $rows,
               ]
@@ -509,7 +504,7 @@ class LearningPathController extends ControllerBase {
                 '#attributes' => [
                   'class' => ['lp_step_show_text'],
                 ],
-                '#value' => t('Show details'),
+                '#value' => $this->t('Show details'),
               ],
             ],
             [
@@ -523,10 +518,10 @@ class LearningPathController extends ControllerBase {
                 '#attributes' => [
                   'class' => ['lp_step_hide_text'],
                 ],
-                '#value' => t('Hide details'),
+                '#value' => $this->t('Hide details'),
               ],
             ],
-          ] : []),
+        ] : []),
       ];
     }, $steps);
 
@@ -540,11 +535,11 @@ class LearningPathController extends ControllerBase {
     ];
 
     $content['tabs'][] = [
-      '#markup' => '<a class="lp_tabs_link active" data-toggle="tab" href="#training-content">' . t('Training Content') . '</a>',
+      '#markup' => '<a class="lp_tabs_link active" data-toggle="tab" href="#training-content">' . $this->t('Training Content') . '</a>',
     ];
 
     $content['tabs'][] = [
-      '#markup' => '<a class="lp_tabs_link" data-toggle="tab" href="#documents-library">' . t('Documents Library') . '</a>',
+      '#markup' => '<a class="lp_tabs_link" data-toggle="tab" href="#documents-library">' . $this->t('Documents Library') . '</a>',
     ];
 
     $content['tab-content'] = [
@@ -554,13 +549,19 @@ class LearningPathController extends ControllerBase {
 
     $content['tab-content'][] = [
       '#type' => 'container',
-      '#attributes' => ['id' => 'training-content', 'class' => ['tab-pane', 'fade', 'show', 'active']],
+      '#attributes' => [
+        'id' => 'training-content',
+        'class' => ['tab-pane', 'fade', 'show', 'active'],
+      ],
       'steps' => $steps,
     ];
 
     $content['tab-content'][] = [
       '#type' => 'container',
-      '#attributes' => ['id' => 'documents-library', 'class' => ['tab-pane', 'fade']],
+      '#attributes' => [
+        'id' => 'documents-library',
+        'class' => ['tab-pane', 'fade'],
+      ],
       [
         '#type' => 'html_tag',
         '#tag' => 'iframe',
@@ -569,9 +570,8 @@ class LearningPathController extends ControllerBase {
           'frameborder' => 0,
           'width' => '100%',
           'height' => '600px',
-        ]
+        ],
       ],
-      // $listGroup,
     ];
 
     $is_moxtra_enabled = \Drupal::hasService('opigno_moxtra.workspace_controller');
@@ -579,16 +579,13 @@ class LearningPathController extends ControllerBase {
       $has_workspace_field = $group->hasField('field_workspace');
       $has_workspace_access = $user->hasPermission('view workspace entities');
       if ($has_workspace_field && $has_workspace_access) {
-        /** @var \Drupal\opigno_moxtra\Controller\WorkspaceController $workspace_controller */
-        $workspace_controller = \Drupal::service('opigno_moxtra.workspace_controller');
-
         if ($group->get('field_workspace')->getValue() &&
           $workspace_id = $group->get('field_workspace')->getValue()[0]['target_id']
         ) {
           $workspace_url = Url::fromRoute('opigno_moxtra.workspace.iframe', ['opigno_moxtra_workspace' => $workspace_id])->toString();
 
           $content['tabs'][] = [
-            '#markup' => '<a class="lp_tabs_link" data-toggle="tab" href="#collaborative-workspace">' . t('Collaborative Workspace') . '</a>',
+            '#markup' => '<a class="lp_tabs_link" data-toggle="tab" href="#collaborative-workspace">' . $this->t('Collaborative Workspace') . '</a>',
           ];
         }
 
@@ -611,34 +608,11 @@ class LearningPathController extends ControllerBase {
                 'frameborder' => 0,
                 'width' => '100%',
                 'height' => '600px',
-              ]
+              ],
             ] : [],
-            // 'workspace_list' => [
-            //   '#type' => 'container',
-            //   '#attributes' => [
-            //     'class' => ['col-md-4'],
-            //   ],
-            //   'content' => $workspace_controller->workspaceList(),
-            // ],
-            // 'workspace' => [
-            //   '#type' => 'container',
-            //   '#attributes' => [
-            //     'class' => ['col-md-8'],
-            //   ],
-            //   'content' => [
-            //     '#markup' => $this->t('No collaborative workspace was found for this group ! Please contact your system administrator.'),
-            //   ],
-            // ],
           ],
         ];
 
-        // $workspace_id = $group->get('field_workspace')->getValue()[0]['target_id'];
-        // $workspace_url = Url::fromRoute('opigno_moxtra.workspace.iframe', ['opigno_moxtra_workspace' => $workspace_id])->toString();
-        // $workspace = Workspace::load($workspace_id);
-        // if ($workspace !== NULL) {
-        //   $workspace_tab['content']['workspace']['content'] = $workspace_controller->index($workspace);
-        // }
-        //
         $content['tab-content'][] = $workspace_tab;
       }
     }
@@ -652,13 +626,9 @@ class LearningPathController extends ControllerBase {
         $enable_forum = $enable_forum_field[0]['value'];
         $forum_tid = $forum_field[0]['target_id'];
         if ($enable_forum && _opigno_forum_access($forum_tid, $user)) {
-          $forum_term = Term::load($forum_tid);
           $forum_url = Url::fromRoute('forum.page', ['taxonomy_term' => $forum_tid])->toString();
-          // $forum_controller = ForumController::create(\Drupal::getContainer());
-          // $forum = $forum_controller->forumPage($forum_term);
-
           $content['tabs'][] = [
-            '#markup' => '<a class="lp_tabs_link" data-toggle="tab" href="#forum">' . t('Forum') . '</a>',
+            '#markup' => '<a class="lp_tabs_link" data-toggle="tab" href="#forum">' . $this->t('Forum') . '</a>',
           ];
 
           $content['tab-content'][] = [
@@ -675,9 +645,8 @@ class LearningPathController extends ControllerBase {
                 'frameborder' => 0,
                 'width' => '100%',
                 'height' => '600px',
-              ]
+              ],
             ],
-            // 'forum' => $forum,
           ];
         }
       }

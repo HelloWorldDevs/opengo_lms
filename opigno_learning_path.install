@@ -84,6 +84,9 @@ function opigno_learning_path_update_8007() {
   _opigno_learning_path_create_step_achievements_table();
 }
 
+/**
+ * Creates achievements table.
+ */
 function _opigno_learning_path_create_achievements_table() {
   $schema = \Drupal::database()->schema();
   $table_name = 'opigno_learning_path_achievements';
@@ -166,6 +169,9 @@ function _opigno_learning_path_create_achievements_table() {
   }
 }
 
+/**
+ * Creates achievements table.
+ */
 function _opigno_learning_path_create_step_achievements_table() {
   $schema = \Drupal::database()->schema();
   $table_name = 'opigno_learning_path_step_achievements';

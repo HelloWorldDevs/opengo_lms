@@ -17,10 +17,18 @@ use Drupal\opigno_learning_path\LearningPathAccess;
 use Drupal\opigno_learning_path\LearningPathValidator;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
+/**
+ * Class LearningPathStepsController.
+ */
 class LearningPathStepsController extends ControllerBase {
 
   protected $content_type_manager;
-  /** @var \Drupal\Core\Database\Connection $db */
+
+  /**
+   * Database connection.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
   protected $database;
 
   /**
@@ -45,7 +53,9 @@ class LearningPathStepsController extends ControllerBase {
   }
 
   /**
-   * Start the learning path. This page will redirect the user to the first learning path content.
+   * Start the learning path.
+   *
+   * This page will redirect the user to the first learning path content.
    */
   public function start(Group $group) {
     // Create empty result attempt if current attempt doesn't exist.
@@ -54,7 +64,7 @@ class LearningPathStepsController extends ControllerBase {
     if (!$current_attempt) {
       $result = LPResult::createWithValues($group->id(),
         \Drupal::currentUser()
-        ->id(), FALSE,
+          ->id(), FALSE,
         0
       );
       $result->save();
@@ -281,7 +291,7 @@ class LearningPathStepsController extends ControllerBase {
     $content_type = $this->content_type_manager->createInstance($first_step->getGroupContentTypeId());
 
     // Finally, get the "start" URL
-    //   If no URL, show a message.
+    // If no URL, show a message.
     $step_url = $content_type->getStartContentUrl($first_step->getEntityId(), $group->id());
     if (empty($step_url)) {
       $content = [
@@ -523,7 +533,7 @@ class LearningPathStepsController extends ControllerBase {
     // If there is no next step, show a message.
     if ($next_step === NULL) {
       // Redirect to training home page.
-      $this->messenger()->addWarning(t('You reached the last content of that training.'));
+      $this->messenger()->addWarning($this->t('You reached the last content of that training.'));
       return $this->redirect('entity.group.canonical', ['group' => $group->id()]);
     }
 
@@ -571,9 +581,7 @@ class LearningPathStepsController extends ControllerBase {
   }
 
   /**
-   * @param \Drupal\group\Entity\Group $group
-   *
-   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   * Steps.
    */
   public function contentSteps(Group $group, $current) {
     // Check if user has uncompleted steps.
@@ -613,9 +621,7 @@ class LearningPathStepsController extends ControllerBase {
   }
 
   /**
-   * @param \Drupal\group\Entity\Group $group
-   *
-   * @return array
+   * Steps list.
    */
   public function listSteps(Group $group) {
     /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
@@ -649,9 +655,6 @@ class LearningPathStepsController extends ControllerBase {
 
   /**
    * Check if the user has access to any next content from the Learning Path.
-   *
-   * @return \Drupal\Core\Access\AccessResultAllowed|\Drupal\Core\Access\AccessResultForbidden
-   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    */
   public function nextStepAccess(Group $group, OpignoGroupManagedContent $parent_content) {
     // Check if there is a next step and if the user has access to it.
@@ -670,9 +673,6 @@ class LearningPathStepsController extends ControllerBase {
 
   /**
    * Check if the user has access to start the Learning Path.
-   *
-   * @return \Drupal\Core\Access\AccessResultAllowed|\Drupal\Core\Access\AccessResultForbidden
-   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    */
   public function startAccess(Group $group) {
     $user = $this->currentUser();

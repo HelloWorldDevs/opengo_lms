@@ -58,7 +58,7 @@ class LearningPathContentController extends ControllerBase {
       '#learning_path_id' => $group->id(),
       '#view_type' => $view_type,
       '#next_link' => isset($next_link) ? render($next_link) : NULL,
-      '#user_has_info_card' => $tempstore->get('hide_info_card') ? false : true,
+      '#user_has_info_card' => $tempstore->get('hide_info_card') ? FALSE : TRUE,
     ];
   }
 
@@ -79,10 +79,19 @@ class LearningPathContentController extends ControllerBase {
       '#learning_path_id' => $group->id(),
       '#module_context' => 'false',
       '#next_link' => isset($next_link) ? render($next_link) : NULL,
-      '#user_has_info_card' => $tempstore->get('hide_info_card') ? false : true,
+      '#user_has_info_card' => $tempstore->get('hide_info_card') ? FALSE : TRUE,
     ];
   }
 
+  /**
+   * Returns next link.
+   *
+   * @param \Drupal\group\Entity\Group $group
+   *   Group.
+   *
+   * @return array|mixed[]|null
+   *   Next link.
+   */
   public function getNextLink(Group $group) {
     $next_link = NULL;
 
@@ -126,7 +135,14 @@ class LearningPathContentController extends ControllerBase {
 
   /**
    * This method is called on learning path load.
+   *
    * It returns all the LP courses in JSON format.
+   *
+   * @param \Drupal\group\Entity\Group $group
+   *   Group.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   Response.
    */
   public function getCourses(Group $group) {
     // Init the response and get all the contents from this learning path.
@@ -148,27 +164,30 @@ class LearningPathContentController extends ControllerBase {
 
   /**
    * This method is called on learning path load.
+   *
    * It returns all the LP modules in JSON format.
    */
   public function getModules(Group $group) {
     // Init the response and get all the contents from this learning path.
     $modules = [];
     // Get the courses and modules within those.
-    $group_content = $group->getContent('subgroup:opigno_course');
-    foreach ($group_content as $content) {
-      /* @var $content \Drupal\group\Entity\GroupContent */
-      /* @var $content_entity \Drupal\group\Entity\Group */
-      $course = $content->getEntity();
-      $course_contents = $course->getContent('opigno_module_group');
-      foreach ($course_contents as $course_content) {
-        /* @var $module_entity \Drupal\opigno_module\Entity\OpignoModule */
-        $module_entity = $course_content->getEntity();
-        $modules[] = [
-          'entity_id' => $module_entity->id(),
-          'name' => $module_entity->label(),
-          'activity_count' => $this->countActivityInModule($module_entity),
-          'editable' => $module_entity->access('update'),
-        ];
+    if ($group->getGroupType()->id() == 'learning_path') {
+      $group_content = $group->getContent('subgroup:opigno_course');
+      foreach ($group_content as $content) {
+        /* @var $content \Drupal\group\Entity\GroupContent */
+        /* @var $content_entity \Drupal\group\Entity\Group */
+        $course = $content->getEntity();
+        $course_contents = $course->getContent('opigno_module_group');
+        foreach ($course_contents as $course_content) {
+          /* @var $module_entity \Drupal\opigno_module\Entity\OpignoModule */
+          $module_entity = $course_content->getEntity();
+          $modules[] = [
+            'entity_id' => $module_entity->id(),
+            'name' => $module_entity->label(),
+            'activity_count' => $this->countActivityInModule($module_entity),
+            'editable' => $module_entity->access('update'),
+          ];
+        }
       }
     }
     // Get the direct modules.
@@ -189,30 +208,33 @@ class LearningPathContentController extends ControllerBase {
     return new JsonResponse($modules, Response::HTTP_OK);
   }
 
-  public function countActivityInModule(OpignoModule $opigno_module)
-  {
-      $activities = [];
-      /* @var $db_connection \Drupal\Core\Database\Connection */
-      $db_connection = \Drupal::service('database');
-      $query = $db_connection->select('opigno_activity', 'oa');
-      $query->fields('oa', ['id']);
-      $query->fields('omr', ['omr_pid', 'child_id']);
-      $query->addJoin('inner', 'opigno_activity_field_data', 'oafd', 'oa.id = oafd.id');
-      $query->addJoin('inner', 'opigno_module_relationship', 'omr', 'oa.id = omr.child_id');
-      $query->condition('oafd.status', 1);
-      $query->condition('omr.parent_id', $opigno_module->id());
-      if ($opigno_module->getRevisionId()) {
-        $query->condition('omr.parent_vid', $opigno_module->getRevisionId());
-      }
-      $query->condition('omr_pid', NULL, 'IS');
-      $result = $query->execute();
-      $result->allowRowCount = TRUE;
+  /**
+   * Returns module activities count.
+   */
+  public function countActivityInModule(OpignoModule $opigno_module) {
+    $activities = [];
+    /* @var $db_connection \Drupal\Core\Database\Connection */
+    $db_connection = \Drupal::service('database');
+    $query = $db_connection->select('opigno_activity', 'oa');
+    $query->fields('oa', ['id']);
+    $query->fields('omr', ['omr_pid', 'child_id']);
+    $query->addJoin('inner', 'opigno_activity_field_data', 'oafd', 'oa.id = oafd.id');
+    $query->addJoin('inner', 'opigno_module_relationship', 'omr', 'oa.id = omr.child_id');
+    $query->condition('oafd.status', 1);
+    $query->condition('omr.parent_id', $opigno_module->id());
+    if ($opigno_module->getRevisionId()) {
+      $query->condition('omr.parent_vid', $opigno_module->getRevisionId());
+    }
+    $query->condition('omr_pid', NULL, 'IS');
+    $result = $query->execute();
+    $result->allowRowCount = TRUE;
 
-      return $result->rowCount();
+    return $result->rowCount();
   }
 
   /**
    * This method is called on learning path load.
+   *
    * It returns all the activities with the module.
    */
   public function getModuleActivities(OpignoModule $opigno_module) {
@@ -250,6 +272,7 @@ class LearningPathContentController extends ControllerBase {
 
   /**
    * This method is called on learning path load.
+   *
    * It will update an existing activity relation.
    */
   public function updateActivity(OpignoModule $opigno_module, Request $request) {
@@ -273,6 +296,7 @@ class LearningPathContentController extends ControllerBase {
 
   /**
    * This method is called on learning path load.
+   *
    * It will update an existing activity relation.
    */
   public function deleteActivity(OpignoModule $opigno_module, Request $request) {
@@ -288,4 +312,5 @@ class LearningPathContentController extends ControllerBase {
     $delete_query->execute();
     return new JsonResponse(NULL, Response::HTTP_OK);
   }
+
 }

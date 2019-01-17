@@ -1,10 +1,9 @@
 <?php
+
 namespace Drupal\opigno_learning_path\Plugin\views\filter;
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\Plugin\views\filter\BooleanOperator;
-use Drupal\views\Plugin\views\join\JoinPluginBase;
-
 
 /**
  * Filter handler to show trainings filter.

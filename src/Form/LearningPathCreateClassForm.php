@@ -114,13 +114,13 @@ class LearningPathCreateClassForm extends FormBase {
   }
 
   /**
-    * {@inheritdoc}
-    */
-   public function validateForm(array &$form, FormStateInterface $form_state) {
-     if (empty($form_state->getValue('users'))) {
-       $form_state->hasValidateError = true;
-     }
-   }
+   * {@inheritdoc}
+   */
+  public function validateForm(array &$form, FormStateInterface $form_state) {
+    if (empty($form_state->getValue('users'))) {
+      $form_state->hasValidateError = TRUE;
+    }
+  }
 
   /**
    * {@inheritdoc}

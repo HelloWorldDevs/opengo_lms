@@ -1,13 +1,14 @@
 <?php
 
-namespace Drupal\Tests\opigno_learning_path\Functional;
+namespace Drupal\Tests\opigno_learning_path\FunctionalJavascript;
 
-use Drupal\Tests\BrowserTestBase;
+use Drupal\FunctionalJavascriptTests\WebDriverTestBase;
+use Drupal\Tests\opigno_learning_path\Functional\TrainingContentTrait;
 
 /**
- * Provides a base class for Learning path group functional javascript tests.
+ * Provides a base class for Learning path group functional tests.
  */
-abstract class LearningPathBrowserTestBase extends BrowserTestBase {
+abstract class LearningPathWebDriverTestBase extends WebDriverTestBase {
 
   use TrainingContentTrait;
 
@@ -17,7 +18,6 @@ abstract class LearningPathBrowserTestBase extends BrowserTestBase {
   public static $modules = [
     'opigno_learning_path',
     'opigno_catalog',
-    'multiselect',
     'field_group',
     'block',
     'user',

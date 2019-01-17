@@ -2,7 +2,6 @@
 
 namespace Drupal\opigno_learning_path\Controller;
 
-use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\AppendCommand;
 use Drupal\Core\Ajax\ReplaceCommand;
@@ -10,21 +9,30 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Link;
-use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\group\Entity\Group;
-use Drupal\h5p\Entity\H5PContent;
+use Drupal\group\Entity\GroupInterface;
 use Drupal\opigno_module\Entity\OpignoActivity;
 use Drupal\opigno_module\Entity\OpignoModule;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Drupal\opigno_module\OpignoModuleBadges;
 
+/**
+ * Class LearningPathAchievementController.
+ */
 class LearningPathAchievementController extends ControllerBase {
 
-  /** @var \Drupal\Core\Database\Connection $db */
+  /**
+   * Database connection.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
   protected $database;
 
+  /**
+   * {@inheritdoc}
+   */
   public function __construct(Connection $database) {
     $this->database = $database;
   }
@@ -40,9 +48,12 @@ class LearningPathAchievementController extends ControllerBase {
    * Returns max score that user can have in this module & activity.
    *
    * @param \Drupal\opigno_module\Entity\OpignoModule $module
+   *   Module object.
    * @param \Drupal\opigno_module\Entity\OpignoActivity $activity
+   *   Activity object.
    *
    * @return int
+   *   Max score.
    */
   protected function get_activity_max_score($module, $activity) {
     $query = $this->database->select('opigno_module_relationship', 'omr')
@@ -63,11 +74,15 @@ class LearningPathAchievementController extends ControllerBase {
   }
 
   /**
+   * Returns step renderable array.
+   *
    * @param array $step
+   *   Step.
    *
    * @return array
+   *   Step renderable array.
    */
-  protected function build_step_name($step) {
+  protected function build_step_name(array $step) {
     return [
       '#type' => 'container',
       '#attributes' => [
@@ -93,11 +108,15 @@ class LearningPathAchievementController extends ControllerBase {
   }
 
   /**
+   * Returns step score renderable array.
+   *
    * @param array $step
+   *   Step.
    *
    * @return array
+   *   Step score renderable array.
    */
-  protected function build_step_score($step) {
+  protected function build_step_score(array $step) {
     $uid = $this->currentUser()->id();
 
     if (opigno_learning_path_is_attempted($step, $uid)) {
@@ -132,33 +151,43 @@ class LearningPathAchievementController extends ControllerBase {
   }
 
   /**
+   * Returns step state renderable array.
+   *
    * @param array $step
+   *   Step.
    *
    * @return array
+   *   Step state renderable array.
    */
-  protected function build_step_state($step) {
+  protected function build_step_state(array $step) {
     $uid = $this->currentUser()->id();
     $status = opigno_learning_path_get_step_status($step, $uid);
     $markups = [
       'pending' => '<span class="lp_step_state_pending"></span>'
-        . t('Pending'),
+      . t('Pending'),
       'failed' => '<span class="lp_step_state_failed"></span>'
-        . t('Failed'),
+      . t('Failed'),
       'passed' => '<span class="lp_step_state_passed"></span>'
-        . t('Passed'),
+      . t('Passed'),
     ];
     $markup = isset($markups[$status]) ? $markups[$status] : '&dash;';
     return ['#markup' => $markup];
   }
 
   /**
+   * Returns module panel renderable array.
+   *
    * @param \Drupal\group\Entity\GroupInterface $training
+   *   Group.
    * @param null|\Drupal\group\Entity\GroupInterface $course
+   *   Group.
    * @param \Drupal\opigno_module\Entity\OpignoModule $module
+   *   Module.
    *
    * @return array
+   *   Module panel renderable array.
    */
-  protected function build_module_panel($training, $course, $module) {
+  protected function build_module_panel(GroupInterface $training, GroupInterface $course, OpignoModule $module) {
     /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
     $date_formatter = \Drupal::service('date.formatter');
     $user = $this->currentUser();
@@ -224,7 +253,8 @@ class LearningPathAchievementController extends ControllerBase {
             '#attributes' => [
               'class' => [isset($answer)
                 ? 'lp_step_state_passed'
-                : 'lp_step_state_failed'],
+                : 'lp_step_state_failed',
+              ],
             ],
             '#value' => '',
           ],
@@ -271,7 +301,7 @@ class LearningPathAchievementController extends ControllerBase {
             'class' => ['lp_module_panel_title'],
           ],
           '#value' => $step['name'] . ' '
-            . (!empty($completed_on)
+          . (!empty($completed_on)
               ? t('completed')
               : ''),
         ],
@@ -333,17 +363,21 @@ class LearningPathAchievementController extends ControllerBase {
   }
 
   /**
-   * @param \Drupal\group\Entity\GroupInterface $training
-   * @param \Drupal\opigno_module\Entity\OpignoModule $module
+   * Returns module approved activities.
    *
-   * @return integer
+   * @param int $parent
+   *   Group ID.
+   * @param int $module
+   *   Module ID.
+   *
+   * @return int
+   *   Approved activities.
    */
-  protected function module_approved_activities($parent, $module)
-  {
+  protected function module_approved_activities($parent, $module) {
     $approved = 0;
     $user = $this->currentUser();
-    $parent = \Drupal\group\Entity\Group::load($parent);
-    $module = \Drupal\opigno_module\Entity\OpignoModule::load($module);
+    $parent = Group::load($parent);
+    $module = OpignoModule::load($module);
 
     $step = opigno_learning_path_get_module_step($parent->id(), $user->id(), $module);
 
@@ -403,14 +437,17 @@ class LearningPathAchievementController extends ControllerBase {
   }
 
   /**
+   * Returns course steps renderable array.
+   *
    * @param \Drupal\group\Entity\GroupInterface $training
    *   Parent training group entity.
    * @param \Drupal\group\Entity\GroupInterface $course
    *   Course group entity.
    *
    * @return array
+   *   Course steps renderable array.
    */
-  protected function build_course_steps($training, $course) {
+  protected function build_course_steps(GroupInterface $training, GroupInterface $course) {
     $user = $this->currentUser();
     $steps = opigno_learning_path_get_steps($course->id(), $user->id());
     $rows = array_map(function ($step) use ($training, $course, $user) {
@@ -423,10 +460,12 @@ class LearningPathAchievementController extends ControllerBase {
           ['data' => $this->build_step_name($step)],
           ['data' => $this->build_step_score($step)],
           ['data' => $this->build_step_state($step)],
-          ['data' => Link::createFromRoute(t('details'), 'opigno_module.module_result', [
-            'opigno_module' => $step['id'],
-            'user_module_status' => $step['best_attempt'],
-          ])->toRenderable()]
+          [
+            'data' => Link::createFromRoute(t('details'), 'opigno_module.module_result', [
+              'opigno_module' => $step['id'],
+              'user_module_status' => $step['best_attempt'],
+            ])->toRenderable(),
+          ],
         ],
       ];
     }, $steps);
@@ -455,7 +494,7 @@ class LearningPathAchievementController extends ControllerBase {
           'lp_course_steps_wrapper',
           'ml-md-7',
           'mr-md-5',
-          'mb-5'
+          'mb-5',
         ],
       ],
       [
@@ -484,15 +523,17 @@ class LearningPathAchievementController extends ControllerBase {
   }
 
   /**
+   * Returns course passed steps.
+   *
    * @param \Drupal\group\Entity\GroupInterface $training
    *   Parent training group entity.
    * @param \Drupal\group\Entity\GroupInterface $course
    *   Course group entity.
    *
    * @return array
+   *   Course passed steps.
    */
-  protected function course_steps_passed($training, $course)
-  {
+  protected function course_steps_passed(GroupInterface $training, GroupInterface $course) {
     $user = $this->currentUser();
     $steps = opigno_learning_path_get_steps($course->id(), $user->id());
 
@@ -511,11 +552,15 @@ class LearningPathAchievementController extends ControllerBase {
   }
 
   /**
+   * Returns LP steps.
+   *
    * @param \Drupal\group\Entity\GroupInterface $group
+   *   Group.
    *
    * @return array
+   *   LP steps.
    */
-  protected function build_lp_steps($group) {
+  protected function build_lp_steps(GroupInterface $group) {
     $user = $this->currentUser();
     $uid = $user->id();
     $result = (int) $this->database
@@ -646,8 +691,8 @@ class LearningPathAchievementController extends ControllerBase {
         $is_module = $step['typology'] === 'Module';
         $is_course = $step['typology'] === 'Course';
 
-        $time_spent = ($step['attempted'] && $step['time spent'] > 0) ? $date_formatter->formatInterval($step['time spent']) : '&dash;' ;
-        $completed = ($step['attempted'] && $step['completed on'] > 0) ? $date_formatter->format($step['completed on'], 'custom', 'F d Y') : '&dash;' ;
+        $time_spent = ($step['attempted'] && $step['time spent'] > 0) ? $date_formatter->formatInterval($step['time spent']) : '&dash;';
+        $completed = ($step['attempted'] && $step['completed on'] > 0) ? $date_formatter->format($step['completed on'], 'custom', 'F d Y') : '&dash;';
 
         if ($is_module) {
           $approved_activities = $this->module_approved_activities($group->id(), $step['id']);
@@ -706,9 +751,9 @@ class LearningPathAchievementController extends ControllerBase {
               '#attributes' => [
                 'class' => ['view_trigger'],
                 'data-open' => t('Show details'),
-                'data-close' => t('Hide details')
+                'data-close' => t('Hide details'),
               ],
-            ]
+            ],
           ],
           [
             '#type' => 'container',
@@ -730,11 +775,19 @@ class LearningPathAchievementController extends ControllerBase {
                 [
                   '#type' => 'container',
                   '#attributes' => [
-                    'class' => ['row']
+                    'class' => ['row'],
                   ], [
                     '#type' => 'container',
                     '#attributes' => [
-                      'class' => ['col-lg-4', 'col-md-2', 'd-sm-flex', 'd-md-block', 'd-lg-flex', 'mb-4', 'mb-md-0']
+                      'class' => [
+                        'col-lg-4',
+                        'col-md-2',
+                        'd-sm-flex',
+                        'd-md-block',
+                        'd-lg-flex',
+                        'mb-4',
+                        'mb-md-0',
+                      ],
                     ], [
                       '#type' => 'html_tag',
                       '#tag' => 'div',
@@ -749,7 +802,7 @@ class LearningPathAchievementController extends ControllerBase {
                         ],
                       ],
                       '#value' => isset($status[$step['status']])
-                        ? $status[$step['status']]['title'] : $status['pending']['title'],
+                      ? $status[$step['status']]['title'] : $status['pending']['title'],
                     ], [
                       '#type' => 'html_tag',
                       '#tag' => 'div',
@@ -766,7 +819,7 @@ class LearningPathAchievementController extends ControllerBase {
                   ], [
                     '#type' => 'container',
                     '#attributes' => [
-                      'class' => ['col-lg-4', 'col-md-5', 'mb-4', 'mb-md-0']
+                      'class' => ['col-lg-4', 'col-md-5', 'mb-4', 'mb-md-0'],
                     ], [
                       '#type' => 'html_tag',
                       '#tag' => 'div',
@@ -800,7 +853,7 @@ class LearningPathAchievementController extends ControllerBase {
                   ], [
                     '#type' => 'container',
                     '#attributes' => [
-                      'class' => ['col-lg-4', 'col-md-5']
+                      'class' => ['col-lg-4', 'col-md-5'],
                     ], [
                       '#type' => 'html_tag',
                       '#tag' => 'div',
@@ -810,7 +863,7 @@ class LearningPathAchievementController extends ControllerBase {
                           'ml-md-5',
                           'lp_step_summary_approved',
                           'mr-3',
-                          'pull-left'
+                          'pull-left',
                         ],
                       ],
                       '#value' => '<div class="h4 color-blue mb-0">' . $approved . '</div><div>' . t('Activities') . '<br />' . t('done') . '</div>',
@@ -821,7 +874,7 @@ class LearningPathAchievementController extends ControllerBase {
                           'lp_step_summary_approved_chart',
                           'donut-wrapper',
                           'ml-3',
-                          'mr-auto'
+                          'mr-auto',
                         ],
                       ], [
                         '#type' => 'html_tag',
@@ -843,7 +896,12 @@ class LearningPathAchievementController extends ControllerBase {
                 [
                   '#type' => 'container',
                   '#attributes' => [
-                    'class' => ['w-100', 'mt-4', 'd-flex', 'justify-content-center'],
+                    'class' => [
+                      'w-100',
+                      'mt-4',
+                      'd-flex',
+                      'justify-content-center',
+                    ],
                   ],
                   [
                     '#type' => 'html_tag',
@@ -851,7 +909,7 @@ class LearningPathAchievementController extends ControllerBase {
                     '#attributes' => [
                       'class' => [''],
                     ],
-                    '#value' => '<div class="text-italic">'. t('Time spent') . '</div><div class="color-blue h5">' . $time_spent . '</div>',
+                    '#value' => '<div class="text-italic">' . t('Time spent') . '</div><div class="color-blue h5">' . $time_spent . '</div>',
                   ],
                   [
                     '#type' => 'html_tag',
@@ -859,7 +917,7 @@ class LearningPathAchievementController extends ControllerBase {
                     '#attributes' => [
                       'class' => ['ml-3', 'ml-md-5'],
                     ],
-                    '#value' => '<div class="text-italic">'. t('Completed on') . '</div><div class="color-blue h5">' . $completed . '</div>',
+                    '#value' => '<div class="text-italic">' . t('Completed on') . '</div><div class="color-blue h5">' . $completed . '</div>',
                   ],
                   [
                     '#type' => 'html_tag',
@@ -901,7 +959,7 @@ class LearningPathAchievementController extends ControllerBase {
                     'px-3',
                     'd-md-flex',
                     'justify-content-center',
-                    'flex-wrap'
+                    'flex-wrap',
                   ],
                 ],
                 [
@@ -910,7 +968,7 @@ class LearningPathAchievementController extends ControllerBase {
                   '#attributes' => [
                     'class' => ['float-left', 'mr-3', 'mr-md-0'],
                   ],
-                  '#value' => '<div class="h4 ' . (($passed_percent === 100) ? 'color-green' : 'color-red' ) . ' mb-0">' . $passed . '</div><div>' . t('Module') . '<br />' . t('passed') . '</div>',
+                  '#value' => '<div class="h4 ' . (($passed_percent === 100) ? 'color-green' : 'color-red') . ' mb-0">' . $passed . '</div><div>' . t('Module') . '<br />' . t('passed') . '</div>',
                 ],
                 [
                   '#type' => 'container',
@@ -921,7 +979,7 @@ class LearningPathAchievementController extends ControllerBase {
                       'ml-3',
                       'mb-3',
                       'mb-md-0',
-                      ($passed_percent === 100) ? 'passed' : 'not_passed' ,
+                      ($passed_percent === 100) ? 'passed' : 'not_passed',
                     ],
                   ],
                   [
@@ -955,7 +1013,7 @@ class LearningPathAchievementController extends ControllerBase {
                       'donut-wrapper',
                       'ml-3',
                       'mb-3',
-                      'mb-md-0'
+                      'mb-md-0',
                     ],
                   ],
                   [
@@ -989,7 +1047,7 @@ class LearningPathAchievementController extends ControllerBase {
                       'donut-wrapper',
                       'ml-3',
                       'mb-3',
-                      'mb-md-0'
+                      'mb-md-0',
                     ],
                   ],
                   [
@@ -1072,12 +1130,12 @@ class LearningPathAchievementController extends ControllerBase {
                     'ml-md-7',
                     'mr-3',
                     'mr-md-5',
-                    'my-4'
+                    'my-4',
                   ],
                 ],
               ],
               $this->build_course_steps($group, Group::load($step['id'])),
-            ] : [])
+            ] : []),
           ],
         ];
 
@@ -1087,11 +1145,15 @@ class LearningPathAchievementController extends ControllerBase {
   }
 
   /**
+   * Returns training timeline.
+   *
    * @param \Drupal\group\Entity\GroupInterface $group
+   *   Group.
    *
    * @return array
+   *   Training timeline.
    */
-  protected function build_training_timeline($group) {
+  protected function build_training_timeline(GroupInterface $group) {
     /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
     $date_formatter = \Drupal::service('date.formatter');
     $user = $this->currentUser();
@@ -1150,7 +1212,7 @@ class LearningPathAchievementController extends ControllerBase {
       $results = $this->database
         ->select('opigno_learning_path_step_achievements', 'a')
         ->fields('a', [
-          'name', 'status', 'completed',
+          'name', 'status', 'completed', 'typology', 'entity_id',
         ])
         ->condition('uid', $user->id())
         ->condition('gid', $group->id())
@@ -1172,6 +1234,8 @@ class LearningPathAchievementController extends ControllerBase {
           'name' => $result->name,
           'passed' => $result->status === 'passed',
           'completed on' => $completed_timestamp,
+          'typology' => $result->typology,
+          'id' => 	$result->entity_id,
         ];
       }, $results);
     }
@@ -1250,15 +1314,20 @@ class LearningPathAchievementController extends ControllerBase {
   }
 
   /**
+   * Returns training summary.
+   *
    * @param \Drupal\group\Entity\GroupInterface $group
+   *   Group.
    *
    * @return array
+   *   Training summary.
    */
-  protected function build_training_summary($group) {
+  protected function build_training_summary(GroupInterface $group) {
     $gid = $group->id();
     $user = $this->currentUser();
     $uid = $user->id();
-    $score = opigno_learning_path_get_score($gid, $uid);
+    $score = round(opigno_learning_path_get_score($gid, $uid));
+    $progress = round(100 * opigno_learning_path_progress($gid, $uid));
 
     /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
     $date_formatter = \Drupal::service('date.formatter');
@@ -1398,21 +1467,6 @@ class LearningPathAchievementController extends ControllerBase {
       '#attributes' => [
         'class' => ['lp_summary', 'd-flex', 'flex-wrap', 'py-5'],
       ],
-      // [
-      //   '#type' => 'container',
-      //   '#attributes' => [
-      //     'class' => ['lp_summary_content'],
-      //   ],
-      //   [
-      //     '#type' => 'html_tag',
-      //     '#tag' => 'span',
-      //     '#attributes' => [
-      //       'class' => ['lp_step_summary_title'],
-      //     ],
-      //     '#value' => t('Training Progress'),
-      //   ],
-      //   $summary,
-      // ],
       [
         '#type' => 'container',
         '#attributes' => [
@@ -1437,8 +1491,35 @@ class LearningPathAchievementController extends ControllerBase {
           '#attributes' => [
             'class' => ['lp_step_summary_score'],
           ],
-          '#value' => t('Score: @score%', ['@score' => $score]),
-        ]
+          '#value' => t('@score%', ['@score' => $progress]),
+        ],
+      ],
+      [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['lp_summary_content'],
+        ],
+        [
+          '#type' => 'html_tag',
+          '#tag' => 'div',
+          '#attributes' => [
+            'class' => [
+              'lp_step_summary_title',
+              'h4',
+              'mb-0',
+              'text-uppercase',
+            ],
+          ],
+          '#value' => t('Training Score'),
+        ],
+        [
+          '#type' => 'html_tag',
+          '#tag' => 'div',
+          '#attributes' => [
+            'class' => ['lp_step_summary_score'],
+          ],
+          '#value' => t('@score%', ['@score' => $score]),
+        ],
       ],
       [
         '#type' => 'html_tag',
@@ -1474,7 +1555,12 @@ class LearningPathAchievementController extends ControllerBase {
           '#type' => 'html_tag',
           '#tag' => 'div',
           '#attributes' => [
-            'class' => ['lp_step_summary_validation', 'ml-3', 'ml-md-5', 'font-italic'],
+            'class' => [
+              'lp_step_summary_validation',
+              'ml-3',
+              'ml-md-5',
+              'font-italic',
+            ],
           ],
           '#value' => t('Validation date: @date', ['@date' => $validation]),
         ],
@@ -1482,7 +1568,12 @@ class LearningPathAchievementController extends ControllerBase {
           '#type' => 'html_tag',
           '#tag' => 'div',
           '#attributes' => [
-            'class' => ['lp_step_summary_time_spent', 'ml-3', 'ml-md-5', 'font-italic'],
+            'class' => [
+              'lp_step_summary_time_spent',
+              'ml-3',
+              'ml-md-5',
+              'font-italic',
+            ],
           ],
           '#value' => t('Time spent: @time', ['@time' => $time_spent]),
         ],
@@ -1491,11 +1582,15 @@ class LearningPathAchievementController extends ControllerBase {
   }
 
   /**
+   * Returns training array.
+   *
    * @param \Drupal\group\Entity\GroupInterface $group
+   *   Group.
    *
    * @return array
+   *   Training array.
    */
-  protected function build_training($group) {
+  protected function build_training(GroupInterface $group) {
     return [
       '#type' => 'container',
       '#attributes' => [
@@ -1505,7 +1600,16 @@ class LearningPathAchievementController extends ControllerBase {
         '#type' => 'html_tag',
         '#tag' => 'h2',
         '#attributes' => [
-          'class' => ['lp_title', 'px-3', 'px-md-5', 'pt-5', 'pb-4', 'mb-0', 'h4', 'text-uppercase'],
+          'class' => [
+            'lp_title',
+            'px-3',
+            'px-md-5',
+            'pt-5',
+            'pb-4',
+            'mb-0',
+            'h4',
+            'text-uppercase',
+          ],
         ],
         '#value' => t('Training : @name', [
           '@name' => $group->label(),
@@ -1589,12 +1693,16 @@ class LearningPathAchievementController extends ControllerBase {
    * Loads module panel with a AJAX.
    *
    * @param \Drupal\group\Entity\GroupInterface $training
+   *   Training group.
    * @param null|\Drupal\group\Entity\GroupInterface $course
+   *   Course group.
    * @param \Drupal\opigno_module\Entity\OpignoModule $opigno_module
+   *   Opigno module.
    *
    * @return \Drupal\Core\Ajax\AjaxResponse
+   *   Response.
    */
-  public function course_module_panel_ajax($training, $course, $opigno_module) {
+  public function course_module_panel_ajax(GroupInterface $training, GroupInterface $course, OpignoModule $opigno_module) {
     $training_id = $training->id();
     $course_id = $course->id();
     $module_id = $opigno_module->id();
@@ -1610,11 +1718,14 @@ class LearningPathAchievementController extends ControllerBase {
    * Loads module panel with a AJAX.
    *
    * @param \Drupal\group\Entity\GroupInterface $group
+   *   Group.
    * @param \Drupal\opigno_module\Entity\OpignoModule $opigno_module
+   *   Opigno module.
    *
    * @return \Drupal\Core\Ajax\AjaxResponse
+   *   Response.
    */
-  public function training_module_panel_ajax($group, $opigno_module) {
+  public function training_module_panel_ajax(GroupInterface $group, OpignoModule $opigno_module) {
     $training_id = $group->id();
     $module_id = $opigno_module->id();
     $selector = "#module_panel_${training_id}_${module_id}";
@@ -1629,10 +1740,12 @@ class LearningPathAchievementController extends ControllerBase {
    * Loads steps for a training with a AJAX.
    *
    * @param \Drupal\group\Entity\Group $group
+   *   Group.
    *
    * @return \Drupal\Core\Ajax\AjaxResponse
+   *   Response.
    */
-  public function training_steps_ajax($group) {
+  public function training_steps_ajax(Group $group) {
     $selector = '#training_steps_' . $group->id();
     $content = $this->build_lp_steps($group);
     $content['#attributes']['data-ajax-loaded'] = TRUE;
@@ -1642,9 +1755,13 @@ class LearningPathAchievementController extends ControllerBase {
   }
 
   /**
+   * Returns training page array.
+   *
    * @param int $page
+   *   Page id.
    *
    * @return array
+   *   Training page array.
    */
   protected function build_page($page = 0) {
     $per_page = 5;
@@ -1723,8 +1840,10 @@ class LearningPathAchievementController extends ControllerBase {
    * Loads next achievements page with a AJAX.
    *
    * @param int $page
+   *   Page id.
    *
    * @return \Drupal\Core\Ajax\AjaxResponse
+   *   Response.
    */
   public function page_ajax($page = 0) {
     $selector = '#achievements-wrapper';
@@ -1740,9 +1859,13 @@ class LearningPathAchievementController extends ControllerBase {
   }
 
   /**
+   * Returns index array.
+   *
    * @param int $page
+   *   Page id.
    *
    * @return array
+   *   Index array.
    */
   public function index($page = 0) {
     $content = [
@@ -1770,14 +1893,6 @@ class LearningPathAchievementController extends ControllerBase {
             'class' => ['lp_info_text'],
           ],
           '#value' => t('Consult your results and download the certificates for the trainings.'),
-        ],
-        [
-          '#type' => 'html_tag',
-          '#tag' => 'p',
-          '#attributes' => [
-            'class' => ['lp_info_text'],
-          ],
-          '#value' => t('Only the highest are displayed'),
         ],
       ],
       '#attached' => [

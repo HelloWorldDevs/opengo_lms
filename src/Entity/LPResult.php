@@ -30,6 +30,10 @@ use Drupal\user\Entity\User;
  * )
  */
 class LPResult extends ContentEntityBase {
+
+  /**
+   * Creates LPResult object.
+   */
   public static function createWithValues(
     $learning_path_id,
     $user_id,
@@ -61,56 +65,85 @@ class LPResult extends ContentEntityBase {
     return $this;
   }
 
+  /**
+   * Returns Learning Path Id.
+   */
   public function getLearningPathId() {
     return $this->get('learning_path_id')->target_id;
   }
 
+  /**
+   * Sets Learning Path Id.
+   */
   public function setLearningPathId($learning_path_id) {
     $this->set('learning_path_id', $learning_path_id);
     return $this;
   }
 
+  /**
+   * Returns Learning Path.
+   */
   public function getLearningPath() {
     return $this->get('learning_path_id')->entity;
   }
 
-  public function setLearningPath(Group $learning_path)
-  {
+  /**
+   * Sets Learning Path.
+   */
+  public function setLearningPath(Group $learning_path) {
     // TODO: Check the group type before saving.
     $this->setLearningPathId($learning_path->id());
     return $this;
   }
 
+  /**
+   * Returns User Id.
+   */
   public function getUserId() {
     return $this->get('user_id')->target_id;
   }
 
+  /**
+   * Sets User Id.
+   */
   public function setUserId($user_id) {
     $this->set('user_id', $user_id);
     return $this;
   }
 
   /**
-   * @return User
+   * Returns User.
    */
   public function getUser() {
     return $this->get('user_id')->entity;
   }
 
+  /**
+   * Sets User.
+   */
   public function setUser(User $user) {
     $this->set('user_id', $user->id());
     return $this;
   }
 
+  /**
+   * Returns passed flag.
+   */
   public function hasPassed() {
     return $this->get('has_passed')->value;
   }
 
+  /**
+   * Sets passed flag.
+   */
   public function setHasPassed($has_passed) {
     $this->set('has_passed', $has_passed);
     return $this;
   }
 
+  /**
+   * Returns LP user progress.
+   */
   public static function learningPathUserProgress(Group $group, $uid) {
     $progress = 0;
     $contents = LPManagedContent::loadByLearningPathId($group->id());
@@ -157,10 +190,7 @@ class LPResult extends ContentEntityBase {
   }
 
   /**
-   * @param \Drupal\Core\Session\AccountInterface $user
-   *   User entity object.
-   *
-   * @return \Drupal\Core\Entity\EntityInterface|FALSE
+   * Returns LP attempt.
    */
   public static function getCurrentLPAttempt(Group $group, AccountInterface $user) {
     $results_storage = \Drupal::entityTypeManager()->getStorage('learning_path_result');
@@ -213,22 +243,19 @@ class LPResult extends ContentEntityBase {
   }
 
   /**
-   * @param array $properties
-   * @return \Drupal\Core\Entity\EntityInterface[]|self[]
-   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * Loads LP Result by properties.
    */
   public static function loadByProperties($properties) {
     return \Drupal::entityTypeManager()->getStorage('learning_path_result')->loadByProperties($properties);
   }
 
   /**
-   * @param Group $learning_path
-   * @return \Drupal\Core\Entity\EntityInterface[]|self[]
-   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * Loads LP Result by LP.
    */
   public static function loadByLearningPath(Group $learning_path) {
     return self::loadByProperties([
       'learning_path_id' => $learning_path->id(),
     ]);
   }
+
 }

@@ -3,7 +3,6 @@
 namespace Drupal\opigno_learning_path\TwigExtension;
 
 use Drupal\Core\Link;
-use Drupal\Core\Render\Markup;
 use Drupal\Core\Url;
 use Drupal\group\Entity\Group;
 use Drupal\opigno_learning_path\Controller\LearningPathController;
@@ -85,9 +84,17 @@ class DefaultTwigExtension extends \Twig_Extension {
   }
 
   /**
-   * Test if user is member of a group.
+   * Tests if user is member of a group.
+   *
+   * @param mixed $group
+   *   Group.
+   * @param mixed $account
+   *   User account.
+   *
+   * @return bool
+   *   Member flag.
    */
-  function is_group_member($group = NULL, $account = NULL) {
+  public function is_group_member($group = NULL, $account = NULL) {
     if (!$group) {
       $group = \Drupal::routeMatch()->getParameter('group');
     }
@@ -103,7 +110,20 @@ class DefaultTwigExtension extends \Twig_Extension {
     return $group->getMember($account) !== FALSE;
   }
 
-  function get_join_group_link($group = NULL, $account = NULL, $attributes = []) {
+  /**
+   * Returns join group link.
+   *
+   * @param mixed $group
+   *   Group.
+   * @param mixed $account
+   *   User account.
+   * @param array $attributes
+   *   Attributes.
+   *
+   * @return mixed|null|string
+   *   Join group link or empty.
+   */
+  public function get_join_group_link($group = NULL, $account = NULL, array $attributes = []) {
     $route = \Drupal::routeMatch();
 
     if (!isset($group)) {
@@ -177,7 +197,18 @@ class DefaultTwigExtension extends \Twig_Extension {
     return '';
   }
 
-  function get_start_link($group = NULL, $attributes = []) {
+  /**
+   * Returns group start link.
+   *
+   * @param mixed $group
+   *   Group.
+   * @param array $attributes
+   *   Attributes.
+   *
+   * @return array|mixed|null
+   *   Group start link or empty.
+   */
+  public function get_start_link($group = NULL, array $attributes = []) {
     $user = \Drupal::currentUser();
     if ($user->isAnonymous()) {
       return [];
@@ -261,7 +292,13 @@ class DefaultTwigExtension extends \Twig_Extension {
     return render($l);
   }
 
-  function get_progress() {
+  /**
+   * Returns current user progress.
+   *
+   * @return array|mixed|null
+   *   Current user progress.
+   */
+  public function get_progress() {
     $user = \Drupal::currentUser();
     if ($user->isAnonymous()) {
       return [];
@@ -271,7 +308,13 @@ class DefaultTwigExtension extends \Twig_Extension {
     return render($content);
   }
 
-  function get_training_content() {
+  /**
+   * Returns training content.
+   *
+   * @return mixed|null
+   *   Training content.
+   */
+  public function get_training_content() {
     $controller = new LearningPathController();
     $content = $controller->trainingContent();
     return render($content);

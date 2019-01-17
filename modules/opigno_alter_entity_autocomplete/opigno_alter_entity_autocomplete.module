@@ -1,6 +1,13 @@
 <?php
 
 /**
+ * @file
+ * Contains opigno_alter_entity_autocomplete.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
  * Implements hook_help().
  */
 function opigno_alter_entity_autocomplete_help($route_name, RouteMatchInterface $route_match) {

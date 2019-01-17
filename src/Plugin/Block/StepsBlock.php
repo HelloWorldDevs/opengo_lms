@@ -1,8 +1,4 @@
 <?php
-/**
- * @file
- * Contains \Drupal\opigno_learning_path\Plugin\Block\StepsBlock.
- */
 
 namespace Drupal\opigno_learning_path\Plugin\Block;
 
@@ -23,6 +19,9 @@ use Drupal\Core\Cache\Cache;
  */
 class StepsBlock extends BlockBase {
 
+  /**
+   * Returns score.
+   */
   protected function buildScore($step) {
     $is_attempted = $step['attempts'] > 0;
 
@@ -45,15 +44,18 @@ class StepsBlock extends BlockBase {
     ];
   }
 
+  /**
+   * Returns state.
+   */
   protected function buildState($step) {
     $uid = \Drupal::currentUser()->id();
     $status = opigno_learning_path_get_step_status($step, $uid);
     $markups = [
       'pending' => '<span class="lp_steps_block_step_pending"></span>',
       'failed' => '<span class="lp_steps_block_step_failed"></span>'
-        . $this->t('Failed'),
+      . $this->t('Failed'),
       'passed' => '<span class="lp_steps_block_step_passed"></span>'
-        . $this->t('Passed'),
+      . $this->t('Passed'),
     ];
     $markup = isset($markups[$status]) ? $markups[$status] : '&dash;';
     return [
@@ -62,13 +64,13 @@ class StepsBlock extends BlockBase {
       ],
     ];
   }
-  
+
   /**
    * {@inheritdoc}
    */
   public function getCacheContexts() {
-    //Every new route this block will rebuild
-    return Cache::mergeContexts(parent::getCacheContexts(), array('route'));
+    // Every new route this block will rebuild.
+    return Cache::mergeContexts(parent::getCacheContexts(), ['route']);
   }
 
   /**
@@ -222,7 +224,7 @@ class StepsBlock extends BlockBase {
         '#attributes' => [
           'class' => ['lp_steps_block_summary_score'],
         ],
-        '#value' => t('Average score : @score%', [
+        '#value' => $this->t('Average score : @score%', [
           '@score' => $score,
         ]),
       ],
@@ -232,7 +234,7 @@ class StepsBlock extends BlockBase {
         '#attributes' => [
           'class' => ['lp_steps_block_summary_progress'],
         ],
-        '#value' => t('Progress : @progress%', [
+        '#value' => $this->t('Progress : @progress%', [
           '@progress' => $progress,
         ]),
       ],
@@ -255,9 +257,9 @@ class StepsBlock extends BlockBase {
       [
         '#type' => 'table',
         '#header' => [
-          t('Name'),
-          t('Score'),
-          t('State'),
+          $this->t('Name'),
+          $this->t('Score'),
+          $this->t('State'),
         ],
         '#rows' => $step_info,
         '#attributes' => [

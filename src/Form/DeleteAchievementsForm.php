@@ -12,18 +12,28 @@ use Drupal\group\Entity\Group;
 use Drupal\opigno_module\Entity\UserModuleStatus;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
-
 /**
  * Class LearningPathAdminSettingsForm.
  */
 class DeleteAchievementsForm extends ConfirmFormBase {
 
-  /** @var \Drupal\group\Entity\Group $group */
+  /**
+   * Group.
+   *
+   * @var \Drupal\group\Entity\Group
+   */
   protected $group;
 
-  /** @var \Drupal\Core\Database\Connection $database */
+  /**
+   * Database connection.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
   protected $database;
 
+  /**
+   * DeleteAchievementsForm constructor.
+   */
   public function __construct(Connection $database) {
     $this->database = $database;
   }
@@ -43,8 +53,6 @@ class DeleteAchievementsForm extends ConfirmFormBase {
   }
 
   /**
-   * @param \Drupal\group\Entity\GroupInterface $group
-   *
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, $group = NULL) {
@@ -162,6 +170,9 @@ class DeleteAchievementsForm extends ConfirmFormBase {
     }
   }
 
+  /**
+   * Returns ajax response.
+   */
   public function closeModal(array &$form, FormStateInterface $form_state) {
     $response = new AjaxResponse();
     $response->addCommand(new CloseModalDialogCommand());

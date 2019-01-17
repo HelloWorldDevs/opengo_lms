@@ -1,11 +1,11 @@
 <?php
+
 namespace Drupal\opigno_learning_path\Plugin\views\field;
 
 use Drupal\Core\Link;
 use Drupal\opigno_learning_path\Entity\LPResult;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
 use Drupal\views\ResultRow;
-
 
 /**
  * Field handler to output boolean indication of current user membership.
@@ -17,14 +17,14 @@ use Drupal\views\ResultRow;
 class OpignoLearningPathTakeLink extends FieldPluginBase {
 
   /**
-   * @{inheritdoc}
+   * {@inheritdoc}
    */
   public function query() {
     // Leave empty to avoid a query on this field.
   }
 
   /**
-   * @{inheritdoc}
+   * {@inheritdoc}
    */
   public function render(ResultRow $values) {
     $account = \Drupal::currentUser();

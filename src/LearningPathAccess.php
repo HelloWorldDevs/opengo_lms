@@ -212,6 +212,8 @@ class LearningPathAccess {
    *
    * @param \Drupal\Core\Entity\EntityInterface $membership
    *   Membership object.
+   *
+   * @throws \Exception
    */
   public static function mergeUserStatus(EntityInterface $membership) {
     $message = \Drupal::request()->get('user_message');
@@ -473,11 +475,15 @@ class LearningPathAccess {
   }
 
   /**
-   * @param \Drupal\group\Entity\Group $group
-   * @param \Drupal\Core\Session\AccountInterface $account
+   * Returns uncompleted required trainings flag.
    *
-   * @return bool | array
-   * Return FALSE or Array with unfinished training.
+   * @param \Drupal\group\Entity\Group $group
+   *   Group.
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   User account.
+   *
+   * @return bool|array
+   *   Return FALSE or Array with unfinished training.
    */
   public static function hasUncompletedRequiredTrainings(Group $group, AccountInterface $account) {
     $trainings = $group->get('field_required_trainings')->getValue();
@@ -508,8 +514,12 @@ class LearningPathAccess {
   }
 
   /**
+   * Returns user course/class access flag.
+   *
    * @param \Drupal\group\Entity\Group $group
+   *   Group.
    * @param \Drupal\Core\Session\AccountInterface $account
+   *   User account.
    *
    * @return bool
    *   Check if user has access to Class or Course.

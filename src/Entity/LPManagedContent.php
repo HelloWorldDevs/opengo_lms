@@ -5,11 +5,8 @@ namespace Drupal\opigno_learning_path\Entity;
 use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Entity\ContentEntityBase;
-use Drupal\Core\Entity\EntityChangedTrait;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\group\Entity\Group;
-use Drupal\opigno_learning_path\ContentTypeBase;
-use Drupal\user\UserInterface;
 
 /**
  * Defines the Learning Path Content entity.
@@ -32,21 +29,30 @@ use Drupal\user\UserInterface;
  *   }
  * )
  */
-class LPManagedContent extends ContentEntityBase
-{
+class LPManagedContent extends ContentEntityBase {
+
   /**
-   * Helper method to create a new LPManagedContent object with the values passed in param.
+   * Creates a new LPManagedContent object with the values passed in param.
+   *
    * It's not saved automatically. You need to do $obj->save().
    *
-   * @param int $learning_path_id The learning path group ID.
-   * @param string $lp_content_type_id The content type plugin ID.
-   * @param int $entity_id The drupal entity ID.
-   * @param int $success_score_min The minimum success score to pass the learning path.
-   * @param int $is_mandatory Set if the content is mandatory to pass the learning path.
-   * @param int $coordinate_x The X coordinate for this content in the learning path.
-   * @param int $coordinate_y The Y coordinate for this content in the learning path.
+   * @param int $learning_path_id
+   *   The learning path group ID.
+   * @param string $lp_content_type_id
+   *   The content type plugin ID.
+   * @param int $entity_id
+   *   The drupal entity ID.
+   * @param int $success_score_min
+   *   The minimum success score to pass the learning path.
+   * @param int $is_mandatory
+   *   Set if the content is mandatory to pass the learning path.
+   * @param int $coordinate_x
+   *   The X coordinate for this content in the learning path.
+   * @param int $coordinate_y
+   *   The Y coordinate for this content in the learning path.
    *
    * @return \Drupal\Core\Entity\EntityInterface|self
+   *   LPManagedContent object.
    */
   public static function createWithValues(
     $learning_path_id,
@@ -71,36 +77,31 @@ class LPManagedContent extends ContentEntityBase
   }
 
   /**
-   * @return int The learning path group ID.
+   * Returns learning path group ID.
    */
   public function getLearningPathId() {
     return $this->get('learning_path_id')->target_id;
   }
 
   /**
-   * @param int $learning_path_id The learning path ID.
-   * @return $this
+   * Sets learning path group ID.
    */
-  public function setLearningPathId($learning_path_id)
-  {
+  public function setLearningPathId($learning_path_id) {
     $this->set('learning_path_id', $learning_path_id);
     return $this;
   }
 
   /**
-   * @return Group The learning path entity.
+   * Returns learning path entity.
    */
-  public function getLearningPath()
-  {
+  public function getLearningPath() {
     return $this->get('learning_path_id')->entity;
   }
 
   /**
-   * @param Group $learning_path The learning path group entity.
-   * @return $this|FALSE $this if alright. FALSE if the group is not a learning path.
+   * Sets learning path entity.
    */
-  public function setLearningPath(Group $learning_path)
-  {
+  public function setLearningPath(Group $learning_path) {
     if ($learning_path->getGroupType()->id() != 'learning_path') {
       return FALSE;
     }
@@ -110,140 +111,128 @@ class LPManagedContent extends ContentEntityBase
   }
 
   /**
-   * @return string The learning path content type plugin ID.
+   * Returns learning path content type plugin ID.
    */
-  public function getLearningPathContentTypeId()
-  {
+  public function getLearningPathContentTypeId() {
     return $this->get('lp_content_type_id')->value;
   }
 
   /**
-   * @param string $lp_content_type_id The learning path content type plugin ID.
-   * @return $this
+   * Sets learning path content type plugin ID.
    */
-  public function setLearningPathContentTypeId($lp_content_type_id)
-  {
+  public function setLearningPathContentTypeId($lp_content_type_id) {
     $this->set('lp_content_type_id', $lp_content_type_id);
     return $this;
   }
 
   /**
-   * @return int The drupal entity ID.
+   * Returns entity ID.
    */
-  public function getEntityId()
-  {
+  public function getEntityId() {
     return $this->get('entity_id')->value;
   }
 
   /**
-   * @param int $entity_id The drupal entity ID.
-   * @return $this
+   * Sets entity ID.
    */
-  public function setEntityId($entity_id)
-  {
+  public function setEntityId($entity_id) {
     $this->set('entity_id', $entity_id);
     return $this;
   }
 
   /**
-   * @return int The minimum score to success this learning path,
+   * Returns minimum score to success this learning path.
    */
-  public function getSuccessScoreMin()
-  {
+  public function getSuccessScoreMin() {
     return $this->get('success_score_min')->value;
   }
 
   /**
-   * @param int $success_score_min The minimum score to success this learning path,
+   * Sets minimum score to success this learning path.
+   *
+   * @param int $success_score_min
+   *   The minimum score to success this learning path.
+   *
    * @return $this
    */
-  public function setSuccessScoreMin($success_score_min)
-  {
+  public function setSuccessScoreMin($success_score_min) {
     $this->set('success_score_min', $success_score_min);
     return $this;
   }
 
   /**
-   * @return bool TRUE if this content is mandatory to success this learning path.
-   *   FALSE otherwise.
+   * Returns TRUE if this content is mandatory to success this learning path.
    */
-  public function isMandatory()
-  {
+  public function isMandatory() {
     return $this->get('is_mandatory')->value;
   }
 
   /**
-   * @param bool $is_mandatory TRUE if this content is mandatory to success this learning path.
+   * Sets TRUE if this content is mandatory to success this learning path.
+   *
+   * @param bool $is_mandatory
+   *   TRUE if this content is mandatory to success this learning path.
    *   FALSE otherwise.
+   *
    * @return $this
    */
-  public function setMandatory($is_mandatory)
-  {
+  public function setMandatory($is_mandatory) {
     $this->set('is_mandatory', $is_mandatory);
     return $this;
   }
 
   /**
-   * @return int The X coordinate.
+   * Returns X coordinate.
    */
-  public function getCoordinateX()
-  {
+  public function getCoordinateX() {
     return $this->get('coordinate_x')->value;
   }
 
   /**
-   * @param int $coordinate_x The X coordinate.
-   * @return $this
+   * Sets X coordinate.
    */
-  public function setCoordinateX($coordinate_x)
-  {
+  public function setCoordinateX($coordinate_x) {
     $this->set('coordinate_x', $coordinate_x);
     return $this;
   }
 
   /**
-   * @return int The Y coordinate.
+   * Returns Y coordinate.
    */
-  public function getCoordinateY()
-  {
+  public function getCoordinateY() {
     return $this->get('coordinate_y')->value;
   }
 
   /**
-   * @param int $coordinate_y The Y coordinate.
-   * @return $this
+   * Sets Y coordinate.
    */
-  public function setCoordinateY($coordinate_y)
-  {
+  public function setCoordinateY($coordinate_y) {
     $this->set('coordinate_y', $coordinate_y);
     return $this;
   }
 
   /**
-   * @return \Drupal\Core\Entity\EntityInterface[]|LPManagedLink[]
-   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * Returns parent links.
    */
   public function getParentsLinks() {
     return LPManagedLink::loadByProperties([
       'learning_path_id' => $this->getLearningPathId(),
-      'child_content_id' => $this->id()
+      'child_content_id' => $this->id(),
     ]);
   }
 
   /**
-   * @return \Drupal\Core\Entity\EntityInterface[]|LPManagedLink[]
-   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * Sets parent links.
    */
   public function getChildrenLinks() {
     return LPManagedLink::loadByProperties([
       'learning_path_id' => $this->getLearningPathId(),
-      'parent_content_id' => $this->id()
+      'parent_content_id' => $this->id(),
     ]);
   }
 
   /**
-   * @return bool TRUE if this content has a child. FALSE otherwise.
-   * @throws InvalidPluginDefinitionException
+   * If has child links.
    */
   public function hasChildLink() {
     return !empty($this->getChildrenLinks());
@@ -251,8 +240,6 @@ class LPManagedContent extends ContentEntityBase
 
   /**
    * Get the content type object of this content.
-   *
-   * @return ContentTypeBase|object
    */
   public function getLearningPathContentType() {
     $manager = \Drupal::getContainer()->get('opigno_learning_path.content_types.manager');
@@ -271,7 +258,7 @@ class LPManagedContent extends ContentEntityBase
       ->setSetting('target_type', 'group')
       ->setSetting('handler_settings',
         [
-          'target_bundles' => ['opigno_learning_path' => 'opigno_learning_path']
+          'target_bundles' => ['opigno_learning_path' => 'opigno_learning_path'],
         ]);
 
     $fields['lp_content_type_id'] = BaseFieldDefinition::create('string')
@@ -306,17 +293,14 @@ class LPManagedContent extends ContentEntityBase
   }
 
   /**
-   * Load one or more LPManagedContent filtered by the properties given in param.
-   * The available properties are the entity_keys specified in the header of this LPManagedContent class.
+   * Loads one or more LPManagedContent by the properties.
    *
-   * Best is to avoid to use this method and create a specific method for your search, like the
-   * method loadByLearningPathId.
-   * @see LPManagedContent::loadByLearningPathId()
+   * The available properties are the entity_keys
+   * specified in the header of this LPManagedContent class.
    *
-   * @param array $properties The properties to search for.
-   *
-   * @return \Drupal\Core\Entity\EntityInterface[]|self[]
-   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * Best is to avoid to use this method
+   * and create a specific method for your search,
+   * like the method loadByLearningPathId.
    */
   public static function loadByProperties($properties) {
     return \Drupal::entityTypeManager()->getStorage('learning_path_content')->loadByProperties($properties);
@@ -324,22 +308,18 @@ class LPManagedContent extends ContentEntityBase
 
   /**
    * Load the contents linked to a specific learning path.
-   *
-   * @param $learning_path_id int The Learning Path ID.
-   * @return array|\Drupal\Core\Entity\EntityInterface[]|self[]
    */
   public static function loadByLearningPathId($learning_path_id) {
     try {
       return self::loadByProperties(['learning_path_id' => $learning_path_id]);
-    } catch (InvalidPluginDefinitionException $e) {
+    }
+    catch (InvalidPluginDefinitionException $e) {
       return [];
     }
   }
 
   /**
    * Deletes the content from database.
-   *
-   * @throws InvalidPluginDefinitionException
    */
   public function delete() {
     // First, delete all the links associated to this content.
@@ -357,6 +337,9 @@ class LPManagedContent extends ContentEntityBase
     parent::delete();
   }
 
+  /**
+   * Returns first step.
+   */
   public static function getFirstStep($learning_path_id) {
     // The first step is the content who has no parents.
     // First, get all the contents.
@@ -375,15 +358,11 @@ class LPManagedContent extends ContentEntityBase
 
   /**
    * Get the next LPManagedContent object according to the user score.
-   *
-   * @param int $user_score The user score for this content.
-   *
-   * @return bool|LPManagedContent FALSE if no next content. The next LPManagedContent if there is a next content.
-   * @throws InvalidPluginDefinitionException
    */
   public function getNextStep($user_score) {
-    // Get the child link that has the required_score higher than the $score param and
-    //   that has the higher required_score.
+    // Get the child link that has the required_score
+    // higher than the $score param and
+    // that has the higher required_score.
     $query = \Drupal::entityTypeManager()->getStorage('learning_path_link')->getQuery();
     $query->condition('parent_content_id', $this->id());
     $query->condition('required_score', $user_score, '<=');

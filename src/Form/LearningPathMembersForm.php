@@ -2,11 +2,11 @@
 
 namespace Drupal\opigno_learning_path\Form;
 
-use \Drupal\Core\Form\FormBase;
-use \Drupal\Core\Form\FormStateInterface;
-use \Drupal\Core\Url;
-use \Drupal\opigno_learning_path\LearningPathAccess;
-use \Drupal\views\Views;
+use Drupal\Core\Form\FormBase;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
+use Drupal\opigno_learning_path\LearningPathAccess;
+use Drupal\views\Views;
 
 /**
  * Group overview form.
@@ -232,11 +232,14 @@ class LearningPathMembersForm extends FormBase {
         $has_sm_role = isset($roles[$student_manager_role]);
         $has_cm_role = isset($roles[$content_manager_role]);
         $has_class_manager_role = isset($roles[$class_manager_role]);
+        $member_pending = FALSE;
 
-        $visibility = $group->field_learning_path_visibility->value;
-        $validation = $group->field_requires_validation->value;
-        $member_pending = $visibility === 'semiprivate' && $validation
-          && !LearningPathAccess::statusGroupValidation($group, $user_entity);
+        if ($group->hasField('field_learning_path_visibility')) {
+          $visibility = $group->field_learning_path_visibility->value;
+          $validation = $group->field_requires_validation->value;
+          $member_pending = $visibility === 'semiprivate' && $validation
+            && !LearningPathAccess::statusGroupValidation($group, $user_entity);
+        }
 
         if ($member_pending) {
           $text = $this->t('Waiting for validation');
@@ -410,7 +413,8 @@ class LearningPathMembersForm extends FormBase {
     }
     // Remove not needed roles for learning paths.
     elseif ($group_bundle == 'learning_path') {
-      $last_key = end(array_keys($form));
+      $form_array_keys = array_keys($form);
+      $last_key = end($form_array_keys);
       foreach ($form[$last_key]['members']['#rows'] as $key => $row) {
         unset($form[$last_key]['members']['#rows'][$key]['data'][4]);
       }

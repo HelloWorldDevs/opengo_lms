@@ -18,12 +18,23 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 class LearningPathMembershipController extends ControllerBase {
 
-  /* @var \Drupal\Core\Database\Connection $connection */
+  /**
+   * Database connection.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
   protected $connection;
 
-  /* @var \Drupal\Core\Form\FormBuilder $formBuilder */
+  /**
+   * Form builder.
+   *
+   * @var \Drupal\Core\Form\FormBuilder
+   */
   protected $formBuilder;
 
+  /**
+   * LearningPathMembershipController constructor.
+   */
   public function __construct(
     Connection $connection,
     FormBuilderInterface $formBuilder
@@ -82,6 +93,7 @@ class LearningPathMembershipController extends ControllerBase {
    * Returns response for the autocompletion.
    *
    * @param \Drupal\group\Entity\Group $group
+   *   Group.
    *
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    *   A JSON response containing the autocomplete suggestions.
@@ -155,6 +167,7 @@ class LearningPathMembershipController extends ControllerBase {
    * Returns response for the autocompletion.
    *
    * @param \Drupal\group\Entity\Group $group
+   *   Group.
    *
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    *   A JSON response containing the autocomplete suggestions.
@@ -255,6 +268,7 @@ class LearningPathMembershipController extends ControllerBase {
    * Removes member from learning path.
    *
    * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   Response.
    */
   public function deleteUser() {
     /** @var \Drupal\group\Entity\Group $group */
@@ -282,8 +296,6 @@ class LearningPathMembershipController extends ControllerBase {
    * Ajax callback used in opingo_learning_path_member_overview.js.
    *
    * Removes class from learning path.
-   *
-   * @return \Symfony\Component\HttpFoundation\JsonResponse
    */
   public function deleteClass() {
     /** @var \Drupal\group\Entity\Group $group */
@@ -319,8 +331,6 @@ class LearningPathMembershipController extends ControllerBase {
    * Ajax callback used in opingo_learning_path_member_overview.js.
    *
    * Toggles user role in learning path.
-   *
-   * @return \Symfony\Component\HttpFoundation\JsonResponse
    */
   public function toggleRole() {
     /** @var \Drupal\group\Entity\Group $group */
@@ -364,8 +374,6 @@ class LearningPathMembershipController extends ControllerBase {
    * Ajax callback used in opingo_learning_path_member_overview.js.
    *
    * Validates user role in learning path.
-   *
-   * @return \Symfony\Component\HttpFoundation\JsonResponse
    */
   public function validate() {
     /** @var \Drupal\group\Entity\Group $group */

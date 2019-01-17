@@ -2,10 +2,14 @@
 
 namespace Drupal\opigno_alter_entity_autocomplete;
 
+use Drupal\Core\Entity\EntityAutocompleteMatcher;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Tags;
 
-class EntityAutocompleteMatcher extends \Drupal\Core\Entity\EntityAutocompleteMatcher {
+/**
+ *
+ */
+class EntityAutocompleteMatcher extends EntityAutocompleteMatcher {
 
   /**
    * {@inheritdoc}
@@ -14,9 +18,9 @@ class EntityAutocompleteMatcher extends \Drupal\Core\Entity\EntityAutocompleteMa
     $matches = [];
 
     $options = $selection_settings + [
-        'target_type' => $target_type,
-        'handler' => $selection_handler,
-      ];
+      'target_type' => $target_type,
+      'handler' => $selection_handler,
+    ];
     $handler = $this->selectionManager->getInstance($options);
 
     if (isset($string)) {
@@ -41,6 +45,5 @@ class EntityAutocompleteMatcher extends \Drupal\Core\Entity\EntityAutocompleteMa
 
     return $matches;
   }
-
 
 }

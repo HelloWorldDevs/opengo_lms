@@ -1,4 +1,5 @@
 <?php
+
 namespace Drupal\opigno_learning_path\Plugin\views\field;
 
 use Drupal\opigno_learning_path\Entity\LatestActivity;

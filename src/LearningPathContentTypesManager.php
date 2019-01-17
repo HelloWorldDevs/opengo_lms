@@ -5,20 +5,22 @@ namespace Drupal\opigno_learning_path;
 use Drupal\Core\Plugin\DefaultPluginManager;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\opigno_learning_path\Annotation\LearningPathContentType;
 
+/**
+ * Class LearningPathContentTypesManager.
+ */
 class LearningPathContentTypesManager extends DefaultPluginManager {
 
   /**
    * {@inheritdoc}
    */
-  public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, ModuleHandlerInterface $module_handler)
-  {
-    // construct the object. It needs:
+  public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, ModuleHandlerInterface $module_handler) {
+    // Construct the object. It needs:
     // - The subdir where the plugin must be implemented in other modules.
     // - The namespace
     // - The module handler
-    // - The interface the implementation must implements. (In this case, the implementation must extends the class ContentTypeBase)
+    // - The interface the implementation must implements.
+    // (In this case, the implementation must extends the class ContentTypeBase)
     // - The annotation class.
     parent::__construct(
       'Plugin/LearningPathContentType',
@@ -36,12 +38,9 @@ class LearningPathContentTypesManager extends DefaultPluginManager {
   }
 
   /**
-   * @param $plugin_id
-   * @param array $configuration
-   * @return object|ContentTypeBase
+   * Creates instance.
    */
-  public function createInstance($plugin_id, array $configuration = [])
-  {
+  public function createInstance($plugin_id, array $configuration = []) {
     return parent::createInstance($plugin_id, $configuration);
   }
 

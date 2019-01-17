@@ -9,21 +9,19 @@ use Drupal\opigno_learning_path\Entity\LPManagedContent;
 use Drupal\opigno_module\Entity\OpignoModule;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
+/**
+ * Class LearningPathValidator.
+ */
 class LearningPathValidator {
 
   /**
-   * Check if the user has successfully passed all the conditions of a learning path.
+   * Check if the user has passed all the conditions of a learning path.
    */
   public static function userHasPassed($uid, Group $learning_path) {
-    // Check if all the mandatory contents are okay and if all the minimum score of the mandatories are good.
+    // Check if all the mandatory contents are okay
+    // and if all the minimum score of the mandatories are good.
     $contents = LPManagedContent::loadByLearningPathId($learning_path->id());
-    foreach($contents as $content) {
-
-      // If the content is not mandatory, go to next iteration.
-//      if ($content->isMandatory() == FALSE) {
-//        continue;
-//      }
-
+    foreach ($contents as $content) {
       // Get the minimum score required.
       $min_score = $content->getSuccessScoreMin() / 100;
 
@@ -53,7 +51,7 @@ class LearningPathValidator {
    * @return bool
    *   Is module valid.
    */
-  protected static function moduleValidate($module, &$redirect_step) {
+  protected static function moduleValidate(OpignoModule $module, &$redirect_step) {
     $activities = $module->getModuleActivities();
     $is_valid = !empty($activities);
     if (!$is_valid && ($redirect_step === NULL || $redirect_step >= 4)) {
@@ -75,14 +73,6 @@ class LearningPathValidator {
 
   /**
    * Checks if course has at least one module, and all modules are valid.
-   *
-   * @param int $course_id
-   *   Opigno Course Group ID.
-   * @param int $redirect_step
-   *   Step to redirect.
-   *
-   * @return bool
-   *   Is course valid.
    */
   protected static function courseValidate($course_id, &$redirect_step) {
     $contents = OpignoGroupManagedContent::loadByGroupId($course_id);
@@ -99,7 +89,7 @@ class LearningPathValidator {
       }
     }
     else {
-      foreach ($contents as $course_cid => $course_content) {
+      foreach ($contents as $course_content) {
         // Check if all modules in course has at least one activity.
         $module_id = $course_content->getEntityId();
         $module = OpignoModule::load($module_id);
@@ -114,10 +104,6 @@ class LearningPathValidator {
 
   /**
    * Redirect user if one of learning path steps aren't completed.
-   *
-   * @param \Drupal\group\Entity\Group $group
-   *
-   * @return bool|\Symfony\Component\HttpFoundation\RedirectResponse
    */
   public static function stepsValidate(Group $group) {
     $messenger = \Drupal::messenger();
@@ -172,7 +158,7 @@ class LearningPathValidator {
         }
       }
       else {
-        foreach ($contents as $cid => $content) {
+        foreach ($contents as $content) {
           $type_id = $content->getGroupContentTypeId();
           switch ($type_id) {
             case 'ContentTypeModule':
@@ -209,13 +195,9 @@ class LearningPathValidator {
 
   /**
    * Check if training has at least one mandatory content.
-   *
-   * @param array
-   *
-   * @return bool
    */
   protected static function hasMandatoryItem($contents) {
-    foreach ($contents as $cid => $content) {
+    foreach ($contents as $content) {
       if ($content->isMandatory()) {
         return TRUE;
       };

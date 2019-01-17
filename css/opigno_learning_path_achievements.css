@@ -14,11 +14,13 @@
 .lp_info .lp_icon_info {
   position: absolute;
   left: 30px;
+  top: 15px;
 }
 
 @media (max-width: 768px) {
   .lp_info .lp_icon_info {
     left: 15px;
+    top: 25px;
   }
 }
 
@@ -188,12 +190,14 @@
 
 .lp_summary .lp_summary_step_state_passed,
 .lp_summary .lp_summary_step_state_not_started,
-.lp_summary .lp_summary_step_state_in_progress {}
+.lp_summary .lp_summary_step_state_in_progress {
+}
 
 @media (max-width: 768px) {
   .lp_summary .lp_summary_step_state_passed,
   .lp_summary .lp_summary_step_state_not_started,
-  .lp_summary .lp_summary_step_state_in_progress {}
+  .lp_summary .lp_summary_step_state_in_progress {
+}
 }
 
 .lp_summary_content {
@@ -203,7 +207,8 @@
 }
 
 @media (max-width: 768px) {
-  .lp_summary_content {}
+  .lp_summary_content {
+}
 }
 
 .lp_summary_certificate {
@@ -358,13 +363,15 @@
 .lp_step_summary_wrapper .lp_summary_step_state_passed,
 .lp_step_summary_wrapper .lp_summary_step_state_failed,
 .lp_step_summary_wrapper .lp_summary_step_state_not_started,
-.lp_step_summary_wrapper .lp_summary_step_state_in_progress {}
+.lp_step_summary_wrapper .lp_summary_step_state_in_progress {
+}
 
 @media (max-width: 768px) {
   .lp_step_summary_wrapper .lp_summary_step_state_passed,
   .lp_step_summary_wrapper .lp_summary_step_state_failed,
   .lp_step_summary_wrapper .lp_summary_step_state_not_started,
-  .lp_step_summary_wrapper .lp_summary_step_state_in_progress {}
+  .lp_step_summary_wrapper .lp_summary_step_state_in_progress {
+}
 }
 
 .lp_step_summary_wrapper::after {

@@ -47,6 +47,12 @@ class RedirectOnAccessDeniedSubscriber implements EventSubscriberInterface {
    *   The route building event.
    */
   public function redirectOn403(FilterResponseEvent $event) {
+    $route_name = \Drupal::routeMatch()->getRouteName();
+    // Do not redirect if there is REST request.
+    if (strpos($route_name, 'rest.') !== FALSE) {
+      return;
+    }
+
     $status_code = $event->getResponse()->getStatusCode();
     $is_anonymous = $this->user->isAnonymous();
     if ($is_anonymous && $status_code == 403) {
@@ -60,7 +66,7 @@ class RedirectOnAccessDeniedSubscriber implements EventSubscriberInterface {
   /**
    * {@inheritdoc}
    */
-  static function getSubscribedEvents() {
+  public static function getSubscribedEvents() {
     $events[KernelEvents::RESPONSE][] = ['redirectOn403'];
     return $events;
   }

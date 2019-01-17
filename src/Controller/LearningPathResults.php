@@ -4,11 +4,13 @@ namespace Drupal\opigno_learning_path\Controller;
 
 use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Link;
 use Drupal\group\Entity\Group;
 use Drupal\opigno_learning_path\Entity\LPResult;
 
+/**
+ * Class LearningPathResults.
+ */
 class LearningPathResults extends ControllerBase {
 
   /**

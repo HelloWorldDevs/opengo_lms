@@ -10,12 +10,17 @@ use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
+/**
+ * Class LearningPathEventSubscriber.
+ */
 class LearningPathEventSubscriber implements EventSubscriberInterface {
 
   private $content_types_manager;
 
-  public function __construct(LearningPathContentTypesManager $content_types_manager)
-  {
+  /**
+   * LearningPathEventSubscriber constructor.
+   */
+  public function __construct(LearningPathContentTypesManager $content_types_manager) {
     $this->content_types_manager = $content_types_manager;
   }
 
@@ -33,9 +38,11 @@ class LearningPathEventSubscriber implements EventSubscriberInterface {
    *
    *  * array('eventName' => 'methodName')
    *  * array('eventName' => array('methodName', $priority))
-   *  * array('eventName' => array(array('methodName1', $priority), array('methodName2')))
+   *  * array('eventName' => array(array('methodName1', $priority),
+   *  * array('methodName2')))
    *
-   * @return array The event names to listen to
+   * @return array
+   *   The event names to listen to.
    */
   public static function getSubscribedEvents() {
     return [
@@ -46,8 +53,6 @@ class LearningPathEventSubscriber implements EventSubscriberInterface {
 
   /**
    * Event called when a request is sent.
-   *
-   * @param \Symfony\Component\HttpKernel\Event\GetResponseEvent $event
    */
   public function onKernelRequest(GetResponseEvent $event) {
   }

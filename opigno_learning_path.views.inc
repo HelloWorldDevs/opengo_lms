@@ -45,17 +45,17 @@ function opigno_learning_path_views_data_alter(array &$data) {
       'id' => 'opigno_learning_path_progress',
     ],
   ];
-  $data['group_content']['group_membership_status'] = array(
+  $data['group_content']['group_membership_status'] = [
     'title' => t('Status'),
-    'field' => array(
+    'field' => [
       'title' => t('Status'),
       'help' => t('Returns group user membership status.'),
       'id' => 'group_membership_status',
-    ),
+    ],
     'filter' => [
       'title' => t('Group Membership Status filter'),
       'help' => t('Group Membership Status filter'),
       'id' => 'opigno_group_membership_status',
     ],
-  );
+  ];
 }

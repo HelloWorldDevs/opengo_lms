@@ -5,7 +5,7 @@ namespace Drupal\opigno_learning_path\Annotation;
 use Drupal\Component\Annotation\Plugin;
 
 /**
- * Class LearningPathContentType
+ * Class LearningPathContentType.
  *
  * @Annotation
  */

@@ -3,6 +3,7 @@
 namespace Drupal\Tests\opigno_learning_path\Functional;
 
 use Drupal\Core\Url;
+use Drupal\opigno_learning_path\LearningPathAccess;
 
 /**
  * Tests an access to Training.
@@ -34,7 +35,7 @@ class TrainingAccessTest extends LearningPathBrowserTestBase {
     $this->drupalLogout();
 
     // Check access for anonymous user.
-//    $anonymous_user = $this->createUser()->getAnonymousUser();
+    // $anonymous_user = $this->createUser()->getAnonymousUser();
     $this->drupalGet($url);
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->linkExists('Start');
@@ -153,9 +154,23 @@ class TrainingAccessTest extends LearningPathBrowserTestBase {
     $this->assertSession()->buttonExists('Log in');
     $this->assertSession()->statusCodeEquals(200, 'Anonymous user can not start a semi-private training. Redirected to login page.');
 
+    // Test access for a training
+    // where user need to be accepted by training admin.
+    $this->drupalLogin($user_two);
+    $group->removeMember($user_two);
+    $group->set('field_requires_validation', 1);
+    $group->save();
+    $this->drupalGet($subscribe_path);
+    $this->assertSession()->statusCodeEquals(200);
+    $join_button = $this->assertSession()->buttonExists('Join training');
+    $join_button->click();
+    $this->drupalGet($start_path);
+    $this->assertSession()->statusCodeEquals(403, 'Authenticated user can not start a semi-private training if user validation is required.');
+
     // Test access if a training is private.
     $group->set('field_learning_path_visibility', 'private');
     $group->save();
+    LearningPathAccess::setVisibilityFields($group);
 
     // Create authenticated user to check a training access.
     $user_three = $this->createUser();
@@ -179,4 +194,5 @@ class TrainingAccessTest extends LearningPathBrowserTestBase {
     $this->assertSession()->statusCodeEquals(200, 'Anonymous user can not start a private training. Redirected to login page.');
 
   }
+
 }
