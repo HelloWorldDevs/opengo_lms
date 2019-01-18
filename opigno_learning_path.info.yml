@@ -8,7 +8,7 @@ dependencies:
   - opigno_certificate:opigno_certificate
   - config_rewrite:config_rewrite
   - group:group
-  - group:ggroup
+  - ggroup
   - opigno_class:opigno_class
   - opigno_course:opigno_course
   - drupal:path
