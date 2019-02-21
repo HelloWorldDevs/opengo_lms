@@ -65,3 +65,10 @@ opigno_admin.manage_activities:
   parent: opigno_admin.training_contents
   menu_name: opigno-admin
   weight: -37
+
+opigno_admin.opigno_module_settings:
+  title: 'Modules settings'
+  description: 'Modules settings'
+  route_name: opigno_module.settings
+  parent: opigno_admin.training_contents
+  weight: -36

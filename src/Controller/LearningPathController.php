@@ -7,6 +7,7 @@ use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\opigno_learning_path\LearningPathAccess;
+use Drupal\opigno_module\Entity\OpignoModule;
 
 /**
  * Class LearningPathController.
@@ -278,20 +279,20 @@ class LearningPathController extends ControllerBase {
           'core/drupal.dialog.ajax',
         ],
       ],
+      '#theme' => 'opigno_learning_path_training_content',
     ];
 
     // If not a member.
     if (!$group->getMember($user)
-      || !$user->isAuthenticated() && $group->field_learning_path_visibility->value === 'semiprivate') {
+      || (!$user->isAuthenticated() && $group->field_learning_path_visibility->value === 'semiprivate')) {
       return $content;
     }
 
     // Check if membership has status 'pending'.
     $visibility = $group->field_learning_path_visibility->value;
     $validation = $group->field_requires_validation->value;
-    $account = \Drupal::currentUser();
     $member_pending = $visibility === 'semiprivate' && $validation
-      && !LearningPathAccess::statusGroupValidation($group, $account);
+      && !LearningPathAccess::statusGroupValidation($group, $user);
     if ($member_pending) {
       return $content;
     }
@@ -326,19 +327,40 @@ class LearningPathController extends ControllerBase {
 
       return TRUE;
     });
-    $steps = array_map(function ($step) use ($user) {
+    $steps = array_map(function ($step) use ($user, $group) {
       $sub_title = '';
       $score = $this->build_step_score_cell($step);
       $state = $this->build_step_state_cell($step);
-      $rows = [];
 
       if ($step['typology'] === 'Course') {
+        $rows = [];
         $course_steps = opigno_learning_path_get_steps($step['id'], $user->id());
         $sub_title = $this->t('@count Modules', [
           '@count' => count($course_steps),
         ]);
 
-        $rows = array_map([$this, 'build_course_row'], $course_steps);
+        foreach ($course_steps as &$course_step) {
+          $course_step['status'] = opigno_learning_path_get_step_status($course_step, $user->id());
+          $course_step['module'] = OpignoModule::load($course_step['id']);
+          $rows[] = $this->build_course_row($course_step);
+        }
+
+        $step['course_steps'] = $course_steps;
+        $step['course_steps_table'] = [
+          '#type' => 'table',
+          '#attributes' => [
+            'class' => ['lp_step_details'],
+          ],
+          '#header' => [
+            $this->t('Module'),
+            $this->t('Score'),
+            $this->t('State'),
+          ],
+          '#rows' => $rows,
+        ];
+      }
+      elseif ($step['typology'] === "Module") {
+        $step['module'] = OpignoModule::load($step['id']);
       }
 
       $title = $step['name'];
@@ -376,152 +398,39 @@ class LearningPathController extends ControllerBase {
         ]);
       }
 
-      return [
-        '#type' => 'container',
-        '#attributes' => [
-          'class' => ['lp_step'],
-        ],
-        [
-          '#type' => 'container',
-          '#attributes' => [
-            'class' => ['lp_step_title_wrapper'],
-          ],
-          ($step['mandatory']
-            ? [
-              '#type' => 'html_tag',
-              '#tag' => 'span',
-              '#attributes' => [
-                'class' => ['lp_step_required'],
-              ],
-              '#value' => '',
-            ]
-            : []),
-          [
-            '#type' => 'html_tag',
-            '#tag' => 'h3',
-            '#attributes' => [
-              'class' => ['lp_step_title'],
-            ],
-            '#value' => $title,
-          ],
-        ],
-        [
-          '#type' => 'container',
-          '#attributes' => [
-            'class' => ['lp_step_content'],
-          ],
-          [
-            '#type' => 'container',
-            '#attributes' => [
-              'class' => ['lp_step_summary'],
-            ],
-            [
+      // Add compiled parameters to step array.
+      $step['title'] = $title;
+      $step['sub_title'] = $sub_title;
+      $step['score'] = $score;
+      $step['state'] = $state;
 
-              '#type' => 'container',
-              '#attributes' => [
-                'class' => ['lp_step_summary_title_wrapper'],
-              ],
-              [
-                '#type' => 'html_tag',
-                '#tag' => 'h3',
-                '#attributes' => [
-                  'class' => ['lp_step_summary_title'],
-                ],
-                '#value' => $step['name'],
-              ],
-              [
-                '#type' => 'html_tag',
-                '#tag' => 'h4',
-                '#attributes' => [
-                  'class' => ['lp_step_summary_subtitle'],
-                ],
-                '#value' => $sub_title,
-              ],
-              !empty($step['description']) ?
-              [
-                '#type' => 'html_tag',
-                '#tag' => 'div',
-                '#attributes' => [
-                  'class' => ['lp_step_summary_description'],
-                ],
-                '#value' => $step['description'],
-              ] : [],
+      $step['summary_details_table'] = [
+        '#type' => 'table',
+        '#attributes' => [
+          'class' => ['lp_step_summary_details'],
+        ],
+        '#header' => [
+          $this->t('Score'),
+          $this->t('State'),
+        ],
+        '#rows' => [
+          [
+            [
+              'class' => 'lp_step_details_result',
+              'data' => $score,
             ],
             [
-              '#type' => 'table',
-              '#attributes' => [
-                'class' => ['lp_step_summary_details'],
-              ],
-              '#header' => [
-                $this->t('Score'),
-                $this->t('State'),
-              ],
-              '#rows' => [
-                [
-                  [
-                    'class' => 'lp_step_details_result',
-                    'data' => $score,
-                  ],
-                  [
-                    'class' => 'lp_step_details_state',
-                    'data' => $state,
-                  ],
-                ],
-              ],
+              'class' => 'lp_step_details_state',
+              'data' => $state,
             ],
-          ],
-          [
-            '#type' => 'container',
-            '#attributes' => [
-              'class' => ['lp_step_details_wrapper'],
-            ],
-            ($step['typology'] === 'Course'
-              ? [
-                '#type' => 'table',
-                '#attributes' => [
-                  'class' => ['lp_step_details'],
-                ],
-                '#header' => [
-                  $this->t('Module'),
-                  $this->t('Score'),
-                  $this->t('State'),
-                ],
-                '#rows' => $rows,
-              ]
-              : []),
           ],
         ],
-        ($step['typology'] === 'Course'
-        ? [
-            [
-              '#type' => 'container',
-              '#attributes' => [
-                'class' => ['lp_step_show'],
-              ],
-              [
-                '#type' => 'html_tag',
-                '#tag' => 'span',
-                '#attributes' => [
-                  'class' => ['lp_step_show_text'],
-                ],
-                '#value' => $this->t('Show details'),
-              ],
-            ],
-            [
-              '#type' => 'container',
-              '#attributes' => [
-                'class' => ['lp_step_hide'],
-              ],
-              [
-                '#type' => 'html_tag',
-                '#tag' => 'span',
-                '#attributes' => [
-                  'class' => ['lp_step_hide_text'],
-                ],
-                '#value' => $this->t('Hide details'),
-              ],
-            ],
-        ] : []),
+      ];
+
+      return [
+        '#theme' => 'opigno_learning_path_training_content_step',
+        '#step' => $step,
+        '#group' => $group,
       ];
     }, $steps);
 
@@ -542,12 +451,12 @@ class LearningPathController extends ControllerBase {
       '#markup' => '<a class="lp_tabs_link" data-toggle="tab" href="#documents-library">' . $this->t('Documents Library') . '</a>',
     ];
 
-    $content['tab-content'] = [
+    $content['tab_content'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['tab-content']],
     ];
 
-    $content['tab-content'][] = [
+    $content['tab_content'][] = [
       '#type' => 'container',
       '#attributes' => [
         'id' => 'training-content',
@@ -556,7 +465,7 @@ class LearningPathController extends ControllerBase {
       'steps' => $steps,
     ];
 
-    $content['tab-content'][] = [
+    $content['tab_content'][] = [
       '#type' => 'container',
       '#attributes' => [
         'id' => 'documents-library',
@@ -613,7 +522,7 @@ class LearningPathController extends ControllerBase {
           ],
         ];
 
-        $content['tab-content'][] = $workspace_tab;
+        $content['tab_content'][] = $workspace_tab;
       }
     }
 
@@ -631,7 +540,7 @@ class LearningPathController extends ControllerBase {
             '#markup' => '<a class="lp_tabs_link" data-toggle="tab" href="#forum">' . $this->t('Forum') . '</a>',
           ];
 
-          $content['tab-content'][] = [
+          $content['tab_content'][] = [
             '#type' => 'container',
             '#attributes' => [
               'id' => 'forum',

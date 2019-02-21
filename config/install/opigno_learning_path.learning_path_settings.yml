@@ -1,3 +1,4 @@
+langcode: en
 opigno_learning_path_notify_admin: 1
 opigno_learning_path_notify_users: 1
 opigno_learning_path_notify_admin_user_subscribed: "User \"[user]\" subscription to \"[group]\" has been updated.\r\nRole: [user-role]\r\nStatus: [user-status]\r\n\r\nLink: [link]"

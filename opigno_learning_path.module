@@ -28,6 +28,7 @@ use Drupal\opigno_ilt\ILTInterface;
 use Drupal\opigno_learning_path\Entity\LatestActivity;
 use Drupal\opigno_learning_path\Entity\LPResult;
 use Drupal\opigno_learning_path\LearningPathAccess;
+use Drupal\opigno_learning_path\LearningPathContent;
 use Drupal\opigno_group_manager\Entity\OpignoGroupManagedContent;
 use Drupal\opigno_group_manager\OpignoGroupContext;
 use Drupal\opigno_module\Entity\OpignoActivity;
@@ -88,6 +89,15 @@ function opigno_learning_path_theme() {
       'base hook' => 'page',
       'join_group_form' => NULL,
       'delete_lp_form' => NULL,
+    ],
+    'opigno_learning_path_training_content' => [
+      'render element' => 'content',
+    ],
+    'opigno_learning_path_training_content_step' => [
+      'variables' => [
+        'step' => NULL,
+        'group' => NULL,
+      ],
     ],
   ];
 }
@@ -1146,6 +1156,15 @@ function opigno_learning_path_form_alter(&$form, FormStateInterface $form_state,
 
   if ($form_id === 'group_content_opigno_class-group_membership_add_form') {
     $form['#attached']['library'][] = 'opigno_learning_path/member_add';
+    // Custom autocomplete widget for the field.
+    $group = \Drupal::routeMatch()->getParameter('group');
+    $form['entity_id']['widget'][0]['target_id']['#type'] = 'textfield';
+    $form['entity_id']['widget'][0]['target_id']['#autocomplete_route_name'] = 'opigno_learning_path.membership.add_user_to_class_autocomplete';
+    $form['entity_id']['widget'][0]['target_id']['#autocomplete_route_parameters'] = [
+      'group' => $group !== NULL ? $group->id() : 0,
+    ];
+    unset($form['entity_id']['widget'][0]['target_id']['#target_type']);
+    unset($form['entity_id']['widget'][0]['target_id']['#selection_handler']);
   }
 
   if (in_array($form_id, [
@@ -1552,6 +1571,76 @@ function opigno_learning_path_entity_delete(EntityInterface $entity) {
       LearningPathAccess::setLearningPathCourseMember($entity, 'delete');
     }
   }
+
+  if ($entity->bundle() == 'group_content_type_27efa0097d858') {
+    // Get Class members.
+    $members = $entity->getEntity()->getMembers();
+    // Get class group id.
+    $gid = $entity->getGroup()->id();
+    if ($members && !empty($gid) && is_numeric($gid)) {
+      try {
+        $group = Group::load($gid);
+        // Get class parent groups.
+        foreach ($members as $member) {
+          $user = $member->getGroupContent()->getEntity();
+          $class_id = $entity->getEntity()->id();
+          $created_group_membership = LearningPathContent::getGroupMembershipTimestamp($group->id(), $user->id());
+          $created_class_membership = LearningPathContent::getGroupMembershipTimestamp($class_id, $user->id());
+          if ($group && $user) {
+            // Check if user is a member.
+            if ($group->getMember($user) !== FALSE) {
+              // Get group and class membership timestamps.
+              if ($created_group_membership && $created_class_membership &&
+                ($created_group_membership >= $created_class_membership)) {
+
+                // Remove class parent group membership.
+                $group->removeMember($user);
+              }
+            }
+          }
+        }
+      }
+      catch (\Exception $e) {
+        \Drupal::logger('opigno_learning_path')->error($e->getMessage());
+        \Drupal::messenger()->addMessage($e->getMessage(), 'error');
+      }
+    }
+  }
+
+  if ($entity->bundle() == 'opigno_class-group_membership') {
+    // Get class group id.
+    $gid = $entity->getGroup()->id();
+    if (!empty($gid) && is_numeric($gid)) {
+      try {
+        // Get class parent groups.
+        $parent_groups = LearningPathContent::getClassGroups($gid);
+        if ($parent_groups) {
+          $user = $entity->getEntity();
+          foreach ($parent_groups as $parent) {
+            $group = Group::load($parent->gid);
+            if ($group && $user) {
+              // Check if user is a member.
+              if ($group->getMember($user) !== FALSE) {
+                // Get group and class membership timestamps.
+                $created_group_membership = LearningPathContent::getGroupMembershipTimestamp($parent->gid, $user->id());
+                $created_class_membership = $entity->getCreatedTime();
+                if ($created_group_membership && $created_class_membership &&
+                  ($created_group_membership >= $created_class_membership)) {
+
+                  // Remove class parent group membership.
+                  $group->removeMember($user);
+                }
+              }
+            }
+          }
+        }
+      }
+      catch (\Exception $e) {
+        \Drupal::logger('opigno_learning_path')->error($e->getMessage());
+        \Drupal::messenger()->addMessage($e->getMessage(), 'error');
+      }
+    }
+  }
 }
 
 /**
@@ -1800,6 +1889,34 @@ function opigno_learning_path_views_query_alter(ViewExecutable $view, QueryPlugi
  * Implements hook_entity_insert().
  */
 function opigno_learning_path_entity_insert(EntityInterface $entity) {
+  if ($entity->bundle() == 'opigno_class-group_membership') {
+    // Get class group id.
+    $gid = $entity->getGroup()->id();
+    if (!empty($gid) && is_numeric($gid)) {
+      try {
+        // Get class parent groups.
+        $parent_groups = LearningPathContent::getClassGroups($gid);
+        if ($parent_groups) {
+          foreach ($parent_groups as $parent) {
+            $group = Group::load($parent->gid);
+            $user = $entity->getEntity();
+            if ($group && $user) {
+              // Check if user is not a member.
+              if ($group->getMember($user) === FALSE) {
+                // Add class parent group membership.
+                $group->addMember($user);
+              }
+            }
+          }
+        }
+      }
+      catch (\Exception $e) {
+        \Drupal::logger('opigno_learning_path')->error($e->getMessage());
+        \Drupal::messenger()->addMessage($e->getMessage(), 'error');
+      }
+    }
+  }
+
   if ($entity->bundle() == 'learning_path-group_membership') {
     // Add new membership of group into statistic.
     $membership_id = $entity->get('entity_id')->getValue()[0]['target_id'];
@@ -2580,7 +2697,7 @@ function opigno_learning_path_get_step_progress($step, $uid) {
  */
 function opigno_learning_path_get_step_status($step, $uid) {
   $progress = opigno_learning_path_get_step_progress($step, $uid);
-  if (isset($step['passed']) && $step['passed'] == true) {
+  if (isset($step['passed']) && $step['passed'] == TRUE) {
     return 'passed';
   }
   elseif ($progress < 1) {
@@ -3150,7 +3267,7 @@ function opigno_learning_path_resumed_step(array $steps) {
     }
     else {
       for ($i = 0; $i < count($steps); ++$i) {
-        if (intval($steps[$i]['id']) == $last_module_id) {
+        if (intval($steps[$i]['id']) == reset($last_module_id)) {
           $next_step_cid = $steps[$i + 1]['cid'];
           return $next_step_cid;
         };

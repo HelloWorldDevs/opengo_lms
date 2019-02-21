@@ -186,8 +186,11 @@ class LearningPathAchievementController extends ControllerBase {
    *
    * @return array
    *   Module panel renderable array.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
-  protected function build_module_panel(GroupInterface $training, GroupInterface $course, OpignoModule $module) {
+  protected function build_module_panel(GroupInterface $training, GroupInterface $course = NULL, OpignoModule $module) {
     /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
     $date_formatter = \Drupal::service('date.formatter');
     $user = $this->currentUser();

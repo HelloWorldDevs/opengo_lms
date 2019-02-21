@@ -211,4 +211,48 @@ class LearningPathContent {
     $this->imageAlt = $image_alt;
   }
 
+  /**
+   * Returns Class parent groups ids.
+   *
+   * @param int $id
+   *   Group id.
+   *
+   * @return mixed
+   *   Groups ids.
+   */
+  public static function getClassGroups($id) {
+    $db_connection = \Drupal::service('database');
+    $parents = $db_connection->select('group_content_field_data', 'g_c_f_d')
+      ->fields('g_c_f_d', ['gid'])
+      ->condition('entity_id', $id)
+      ->condition('type', 'group_content_type_27efa0097d858')
+      ->execute()
+      ->fetchAll();
+
+    return $parents;
+  }
+
+  /**
+   * Returns Group membership created timestamp.
+   *
+   * @param int $gid
+   *   Group ID.
+   * @param int $uid
+   *   User ID.
+   *
+   * @return mixed
+   *   Group membership created timestamp.
+   */
+  public static function getGroupMembershipTimestamp($gid, $uid) {
+    $db_connection = \Drupal::service('database');
+    $timestamp = $db_connection->select('group_content_field_data', 'g_c_f_d')
+      ->fields('g_c_f_d', ['created'])
+      ->condition('gid', $gid)
+      ->condition('entity_id', $uid)
+      ->execute()
+      ->fetchField();
+
+    return $timestamp;
+  }
+
 }

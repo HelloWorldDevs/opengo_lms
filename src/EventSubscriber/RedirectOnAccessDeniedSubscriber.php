@@ -48,13 +48,19 @@ class RedirectOnAccessDeniedSubscriber implements EventSubscriberInterface {
    */
   public function redirectOn403(FilterResponseEvent $event) {
     $route_name = \Drupal::routeMatch()->getRouteName();
+    $status_code = $event->getResponse()->getStatusCode();
+    $is_anonymous = $this->user->isAnonymous();
+
     // Do not redirect if there is REST request.
     if (strpos($route_name, 'rest.') !== FALSE) {
       return;
     }
+    // Do not redirect if there is a token authorization.
+    $auth_header = $event->getRequest()->headers->get('Authorization');
+    if ($is_anonymous && preg_match('/^Bearer (.*)/', $auth_header)) {
+      return;
+    }
 
-    $status_code = $event->getResponse()->getStatusCode();
-    $is_anonymous = $this->user->isAnonymous();
     if ($is_anonymous && $status_code == 403) {
       $current_path = \Drupal::service('path.current')->getPath();
       $response = new RedirectResponse("/user/login/?prev_path={$current_path}");

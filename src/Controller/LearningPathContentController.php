@@ -8,6 +8,7 @@ use Drupal\group\Entity\Group;
 use Drupal\group\Entity\GroupInterface;
 use Drupal\opigno_group_manager\OpignoGroupContentTypesManager;
 use Drupal\opigno_learning_path\LearningPathValidator;
+use Drupal\opigno_module\Entity\OpignoActivity;
 use Drupal\opigno_module\Entity\OpignoModule;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -307,9 +308,28 @@ class LearningPathContentController extends ControllerBase {
     }
     /* @var $db_connection \Drupal\Core\Database\Connection */
     $db_connection = \Drupal::service('database');
+
+    // Load Activity before deleting relationship.
+    $relationship = $db_connection
+      ->select('opigno_module_relationship', 'omr')
+      ->fields('omr', ['child_id'])
+      ->condition('omr_id', $datas->omr_id, '=')
+      ->groupBy('child_id')
+      ->execute()
+      ->fetchObject();
+    $opigno_activity = OpignoActivity::load($relationship->child_id);
+
+    // Allow other modules to take actions.
+    \Drupal::moduleHandler()->invokeAll(
+    'opigno_learning_path_activity_delete',
+      [$opigno_module, $opigno_activity]
+    );
+
+    // Delete relationship.
     $delete_query = $db_connection->delete('opigno_module_relationship');
     $delete_query->condition('omr_id', $datas->omr_id);
     $delete_query->execute();
+
     return new JsonResponse(NULL, Response::HTTP_OK);
   }
 

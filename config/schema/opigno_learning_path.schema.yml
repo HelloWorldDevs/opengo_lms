@@ -8,17 +8,17 @@ opigno_learning_path.learning_path_settings:
     opigno_learning_path_notify_users:
       type: integer
     opigno_learning_path_notify_admin_user_subscribed:
-      type: string
+      type: text
     opigno_learning_path_notify_admin_user_approval:
-      type: string
+      type: text
     opigno_learning_path_notify_admin_user_blocked:
-      type: string
+      type: text
     opigno_learning_path_notify_user_user_subscribed:
-      type: string
+      type: text
     opigno_learning_path_notify_user_user_approval:
-      type: string
+      type: text
     opigno_learning_path_notify_user_user_blocked:
-      type: string
+      type: text
     opigno_learning_path_notify_admin_mails:
       type: string
 
