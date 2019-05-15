@@ -1342,8 +1342,21 @@ function opigno_learning_path_group_access(Group $group, $operation, AccountInte
   $is_platform_um = $account->hasPermission('manage group members in any group');
 
   $group_type = $group->type->entity->id();
+  $group_visibility = $group->field_learning_path_visibility->value;
 
   switch ($operation) {
+    case 'join':
+      // This is currently only used for the entity.group.join route but may be
+      // applied to other cases such as join/signup links, so as well as the
+      // visibility check, additional check the 'join group' permission which is
+      // already on the route.
+      if ($account->isAnonymous() && ($group_visibility == 'semiprivate' || $group_visibility == 'private')) {
+        return Accessresult::forbidden();
+      }
+      if ($group->hasPermission('join group', $account)) {
+        return AccessResult::allowed();
+      }
+      break;
     case 'view':
     case 'view teaser':
     case 'take':
@@ -1365,7 +1378,6 @@ function opigno_learning_path_group_access(Group $group, $operation, AccountInte
           $membership = $group->getMember($account);
           $is_member = $membership !== FALSE;
 
-          $group_visibility = $group->field_learning_path_visibility->value;
           switch ($group_visibility) {
             case 'public':
               // Restrict access to public training with price for Anonymous.
@@ -1382,7 +1394,7 @@ function opigno_learning_path_group_access(Group $group, $operation, AccountInte
                 // and current user is an anonymous.
                 return AccessResult::forbidden();
               }
-              if ($operation == 'take' && !$is_member) {
+              if ($operation == 'take' && (!$is_member || $is_anonymous)) {
                 return AccessResult::forbidden();
               }
 
