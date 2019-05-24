@@ -362,3 +362,118 @@ function opigno_learning_path_update_8011() {
   \Drupal::entityDefinitionUpdateManager()
     ->installFieldStorageDefinition('learning_path', 'user_module_status', 'opigno_learning_path', $definition);
 }
+
+/**
+ * Add "uid" field to "opigno_latest_group_activity".
+ * Update view block "Latest active training".
+ */
+function opigno_learning_path_update_8012() {
+  // Add new field.
+  $definition = BaseFieldDefinition::create('entity_reference')
+    ->setLabel(t('Authored by'))
+    ->setDescription(t('The user ID of author of the LatestActivity entity.'))
+    ->setSetting('target_type', 'user')
+    ->setSetting('handler', 'default');
+
+  \Drupal::entityDefinitionUpdateManager()
+    ->installFieldStorageDefinition('uid', 'opigno_latest_group_activity', 'opigno_latest_group_activity', $definition);
+
+  // Update view block.
+  $config_path = drupal_get_path('module', 'opigno_learning_path')
+    . '/config/install';
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+  $data = $storage->read('views.view.latest_active_trainings');
+  $config_storage->write('views.view.latest_active_trainings', $data);
+}
+
+/**
+ * Update Media Browser Images views to remove html tags from fields.
+ *
+ * Update Group Members views to remove html tags from fields.
+ *
+ * Update translations.
+ */
+function opigno_learning_path_update_8013() {
+  // Update views.
+  $display_name = 'default';
+  $field_name = 'name';
+  $config_factory = \Drupal::configFactory();
+  $view = $config_factory->getEditable('views.view.media_browser_images');
+  $displays = $view->get('display');
+  $alter_option = $displays[$display_name]['display_options']['fields'][$field_name]['alter'];
+  $alter_option['alter_text'] = FALSE;
+  $alter_option['text'] = '';
+  $base = "display.$display_name.display_options.fields.$field_name";
+  $view->set($base . '.alter', $alter_option);
+  $view->save(TRUE);
+
+  $display_name = 'default';
+  $field_name = 'group_roles';
+  $config_factory = \Drupal::configFactory();
+  $view = $config_factory->getEditable('views.view.group_members');
+  $base = "display.$display_name.display_options.fields.$field_name";
+  $view->set($base . '.empty', t('none'));
+  $view->save(TRUE);
+
+  // Update translations.
+  $db_connection = \Drupal::service('database');
+  // Get id of translation.
+  try {
+    $lid = $db_connection->select('locales_source', 'ls')
+      ->fields('ls', ['lid'])
+      ->condition('source', "<div class=\"media-info\">\r\n<span class=\"media-info--{{ bundle }}\">{{ bundle }}</span>\r\n{{ name }}\r\n</div>")
+      ->execute()->fetchField();
+    if ($lid) {
+      // Remove sourse translation.
+      $db_connection->delete('locales_source')
+        ->condition('lid', $lid)
+        ->execute();
+      // Remove target translation.
+      $db_connection->delete('locales_target')
+        ->condition('lid', $lid)
+        ->execute();
+    }
+  }
+  catch (Exception $e) {
+    \Drupal::logger('opigno_learning_path')->error($e->getMessage());
+  }
+
+  try {
+    $lid = $db_connection->select('locales_source', 'ls')
+      ->fields('ls', ['lid'])
+      ->condition('source', '<div class="item-list"><ul><li>&lt;none&gt;</li></ul></div>')
+      ->execute()->fetchField();
+    if ($lid) {
+      // Remove sourse translation.
+      $db_connection->delete('locales_source')
+        ->condition('lid', $lid)
+        ->execute();
+      // Remove target translation.
+      $db_connection->delete('locales_target')
+        ->condition('lid', $lid)
+        ->execute();
+    }
+  }
+  catch (Exception $e) {
+    \Drupal::logger('opigno_learning_path')->error($e->getMessage());
+  }
+}
+
+/**
+ * Creates Guided Navigation field in the learning path group type.
+ */
+function opigno_learning_path_update_8014() {
+  $config_path = drupal_get_path('module', 'opigno_learning_path') . '/config/install';
+  $storage = new FileStorage($config_path);
+
+  $data = $storage->read('field.storage.group.field_guided_navigation');
+  if (!FieldStorageConfig::loadByName($data['entity_type'], $data['field_name'])) {
+    FieldStorageConfig::create($data)->save();
+  }
+
+  $data = $storage->read('field.field.group.learning_path.field_guided_navigation');
+  if (!FieldConfig::loadByName($data['entity_type'], $data['bundle'], $data['field_name'])) {
+    FieldConfig::create($data)->save();
+  }
+}

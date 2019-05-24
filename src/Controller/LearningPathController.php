@@ -6,6 +6,8 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
+use Drupal\opigno_group_manager\Controller\OpignoGroupManagerController;
+use Drupal\opigno_group_manager\Entity\OpignoGroupManagedContent;
 use Drupal\opigno_learning_path\LearningPathAccess;
 use Drupal\opigno_module\Entity\OpignoModule;
 
@@ -101,6 +103,10 @@ class LearningPathController extends ControllerBase {
 
   /**
    * Returns progress.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function progress() {
     /** @var \Drupal\group\Entity\GroupInterface $group */
@@ -113,7 +119,8 @@ class LearningPathController extends ControllerBase {
     $progress = opigno_learning_path_progress($id, $uid);
     $progress = round(100 * $progress);
 
-    if (opigno_learning_path_is_passed($group, $uid)) {
+    $is_passed = opigno_learning_path_is_passed($group, $uid);
+    if ($is_passed || $progress == 100) {
       $score = opigno_learning_path_get_score($id, $uid);
 
       /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
@@ -133,7 +140,7 @@ class LearningPathController extends ControllerBase {
           '#type' => 'html_tag',
           '#tag' => 'p',
           '#attributes' => [
-            'class' => ['lp_progress_summary_passed'],
+            'class' => $is_passed ? ['lp_progress_summary_passed'] : ['lp_progress_summary_failed'],
           ],
           '#value' => '',
         ],
@@ -143,7 +150,7 @@ class LearningPathController extends ControllerBase {
           '#attributes' => [
             'class' => ['lp_progress_summary_title'],
           ],
-          '#value' => $this->t('Passed'),
+          '#value' => $is_passed ? $this->t('Passed') : $this->t('Failed'),
         ],
         [
           '#type' => 'html_tag',
@@ -155,7 +162,7 @@ class LearningPathController extends ControllerBase {
             '@score' => $score,
           ]),
         ],
-        [
+        !empty($completed) ? [
           '#type' => 'html_tag',
           '#tag' => 'p',
           '#attributes' => [
@@ -164,7 +171,7 @@ class LearningPathController extends ControllerBase {
           '#value' => $this->t('Completed on @date', [
             '@date' => $completed,
           ]),
-        ],
+        ] : [],
       ];
     }
 
@@ -297,7 +304,18 @@ class LearningPathController extends ControllerBase {
       return $content;
     }
 
-    $steps = opigno_learning_path_get_steps($group->id(), $user->id());
+    // Get training guided navigation option.
+    $freeNavigation = !OpignoGroupManagerController::getGuidedNavigation($group);
+
+    if ($freeNavigation) {
+      // Get all steps for LP.
+      $steps = opigno_learning_path_get_all_steps($group->id(), $user->id());
+    }
+    else {
+      // Get guided steps.
+      $steps = opigno_learning_path_get_steps($group->id(), $user->id());
+    }
+
     $steps = array_filter($steps, function ($step) use ($user) {
       if ($step['typology'] === 'Meeting') {
         // If the user have not the collaborative features role.
@@ -327,112 +345,141 @@ class LearningPathController extends ControllerBase {
 
       return TRUE;
     });
-    $steps = array_map(function ($step) use ($user, $group) {
-      $sub_title = '';
-      $score = $this->build_step_score_cell($step);
-      $state = $this->build_step_state_cell($step);
 
-      if ($step['typology'] === 'Course') {
-        $rows = [];
-        $course_steps = opigno_learning_path_get_steps($step['id'], $user->id());
-        $sub_title = $this->t('@count Modules', [
-          '@count' => count($course_steps),
-        ]);
+    $steps_array = [];
+    if ($steps) {
+      foreach ($steps as $key => $step) {
+        $sub_title = '';
+        $score = $this->build_step_score_cell($step);
+        $state = $this->build_step_state_cell($step);
 
-        foreach ($course_steps as &$course_step) {
-          $course_step['status'] = opigno_learning_path_get_step_status($course_step, $user->id());
-          $course_step['module'] = OpignoModule::load($course_step['id']);
-          $rows[] = $this->build_course_row($course_step);
+        if ($step['typology'] === 'Course') {
+          $rows = [];
+          $course_steps = opigno_learning_path_get_steps($step['id'], $user->id());
+          $sub_title = $this->t('@count Modules', [
+            '@count' => count($course_steps),
+          ]);
+
+          foreach ($course_steps as &$course_step) {
+            $course_step['status'] = opigno_learning_path_get_step_status($course_step, $user->id());
+            $course_step['module'] = OpignoModule::load($course_step['id']);
+            $rows[] = $this->build_course_row($course_step);
+          }
+
+          $step['course_steps'] = $course_steps;
+          $step['course_steps_table'] = [
+            '#type' => 'table',
+            '#attributes' => [
+              'class' => ['lp_step_details'],
+            ],
+            '#header' => [
+              $this->t('Module'),
+              $this->t('Score'),
+              $this->t('State'),
+            ],
+            '#rows' => $rows,
+          ];
+        }
+        elseif ($step['typology'] === "Module") {
+          $step['module'] = OpignoModule::load($step['id']);
         }
 
-        $step['course_steps'] = $course_steps;
-        $step['course_steps_table'] = [
+        $title = $step['name'];
+
+        if ($step['typology'] === 'Meeting') {
+          /** @var \Drupal\opigno_moxtra\MeetingInterface $meeting */
+          $meeting = $this->entityTypeManager()
+            ->getStorage('opigno_moxtra_meeting')
+            ->load($step['id']);
+          $start_date = $meeting->getStartDate();
+          $end_date = $meeting->getEndDate();
+        }
+        elseif ($step['typology'] === 'ILT') {
+          /** @var \Drupal\opigno_ilt\ILTInterface $ilt */
+          $ilt = $this->entityTypeManager()
+            ->getStorage('opigno_ilt')
+            ->load($step['id']);
+          $start_date = $ilt->getStartDate();
+          $end_date = $ilt->getEndDate();
+        }
+
+        if (isset($start_date) && isset($end_date)) {
+          $start_date = DrupalDateTime::createFromFormat(
+            DrupalDateTime::FORMAT,
+            $start_date
+          );
+          $end_date = DrupalDateTime::createFromFormat(
+            DrupalDateTime::FORMAT,
+            $end_date
+          );
+
+          $title .= ' / ' . $this->t('@start to @end', [
+            '@start' => $start_date->format('jS F Y - g:i A'),
+            '@end' => $end_date->format('g:i A'),
+          ]);
+        }
+
+        // Build link for first step.
+        if ($key == 0) {
+          // Load first step entity.
+          $first_step = OpignoGroupManagedContent::load($steps[$key]['cid']);
+          /* @var \Drupal\opigno_group_manager\OpignoGroupContentTypesManager $content_types_manager*/
+          $content_types_manager = \Drupal::service('opigno_group_manager.content_types.manager');
+          $content_type = $content_types_manager->createInstance($first_step->getGroupContentTypeId());
+          $step_url = $content_type->getStartContentUrl($first_step->getEntityId(), $group->id());
+          $link = Link::createFromRoute($title, $step_url->getRouteName(), $step_url->getRouteParameters())
+            ->toString();
+        }
+        else {
+          // Get link to module.
+          $parent_content_id = $steps[$key - 1]['cid'];
+          $link = Link::createFromRoute($title, 'opigno_learning_path.steps.next', [
+            'group' => $group->id(),
+            'parent_content' => $parent_content_id,
+          ])
+            ->toString();
+        }
+
+        // Add compiled parameters to step array.
+        $step['title'] = !empty($link) ? $link : $title;
+        $step['sub_title'] = $sub_title;
+        $step['score'] = $score;
+        $step['state'] = $state;
+
+        $step['summary_details_table'] = [
           '#type' => 'table',
           '#attributes' => [
-            'class' => ['lp_step_details'],
+            'class' => ['lp_step_summary_details'],
           ],
           '#header' => [
-            $this->t('Module'),
             $this->t('Score'),
             $this->t('State'),
           ],
-          '#rows' => $rows,
-        ];
-      }
-      elseif ($step['typology'] === "Module") {
-        $step['module'] = OpignoModule::load($step['id']);
-      }
-
-      $title = $step['name'];
-
-      if ($step['typology'] === 'Meeting') {
-        /** @var \Drupal\opigno_moxtra\MeetingInterface $meeting */
-        $meeting = $this->entityTypeManager()
-          ->getStorage('opigno_moxtra_meeting')
-          ->load($step['id']);
-        $start_date = $meeting->getStartDate();
-        $end_date = $meeting->getEndDate();
-      }
-      elseif ($step['typology'] === 'ILT') {
-        /** @var \Drupal\opigno_ilt\ILTInterface $ilt */
-        $ilt = $this->entityTypeManager()
-          ->getStorage('opigno_ilt')
-          ->load($step['id']);
-        $start_date = $ilt->getStartDate();
-        $end_date = $ilt->getEndDate();
-      }
-
-      if (isset($start_date) && isset($end_date)) {
-        $start_date = DrupalDateTime::createFromFormat(
-          DrupalDateTime::FORMAT,
-          $start_date
-        );
-        $end_date = DrupalDateTime::createFromFormat(
-          DrupalDateTime::FORMAT,
-          $end_date
-        );
-
-        $title .= ' / ' . $this->t('@start to @end', [
-          '@start' => $start_date->format('jS F Y - g:i A'),
-          '@end' => $end_date->format('g:i A'),
-        ]);
-      }
-
-      // Add compiled parameters to step array.
-      $step['title'] = $title;
-      $step['sub_title'] = $sub_title;
-      $step['score'] = $score;
-      $step['state'] = $state;
-
-      $step['summary_details_table'] = [
-        '#type' => 'table',
-        '#attributes' => [
-          'class' => ['lp_step_summary_details'],
-        ],
-        '#header' => [
-          $this->t('Score'),
-          $this->t('State'),
-        ],
-        '#rows' => [
-          [
+          '#rows' => [
             [
-              'class' => 'lp_step_details_result',
-              'data' => $score,
-            ],
-            [
-              'class' => 'lp_step_details_state',
-              'data' => $state,
+              [
+                'class' => 'lp_step_details_result',
+                'data' => $score,
+              ],
+              [
+                'class' => 'lp_step_details_state',
+                'data' => $state,
+              ],
             ],
           ],
-        ],
-      ];
+        ];
 
-      return [
-        '#theme' => 'opigno_learning_path_training_content_step',
-        '#step' => $step,
-        '#group' => $group,
-      ];
-    }, $steps);
+        $steps_array[] = [
+          '#theme' => 'opigno_learning_path_training_content_step',
+          '#step' => $step,
+          '#group' => $group,
+        ];
+      }
+
+      if ($steps_array) {
+        $steps = $steps_array;
+      }
+    }
 
     // $TFTController = new TFTController();
     // $listGroup = $TFTController->listGroup($group->id());

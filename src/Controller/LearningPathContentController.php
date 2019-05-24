@@ -6,6 +6,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Link;
 use Drupal\group\Entity\Group;
 use Drupal\group\Entity\GroupInterface;
+use Drupal\h5p\Entity\H5PContent;
 use Drupal\opigno_group_manager\OpignoGroupContentTypesManager;
 use Drupal\opigno_learning_path\LearningPathValidator;
 use Drupal\opigno_module\Entity\OpignoActivity;
@@ -239,6 +240,77 @@ class LearningPathContentController extends ControllerBase {
    * It returns all the activities with the module.
    */
   public function getModuleActivities(OpignoModule $opigno_module) {
+    $activities = $this->getModuleActivitiesEntities($opigno_module);
+
+    // Return all the contents in JSON format.
+    return new JsonResponse($activities, Response::HTTP_OK);
+  }
+
+  /**
+   * Returns conditional activities with the module.
+   */
+  public function getModuleRequiredActivities(OpignoModule $opigno_module) {
+    $activities = $this->getModuleActivitiesEntities($opigno_module);
+    $conditional_h5p_types = ['H5P.TrueFalse', 'H5P.MultiChoice'];
+
+    if ($activities) {
+      // Get only H5P.TrueFalse/H5P.MultiChoice activities.
+      foreach ($activities as $key => $activity) {
+        $exclude = FALSE;
+        $activity = OpignoActivity::load($activity->id);
+
+        if ($activity->hasField('opigno_h5p') && $h5p_content_id = $activity->get('opigno_h5p')->getValue()[0]['h5p_content_id']) {
+          $h5p_content = H5PContent::load($h5p_content_id);
+          $library = $h5p_content->getLibrary();
+          if (!in_array($library->name, $conditional_h5p_types)) {
+            $exclude = TRUE;
+          }
+
+          if ($library->name == 'H5P.TrueFalse') {
+            $params = $h5p_content->getParameters();
+            $activities[$key]->answers[0] = [
+              'id' => $activity->id() . '-0',
+              'correct' => $params->correct == 'true' ? TRUE : FALSE,
+              'text' => trim(strip_tags(nl2br(str_replace(['\n', '\r'], '', $params->l10n->trueText)))),
+            ];
+            $activities[$key]->answers[1] = [
+              'id' => $activity->id() . '-1',
+              'correct' => $params->correct == 'false' ? TRUE : FALSE,
+              'text' => trim(strip_tags(nl2br(str_replace(['\n', '\r'], '', $params->l10n->falseText)))),
+            ];
+          }
+
+          if ($library->name == 'H5P.MultiChoice') {
+            $answers = $h5p_content->getParameters()->answers;
+            if ($answers) {
+              foreach ($answers as $k => $answer) {
+                $activities[$key]->answers[$k] = [
+                  'id' => $activity->id() . '-' . $k,
+                  'correct' => $answer->correct,
+                  'text' => trim(strip_tags(nl2br(str_replace(['\n', '\r'], '', $answer->text)))),
+                ];
+              }
+            }
+          }
+        }
+        else {
+          $exclude = TRUE;
+        }
+
+        if ($exclude) {
+          unset($activities[$key]);
+        }
+      }
+    }
+
+    // Return all the contents in JSON format.
+    return new JsonResponse($activities, Response::HTTP_OK);
+  }
+
+  /**
+   * Returns activities entities with the module.
+   */
+  public function getModuleActivitiesEntities(OpignoModule $opigno_module) {
     $activities = [];
     /* @var $db_connection \Drupal\Core\Database\Connection */
     $db_connection = \Drupal::service('database');
@@ -267,8 +339,7 @@ class LearningPathContentController extends ControllerBase {
       $activities[$activity->id] = $activity;
     }
 
-    // Return all the contents in JSON format.
-    return new JsonResponse($activities, Response::HTTP_OK);
+    return $activities;
   }
 
   /**

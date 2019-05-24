@@ -2,6 +2,7 @@
   Drupal.behaviors.opignoLearningPathMemberOverview = {
     attach: function (context, settings) {
       var gid = drupalSettings.opigno_learning_path.gid;
+      var baseUrl = drupalSettings.path.baseUrl ? drupalSettings.path.baseUrl : '/';
 
       $('#learning-path-members-form').submit(function (e) {
         e.preventDefault();
@@ -49,7 +50,7 @@
         var $this = $(this);
 
         $.ajax({
-          url: '/group/' + gid + '/learning-path/members/delete-class',
+          url: baseUrl + 'group/' + gid + '/learning-path/members/delete-class',
           data: {
             class_id: this.id.match(/(\d+)$/)[1],
           },
@@ -67,7 +68,7 @@
         var $this = $(this);
 
         $.ajax({
-          url: '/group/' + gid + '/learning-path/members/validate',
+          url: baseUrl + 'group/' + gid + '/learning-path/members/validate',
           data: {
             user_id: this.id.match(/(\d+)$/)[1],
           },
@@ -93,7 +94,7 @@
         var $this = $(this);
 
         $.ajax({
-          url: '/group/' + gid + '/learning-path/members/toggle-role',
+          url: baseUrl + 'group/' + gid + '/learning-path/members/toggle-role',
           data: {
             uid: this.id.match(/(\d+)$/)[1],
             role: drupalSettings.opigno_learning_path.student_manager_role,
@@ -112,7 +113,7 @@
         var $this = $(this);
 
         $.ajax({
-          url: '/group/' + gid + '/learning-path/members/toggle-role',
+          url: baseUrl + 'group/' + gid + '/learning-path/members/toggle-role',
           data: {
             uid: this.id.match(/(\d+)$/)[1],
             role: drupalSettings.opigno_learning_path.content_manager_role,
@@ -131,7 +132,7 @@
         var $this = $(this);
 
         $.ajax({
-          url: '/group/' + gid + '/learning-path/members/toggle-role',
+          url: baseUrl + 'group/' + gid + '/learning-path/members/toggle-role',
           data: {
             uid: this.id.match(/(\d+)$/)[1],
             role: drupalSettings.opigno_learning_path.class_manager_role,
@@ -196,7 +197,7 @@
         var $this = $(this);
 
         $.ajax({
-          url: '/group/' + gid + '/learning-path/members/delete-user',
+          url: baseUrl + 'group/' + gid + '/learning-path/members/delete-user',
           data: {
             user_id: this.id.match(/(\d+)$/)[1],
           },

@@ -93,6 +93,10 @@
   background-image: url('../img/timeline_checked.png');
 }
 
+.lp_timeline_step.failed {
+  background-image: url('../img/timeline_failed.png');
+}
+
 .lp_timeline_step_label {
   color: #b3b3b3;
   display: block;

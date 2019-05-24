@@ -9,6 +9,7 @@ use Drupal\Core\Ajax\RedirectCommand;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\group\Entity\Group;
+use Drupal\opigno_group_manager\Controller\OpignoGroupManagerController;
 use Drupal\opigno_group_manager\Entity\OpignoGroupManagedContent;
 use Drupal\opigno_group_manager\OpignoGroupContentTypesManager;
 use Drupal\opigno_group_manager\OpignoGroupContext;
@@ -250,6 +251,20 @@ class LearningPathStepsController extends ControllerBase {
       }
     }
 
+    // Get training guided navigation option.
+    $freeNavigation = !OpignoGroupManagerController::getGuidedNavigation($group);
+    if ($freeNavigation) {
+      $content = OpignoGroupManagedContent::getFirstStep($group->id());
+      $content_type = $this->content_type_manager->createInstance($content->getGroupContentTypeId());
+      $step_url = $content_type->getStartContentUrl($content->getEntityId(), $group->id());
+      if ($is_ajax) {
+        return (new AjaxResponse())->addCommand(new RedirectCommand($step_url->toString()));
+      }
+      else {
+        return $this->redirect($step_url->getRouteName(), $step_url->getRouteParameters(), $step_url->getOptions());
+      }
+    }
+
     // Check if there is resumed step. If is - redirect.
     $step_resumed_cid = opigno_learning_path_resumed_step($steps);
     if ($step_resumed_cid) {
@@ -337,13 +352,21 @@ class LearningPathStepsController extends ControllerBase {
     }
 
     $user = $this->currentUser();
-
     $uid = $user->id();
     $gid = $group->id();
     $cid = $parent_content->id();
 
+    // Get training guided navigation option.
+    $freeNavigation = !OpignoGroupManagerController::getGuidedNavigation($group);
+
     // Load group steps.
-    $group_steps = opigno_learning_path_get_steps($gid, $uid);
+    if ($freeNavigation) {
+      // Get all steps for LP.
+      $group_steps = opigno_learning_path_get_all_steps($gid, $uid);
+    }
+    else {
+      $group_steps = opigno_learning_path_get_steps($gid, $uid);
+    }
     $steps = [];
 
     // Load group courses substeps.
@@ -368,7 +391,7 @@ class LearningPathStepsController extends ControllerBase {
     $current_step = NULL;
     $current_step_index = 0;
     for ($i = 0; $i < $count - 1; ++$i) {
-      if ($steps[$i]['cid'] === $cid || $steps[$i]['required score'] > $steps[$i]['current attempt score']) {
+      if ($steps[$i]['cid'] === $cid || (!$freeNavigation && ($steps[$i]['required score'] > $steps[$i]['current attempt score']))) {
         $current_step_index = $i;
         $current_step = $steps[$i];
         break;
@@ -376,10 +399,20 @@ class LearningPathStepsController extends ControllerBase {
     }
 
     // Check mandatory step requirements.
-    if (isset($current_step) && $current_step['mandatory'] === 1) {
+    if (!$freeNavigation && isset($current_step) && $current_step['mandatory'] === 1) {
       $name = $current_step['name'];
       $required = $current_step['required score'];
       if ($required > 0) {
+        // Check if it's "skills module" with skills which user is already passed.
+        if ($current_step['typology'] == 'Module') {
+          $module = \Drupal::entityTypeManager()->getStorage('opigno_module')->load($current_step['id']);
+          $moduleHandler = \Drupal::service('module_handler');
+
+          if ($moduleHandler->moduleExists('opigno_skills_system') && $module->getSkillsActive()) {
+            $current_step['current attempt score'] = $current_step['best score'];
+          }
+        }
+
         if ($current_step['current attempt score'] < $required) {
           $course_entity = OpignoGroupManagedContent::load($current_step['cid']);
           $course_content_type = $this->content_type_manager->createInstance(
@@ -399,19 +432,6 @@ class LearningPathStepsController extends ControllerBase {
               '%step' => $name,
               '%required' => $required,
               ':link' => $current_step_url->toString(),
-            ]),
-          ];
-        }
-      }
-      else {
-        OpignoGroupContext::setGroupId($group->id());
-        OpignoGroupContext::setCurrentContentId($current_step['cid']);
-
-        if ($current_step['attempts'] === 0) {
-          return [
-            '#type' => 'markup',
-            '#markup' => $this->t('<p>A required step: %step should be done first.</p>', [
-              '%step' => $name,
             ]),
           ];
         }

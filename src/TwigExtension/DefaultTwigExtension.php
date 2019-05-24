@@ -135,10 +135,11 @@ class DefaultTwigExtension extends \Twig_Extension {
     }
 
     $route_name = $route->getRouteName();
-    $access = isset($group) && $group->access('view', $account) && $group->hasPermission('join group', $account);
+    $visibility = $group->field_learning_path_visibility->value;
+    $access = isset($group) && $group->access('view', $account) && ($group->hasPermission('join group', $account) || $visibility == 'public');
+
     if ($route_name == 'entity.group.canonical' && $access) {
       $link = NULL;
-      $visibility = $group->field_learning_path_visibility->value;
       $validation = $group->field_requires_validation->value;
       $is_member = $group->getMember($account) !== FALSE;
       $is_anonymous = $account->id() === 0;
@@ -209,11 +210,6 @@ class DefaultTwigExtension extends \Twig_Extension {
    *   Group start link or empty.
    */
   public function get_start_link($group = NULL, array $attributes = []) {
-    $user = \Drupal::currentUser();
-    if ($user->isAnonymous()) {
-      return [];
-    }
-
     if (!$group) {
       $group = \Drupal::routeMatch()->getParameter('group');
     }
@@ -223,7 +219,7 @@ class DefaultTwigExtension extends \Twig_Extension {
     }
 
     if (empty($group)) {
-      return '';
+      return[];
     }
 
     $current_route = \Drupal::routeMatch()->getRouteName();
@@ -231,6 +227,11 @@ class DefaultTwigExtension extends \Twig_Extension {
     $validation = $group->field_requires_validation->value;
     $account = \Drupal::currentUser();
     $is_anonymous = $account->id() === 0;
+
+    if ($is_anonymous && $visibility != 'public') {
+      return[];
+    }
+
     $member_pending = $visibility === 'semiprivate' && $validation
       && !LearningPathAccess::statusGroupValidation($group, $account);
     $module_commerce_enabled = \Drupal::moduleHandler()->moduleExists('opigno_commerce');
@@ -299,10 +300,6 @@ class DefaultTwigExtension extends \Twig_Extension {
    *   Current user progress.
    */
   public function get_progress() {
-    $user = \Drupal::currentUser();
-    if ($user->isAnonymous()) {
-      return [];
-    }
     $controller = new LearningPathController();
     $content = $controller->progress();
     return render($content);

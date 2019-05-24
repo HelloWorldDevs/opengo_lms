@@ -5,6 +5,7 @@ namespace Drupal\opigno_learning_path\Plugin\Block;
 use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Link;
 use Drupal\group\Entity\Group;
+use Drupal\opigno_group_manager\Controller\OpignoGroupManagerController;
 use Drupal\opigno_group_manager\Entity\OpignoGroupManagedContent;
 use Drupal\opigno_group_manager\OpignoGroupContext;
 use Drupal\Core\Cache\Cache;
@@ -98,7 +99,18 @@ class StepsBlock extends BlockBase {
 
     $title = $group->label();
 
-    $group_steps = opigno_learning_path_get_steps($gid, $uid);
+    // Get training guided navigation option.
+    $freeNavigation = !OpignoGroupManagerController::getGuidedNavigation($group);
+
+    if ($freeNavigation) {
+      // Get all steps for LP.
+      $group_steps = opigno_learning_path_get_all_steps($gid, $uid);
+    }
+    else {
+      // Get guided steps.
+      $group_steps = opigno_learning_path_get_steps($gid, $uid);
+    }
+
     $steps = [];
 
     // Load courses substeps.

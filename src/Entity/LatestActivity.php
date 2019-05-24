@@ -5,6 +5,7 @@ namespace Drupal\opigno_learning_path\Entity;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\opigno_learning_path\LatestActivityInterface;
 
 /**
@@ -42,6 +43,12 @@ class LatestActivity extends ContentEntityBase implements LatestActivityInterfac
       ->setLabel(t('UUID'))
       ->setDescription(t('The UUID of the Latest Activity entity.'))
       ->setReadOnly(TRUE);
+
+    $fields['uid'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel(t('Authored by'))
+      ->setDescription(t('The user ID of author of the LatestActivity entity.'))
+      ->setSetting('target_type', 'user')
+      ->setSetting('handler', 'default');
 
     $fields['training'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(t('Training'))
@@ -148,21 +155,55 @@ class LatestActivity extends ContentEntityBase implements LatestActivityInterfac
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function getUserId() {
+    return $this->get('uid')->target_id;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setUserId($uid) {
+    $this->set('uid', $uid);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getUser() {
+    return $this->get('uid')->entity;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setUser(AccountInterface $account) {
+    $this->set('uid', $account->id());
+    return $this;
+  }
+
+  /**
    * Creates or updates latest group activity.
    *
    * @param int $training_id
    *   The training ID.
    * @param int $module_id
    *   The module ID.
+   * @param $user_id
+   *   The user ID.
    *
    * @return \Drupal\opigno_learning_path\LatestActivityInterface
    *   Created or updated entity.
+   * @throws \Drupal\Core\Entity\EntityStorageException
    */
-  public static function insertGroupActivity($training_id, $module_id) {
+  public static function insertGroupActivity($training_id, $module_id, $user_id) {
     $query = \Drupal::entityQuery('opigno_latest_group_activity');
     $ids = $query
       ->condition('training', $training_id)
       ->condition('module', $module_id)
+      ->condition('uid', $user_id)
       ->sort('timestamp', 'DESC')
       ->range(0, 1)
       ->execute();
@@ -175,6 +216,7 @@ class LatestActivity extends ContentEntityBase implements LatestActivityInterfac
       $activity = LatestActivity::create();
       $activity->setTrainingId($training_id);
       $activity->setModuleId($module_id);
+      $activity->setUserId($user_id);
     }
 
     $timestamp = \Drupal::time()->getRequestTime();

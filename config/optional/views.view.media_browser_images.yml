@@ -313,8 +313,8 @@ display:
           label: Name
           exclude: false
           alter:
-            alter_text: true
-            text: "<div class=\"media-info\">\r\n<span class=\"media-info--{{ bundle }}\">{{ bundle }}</span>\r\n{{ name }}\r\n</div>"
+            alter_text: false
+            text: ''
             make_link: false
             path: ''
             absolute: false

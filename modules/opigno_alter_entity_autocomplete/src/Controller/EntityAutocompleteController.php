@@ -3,7 +3,7 @@
 namespace Drupal\opigno_alter_entity_autocomplete\Controller;
 
 use Drupal\Core\KeyValueStore\KeyValueStoreInterface;
-use Drupal\opigno_alter_entity_autocomplete\EntityAutocompleteMatcher;
+use Drupal\opigno_alter_entity_autocomplete\EntityAutocompleteMatcherOverride;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -14,14 +14,14 @@ class EntityAutocompleteController extends \Drupal\system\Controller\EntityAutoc
   /**
    * The autocomplete matcher for entity references.
    *
-   * @var \Drupal\opigno_alter_entity_autocomplete\EntityAutocompleteMatcher
+   * @var \Drupal\opigno_alter_entity_autocomplete\EntityAutocompleteMatcherOverride
    */
   protected $matcher;
 
   /**
    * {@inheritdoc}
    */
-  public function __construct(EntityAutocompleteMatcher $matcher, KeyValueStoreInterface $key_value) {
+  public function __construct(EntityAutocompleteMatcherOverride $matcher, KeyValueStoreInterface $key_value) {
     $this->matcher = $matcher;
     $this->keyValue = $key_value;
   }

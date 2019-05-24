@@ -3,6 +3,7 @@
 namespace Drupal\opigno_learning_path;
 
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Session\AccountInterface;
 
 /**
  * Provides an interface defining a LatestActivity entity.
@@ -106,4 +107,41 @@ interface LatestActivityInterface extends ContentEntityInterface {
    */
   public function setTimestamp($value);
 
+  /**
+   * Gets the user ID.
+   *
+   * @return int
+   *   The user ID.
+   */
+  public function getUserId();
+
+  /**
+   * Sets the user ID.
+   *
+   * @param int $uid
+   *   The user ID.
+   *
+   * @return \Drupal\opigno_learning_path\LatestActivityInterface
+   *   The called entity.
+   */
+  public function setUserId($uid);
+
+  /**
+   * Gets the user entity.
+   *
+   * @return \Drupal\user\Entity\User
+   *   The user entity.
+   */
+  public function getUser();
+
+  /**
+   * Sets the user entity.
+   *
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   User account.
+   *
+   * @return \Drupal\opigno_learning_path\LatestActivityInterface
+   *   The called entity.
+   */
+  public function setUser(AccountInterface $account);
 }

@@ -21,7 +21,7 @@
         <h3 class="lp_step_summary_title">{{ step.title }}</h3>
         <h4 class="lp_step_summary_subtitle">{{ step.sub_title }}</h4>
         {%  if step.description %}
-          <div class="lp_step_summary_description">{{ step.description }}</div>
+          <div class="lp_step_summary_description">{{ step.description|raw }}</div>
         {% endif %}
       </div>
       {{ step.summary_details_table }}

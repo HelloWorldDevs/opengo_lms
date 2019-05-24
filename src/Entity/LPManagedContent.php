@@ -31,6 +31,11 @@ use Drupal\group\Entity\Group;
  */
 class LPManagedContent extends ContentEntityBase {
 
+  /*
+   * todo: Not sure that we are still using this functional. We have the same functional for entity 'opigno_group_content'.
+   * Table with that entity always is empty on DEV instances.
+   */
+
   /**
    * Creates a new LPManagedContent object with the values passed in param.
    *

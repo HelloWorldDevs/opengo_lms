@@ -6,5 +6,5 @@ services:
       - { name: event_subscriber }
 
   opigno_alter_entity_autocomplete.autocomplete_matcher:
-    class: Drupal\opigno_alter_entity_autocomplete\EntityAutocompleteMatcher
+    class: Drupal\opigno_alter_entity_autocomplete\EntityAutocompleteMatcherOverride
     arguments: ['@plugin.manager.entity_reference_selection']

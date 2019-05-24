@@ -188,7 +188,7 @@ class LearningPathAccess {
       ->condition('mid', $mid);
     $result = $query->execute()->fetchField();
 
-    if ($as_string) {
+    if ($as_string && $result != FALSE) {
       $statuses = LearningPathAccess::getMembershipStatusesArray();
       $result = $statuses[$result];
     }

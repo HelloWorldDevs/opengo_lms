@@ -163,6 +163,14 @@
 
 .lp_progress_summary_passed {
   background: url(../img/state_passed.png);
+}
+
+.lp_progress_summary_failed {
+  background: url('../img/state_failed.png');
+}
+
+.lp_progress_summary_passed,
+.lp_progress_summary_failed {
   background-repeat: no-repeat;
   background-position: center;
   background-size: 43px;

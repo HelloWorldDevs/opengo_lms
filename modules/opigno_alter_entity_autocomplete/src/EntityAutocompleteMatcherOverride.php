@@ -9,7 +9,7 @@ use Drupal\Component\Utility\Tags;
 /**
  *
  */
-class EntityAutocompleteMatcher extends EntityAutocompleteMatcher {
+class EntityAutocompleteMatcherOverride extends EntityAutocompleteMatcher {
 
   /**
    * {@inheritdoc}

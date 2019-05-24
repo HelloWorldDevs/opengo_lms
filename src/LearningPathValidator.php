@@ -54,17 +54,28 @@ class LearningPathValidator {
   protected static function moduleValidate(OpignoModule $module, &$redirect_step) {
     $activities = $module->getModuleActivities();
     $is_valid = !empty($activities);
+    $moduleHandler = \Drupal::service('module_handler');
+
+    // Add ability to create empty 'skills module' with enabled option 'Use all suitable activities from Opigno system'.
+    if ($moduleHandler->moduleExists('opigno_skills_system') && $module->getSkillsActive() && $module->getModuleSkillsGlobal()) {
+      $is_valid = TRUE;
+    }
+
     if (!$is_valid && ($redirect_step === NULL || $redirect_step >= 4)) {
       $redirect_step = 4;
 
       // Show message only if user click on "next" button from current route.
       $current_route = \Drupal::service('current_route_match');
       $current_step = (int) $current_route->getParameter('current');
-      if ($current_step === $redirect_step) {
+      if ($current_step === $redirect_step && !$module->getSkillsActive()) {
         $messenger = \Drupal::messenger();
         $messenger->addError(t('Please, add at least one activity to @module module!', [
           '@module' => $module->label(),
         ]));
+      }
+
+      if ($module->getSkillsActive()) {
+        $is_valid = TRUE;
       }
     }
 
