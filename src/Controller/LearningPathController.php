@@ -352,6 +352,8 @@ class LearningPathController extends ControllerBase {
         $sub_title = '';
         $score = $this->build_step_score_cell($step);
         $state = $this->build_step_state_cell($step);
+        unset($start_date);
+        unset($end_date);
 
         if ($step['typology'] === 'Course') {
           $rows = [];
