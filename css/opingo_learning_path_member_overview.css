@@ -189,3 +189,20 @@
   color: #fff;
   text-decoration: none;
 }
+
+body.admin-learning-path .form-control.btn-group-members-list-prev {
+  width: auto;
+  float: left;
+  clear: both;
+  color: #fff;
+  background-color: #c2e76b;
+  border-color: #c2e76b;
+}
+
+body.admin-learning-path .form-control.btn-group-members-list-next {
+  width: auto;
+  float: right;
+  color: #fff;
+  background-color: #c2e76b;
+  border-color: #c2e76b;
+}

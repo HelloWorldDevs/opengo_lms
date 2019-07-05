@@ -255,13 +255,15 @@ class LearningPathStepsController extends ControllerBase {
     $freeNavigation = !OpignoGroupManagerController::getGuidedNavigation($group);
     if ($freeNavigation) {
       $content = OpignoGroupManagedContent::getFirstStep($group->id());
-      $content_type = $this->content_type_manager->createInstance($content->getGroupContentTypeId());
-      $step_url = $content_type->getStartContentUrl($content->getEntityId(), $group->id());
-      if ($is_ajax) {
-        return (new AjaxResponse())->addCommand(new RedirectCommand($step_url->toString()));
-      }
-      else {
-        return $this->redirect($step_url->getRouteName(), $step_url->getRouteParameters(), $step_url->getOptions());
+      if ($content->getGroupContentTypeId() != 'ContentTypeCourse') {
+        $content_type = $this->content_type_manager->createInstance($content->getGroupContentTypeId());
+        $step_url = $content_type->getStartContentUrl($content->getEntityId(), $group->id());
+        if ($is_ajax) {
+          return (new AjaxResponse())->addCommand(new RedirectCommand($step_url->toString()));
+        }
+        else {
+          return $this->redirect($step_url->getRouteName(), $step_url->getRouteParameters(), $step_url->getOptions());
+        }
       }
     }
 

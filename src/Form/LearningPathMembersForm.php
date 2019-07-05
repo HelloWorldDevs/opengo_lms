@@ -57,7 +57,51 @@ class LearningPathMembersForm extends FormBase {
       return $form;
     }
 
-    $content = $group->getContent();
+    if ($group_bundle == 'learning_path') {
+      $form['#prefix'] = '<div id="group_members_list">';
+      $form['#suffix'] = '</div>';
+      $start_point = 0;
+      $values = $form_state->getValues();
+
+      if (isset($values['start_point'])) {
+        $start_point = $values['start_point'];
+      }
+
+      if (!empty($form_state->getTriggeringElement())) {
+        $trigger = $form_state->getTriggeringElement()['#name'];
+
+        if ($trigger == 'prev') {
+          $start_point -= 100;
+
+          if ($start_point < 0) {
+            $start_point = 0;
+          }
+        }
+        elseif ($trigger == 'next') {
+          $start_point += 100;
+        }
+
+        $form_state->setValue('start_point', $start_point);
+      }
+
+      $content_types = [
+        'group_content_type_27efa0097d858',
+        'group_content_type_af9d804582e19',
+        'learning_path-group_membership',
+      ];
+
+      $group_content_ids = \Drupal::entityQuery('group_content')
+        ->condition('gid', $group->id())
+        ->condition('type', $content_types, 'IN')
+        ->range($start_point, 100)
+        ->sort('changed', 'DESC')
+        ->execute();
+      $content = \Drupal::entityTypeManager()->getStorage('group_content')->loadMultiple($group_content_ids);
+    }
+    else {
+      $content = $group->getContent();
+    }
+
     $users = [];
     $classes = [];
 
@@ -421,12 +465,55 @@ class LearningPathMembersForm extends FormBase {
       unset($form[$last_key]['members']['#header'][4]);
     }
 
+    if ($group_bundle == 'learning_path') {
+      $form['start_point'] = [
+        '#type' => 'hidden',
+        '#value' => $start_point,
+      ];
+
+      if ($start_point > 0) {
+        $form['members_prev_btn_bottom'] = [
+          '#type' => 'button',
+          '#value' => $this->t('Prev'),
+          '#name' => 'prev',
+          '#ajax' => [
+            'wrapper' => 'group_members_list',
+            'callback' => [$this, 'group_members_list_btn'],
+            'method' => 'replace',
+          ],
+          '#attributes' => [
+            'class' => ['btn-group-members-list-prev'],
+          ],
+        ];
+      }
+
+      $form['members_next_btn_bottom'] = [
+        '#type' => 'button',
+        '#value' => $this->t('Next'),
+        '#name' => 'next',
+        '#ajax' => [
+          'wrapper' => 'group_members_list',
+          'callback' => [$this, 'group_members_list_btn'],
+          'method' => 'replace',
+          'effect' => 'fade',
+        ],
+        '#attributes' => [
+          'class' => ['btn-group-members-list-next'],
+        ],
+      ];
+    }
+
     $form['#attached']['library'][] = 'opigno_learning_path/member_overview';
     $form['#attached']['library'][] = 'opigno_learning_path/member_add';
     $form['#attached']['drupalSettings']['opigno_learning_path']['gid'] = $group->id();
     $form['#attached']['drupalSettings']['opigno_learning_path']['student_manager_role'] = $student_manager_role;
     $form['#attached']['drupalSettings']['opigno_learning_path']['content_manager_role'] = $content_manager_role;
     $form['#attached']['drupalSettings']['opigno_learning_path']['class_manager_role'] = $class_manager_role;
+    return $form;
+  }
+
+  // The AJAX callback for button 'Prev'.
+  public function group_members_list_btn($form, FormStateInterface $form_state) {
     return $form;
   }
 

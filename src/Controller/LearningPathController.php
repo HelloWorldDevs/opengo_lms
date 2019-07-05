@@ -356,33 +356,69 @@ class LearningPathController extends ControllerBase {
         unset($end_date);
 
         if ($step['typology'] === 'Course') {
-          $rows = [];
-          $course_steps = opigno_learning_path_get_steps($step['id'], $user->id());
-          $sub_title = $this->t('@count Modules', [
-            '@count' => count($course_steps),
-          ]);
+          if ($freeNavigation) {
+            // Get all steps for LP.
+            $course_steps = opigno_learning_path_get_all_steps($step['id'], $user->id());
+          }
+          else {
+            // Get guided steps.
+            $course_steps = opigno_learning_path_get_steps($step['id'], $user->id());
+          }
+//          $sub_title = $this->t('@count Modules', [
+//            '@count' => count($course_steps),
+//          ]);
 
-          foreach ($course_steps as &$course_step) {
-            $course_step['status'] = opigno_learning_path_get_step_status($course_step, $user->id());
-            $course_step['module'] = OpignoModule::load($course_step['id']);
-            $rows[] = $this->build_course_row($course_step);
+          foreach ($course_steps as $course_step_key => &$course_step) {
+            if ($course_step_key == 0) {
+              // Load first step entity.
+              $first_step = OpignoGroupManagedContent::load($course_steps[$course_step_key]['cid']);
+              /* @var \Drupal\opigno_group_manager\OpignoGroupContentTypesManager $content_types_manager */
+              $content_types_manager = \Drupal::service('opigno_group_manager.content_types.manager');
+              $content_type = $content_types_manager->createInstance($first_step->getGroupContentTypeId());
+              $step_url = $content_type->getStartContentUrl($first_step->getEntityId(), $group->id());
+              $link = Link::createFromRoute($course_step['name'], $step_url->getRouteName(), $step_url->getRouteParameters())
+                ->toString();
+            }
+            else {
+              // Get link to module.
+              $parent_content_id = $course_steps[$course_step_key - 1]['cid'];
+              $link = Link::createFromRoute($course_step['name'], 'opigno_learning_path.steps.next', [
+                'group' => $group->id(),
+                'parent_content' => $parent_content_id,
+              ])
+                ->toString();
+            }
+
+            // Add compiled parameters to step array.
+            $course_step['title'] = !empty($link) ? $link : $course_step['name'];
+
+            $course_step['summary_details_table'] = [
+              '#type' => 'table',
+              '#attributes' => [
+                'class' => ['lp_step_summary_details'],
+              ],
+              '#header' => [
+                $this->t('Score'),
+                $this->t('State'),
+              ],
+              '#rows' => [
+                [
+                  [
+                    'class' => 'lp_step_details_result',
+                    'data' => $this->build_step_score_cell($course_step),
+                  ],
+                  [
+                    'class' => 'lp_step_details_state',
+                    'data' => $this->build_step_state_cell($course_step),
+                  ],
+                ],
+              ],
+            ];
           }
 
           $step['course_steps'] = $course_steps;
-          $step['course_steps_table'] = [
-            '#type' => 'table',
-            '#attributes' => [
-              'class' => ['lp_step_details'],
-            ],
-            '#header' => [
-              $this->t('Module'),
-              $this->t('Score'),
-              $this->t('State'),
-            ],
-            '#rows' => $rows,
-          ];
         }
-        elseif ($step['typology'] === "Module") {
+        elseif ($step['typology'] === 'Module') {
           $step['module'] = OpignoModule::load($step['id']);
         }
 
@@ -423,23 +459,33 @@ class LearningPathController extends ControllerBase {
 
         // Build link for first step.
         if ($key == 0) {
-          // Load first step entity.
-          $first_step = OpignoGroupManagedContent::load($steps[$key]['cid']);
-          /* @var \Drupal\opigno_group_manager\OpignoGroupContentTypesManager $content_types_manager*/
-          $content_types_manager = \Drupal::service('opigno_group_manager.content_types.manager');
-          $content_type = $content_types_manager->createInstance($first_step->getGroupContentTypeId());
-          $step_url = $content_type->getStartContentUrl($first_step->getEntityId(), $group->id());
-          $link = Link::createFromRoute($title, $step_url->getRouteName(), $step_url->getRouteParameters())
-            ->toString();
+          if ($step['typology'] == 'Course') {
+            $link = NULL;
+          }
+          else {
+            // Load first step entity.
+            $first_step = OpignoGroupManagedContent::load($steps[$key]['cid']);
+            /* @var \Drupal\opigno_group_manager\OpignoGroupContentTypesManager $content_types_manager */
+            $content_types_manager = \Drupal::service('opigno_group_manager.content_types.manager');
+            $content_type = $content_types_manager->createInstance($first_step->getGroupContentTypeId());
+            $step_url = $content_type->getStartContentUrl($first_step->getEntityId(), $group->id());
+            $link = Link::createFromRoute($title, $step_url->getRouteName(), $step_url->getRouteParameters())
+              ->toString();
+          }
         }
         else {
-          // Get link to module.
-          $parent_content_id = $steps[$key - 1]['cid'];
-          $link = Link::createFromRoute($title, 'opigno_learning_path.steps.next', [
-            'group' => $group->id(),
-            'parent_content' => $parent_content_id,
-          ])
-            ->toString();
+          if ($step['typology'] == 'Course') {
+            $link = NULL;
+          }
+          else {
+            // Get link to module.
+            $parent_content_id = $steps[$key - 1]['cid'];
+            $link = Link::createFromRoute($title, 'opigno_learning_path.steps.next', [
+              'group' => $group->id(),
+              'parent_content' => $parent_content_id,
+            ])
+              ->toString();
+          }
         }
 
         // Add compiled parameters to step array.

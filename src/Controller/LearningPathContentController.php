@@ -46,8 +46,10 @@ class LearningPathContentController extends ControllerBase {
     // Check if user has uncompleted steps.
     LearningPathValidator::stepsValidate($group);
 
+    $group_type = $group->get('type')->getString();
+
     $next_link = $this->getNextLink($group);
-    $view_type = ($group->get('type')->getString() == 'opigno_course')
+    $view_type = ($group_type == 'opigno_course')
       ? 'manager' : 'modules';
 
     $tempstore = \Drupal::service('user.private_tempstore')->get('opigno_group_manager');
@@ -58,6 +60,7 @@ class LearningPathContentController extends ControllerBase {
       '#base_path' => $request->getBasePath(),
       '#base_href' => $request->getPathInfo(),
       '#learning_path_id' => $group->id(),
+      '#group_type' => $group_type,
       '#view_type' => $view_type,
       '#next_link' => isset($next_link) ? render($next_link) : NULL,
       '#user_has_info_card' => $tempstore->get('hide_info_card') ? FALSE : TRUE,

@@ -7,6 +7,7 @@ use Drupal\Core\Database\Database;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\group\Entity\Group;
+use Drupal\group\Entity\GroupInterface;
 use Drupal\opigno_group_manager\Entity\OpignoGroupManagedContent;
 use Drupal\opigno_group_manager\OpignoGroupContext;
 use Drupal\user\Entity\User;
@@ -477,7 +478,7 @@ class LearningPathAccess {
   /**
    * Returns uncompleted required trainings flag.
    *
-   * @param \Drupal\group\Entity\Group $group
+   * @param \Drupal\group\Entity\GroupInterface $group
    *   Group.
    * @param \Drupal\Core\Session\AccountInterface $account
    *   User account.
@@ -485,7 +486,7 @@ class LearningPathAccess {
    * @return bool|array
    *   Return FALSE or Array with unfinished training.
    */
-  public static function hasUncompletedRequiredTrainings(Group $group, AccountInterface $account) {
+  public static function hasUncompletedRequiredTrainings(GroupInterface $group, AccountInterface $account) {
     $trainings = $group->get('field_required_trainings')->getValue();
     if (!$trainings) {
       return FALSE;

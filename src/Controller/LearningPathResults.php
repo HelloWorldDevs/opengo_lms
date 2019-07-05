@@ -38,7 +38,7 @@ class LearningPathResults extends ControllerBase {
     // Format the results to be able to show them in a table.
     $rows = [];
     foreach ($results as $result) {
-      if (!$result->access('view')) {
+      if (!$result->access('view') || !$result->getUser()) {
         continue;
       }
 

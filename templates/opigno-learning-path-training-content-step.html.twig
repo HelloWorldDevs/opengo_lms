@@ -15,29 +15,29 @@
     {% endif %}
     <h3 class="lp_step_title">{{ step.name }}</h3>
   </div>
-  <div class="lp_step_content">
-    <div class="lp_step_summary">
-      <div class="lp_step_summary_title_wrapper">
-        <h3 class="lp_step_summary_title">{{ step.title }}</h3>
-        <h4 class="lp_step_summary_subtitle">{{ step.sub_title }}</h4>
-        {%  if step.description %}
-          <div class="lp_step_summary_description">{{ step.description|raw }}</div>
-        {% endif %}
-      </div>
-      {{ step.summary_details_table }}
-    </div>
-    {% if step.typology == 'Course' %}
-    <div class="lp_step_details_wrapper">
-      {{ step.course_steps_table }}
-    </div>
-    {% endif %}
-  </div>
   {% if step.typology == 'Course' %}
-    <div class="lp_step_show">
-      <span class="lp_step_show_text">{{ 'Show details'|t }}</span>
-    </div>
-    <div class="lp_step_hide">
-      <span class="lp_step_hide_text">{{ 'Hide details'|t }}</span>
+    {% for course_step in step.course_steps %}
+      <div class="lp_step_content">
+        <div class="lp_step_summary">
+          <div class="lp_step_summary_title_wrapper">
+            <h3 class="lp_step_summary_title">{{ course_step.title }}</h3>
+          </div>
+          {{ course_step.summary_details_table }}
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="lp_step_content">
+      <div class="lp_step_summary">
+        <div class="lp_step_summary_title_wrapper">
+          <h3 class="lp_step_summary_title">{{ step.title }}</h3>
+          <h4 class="lp_step_summary_subtitle">{{ step.sub_title }}</h4>
+          {%  if step.description %}
+            <div class="lp_step_summary_description">{{ step.description|raw }}</div>
+          {% endif %}
+        </div>
+        {{ step.summary_details_table }}
+      </div>
     </div>
   {% endif %}
 </div>

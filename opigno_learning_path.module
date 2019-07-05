@@ -57,6 +57,7 @@ function opigno_learning_path_theme() {
         'base_path' => NULL,
         'base_href' => NULL,
         'learning_path_id' => NULL,
+        'group_type' => NULL,
         'view_type' => NULL,
         'next_link' => NULL,
         'user_has_info_card' => NULL,
@@ -207,16 +208,28 @@ function opigno_learning_path_preprocess_region(&$variables) {
     && $variables['region'] == 'content'
     && $group = \Drupal::routeMatch()->getParameter('group')
   ) {
-    $link = Link::createFromRoute(t('Add members'), 'entity.group_content.add_form', [
-      'group' => $group->id(),
-      'plugin_id' => 'group_membership',
-    ], [
-      'attributes' => [
-        'id' => 'btn_member_add',
-        'class' => ['btn', 'btn-success'],
-      ],
-    ])->toRenderable();
-    $variables['add_member_link'] = render($link);
+    $bundle = $group->bundle();
+
+    // Limit the number of members in the class.
+    if (!($bundle == 'opigno_class') || count($group->getMembers()) < 100) {
+      $link = Link::createFromRoute(t('Add members'), 'entity.group_content.add_form', [
+        'group' => $group->id(),
+        'plugin_id' => 'group_membership',
+      ], [
+        'attributes' => [
+          'id' => 'btn_member_add',
+          'class' => ['btn', 'btn-success'],
+        ],
+      ])->toRenderable();
+      $variables['add_member_link'] = render($link);
+    }
+    else {
+      $variables['add_member_link'] = [
+        '#type' => 'markup',
+        '#markup' => '<div class="class-limit-reached">' . t('A limit of the number of members in a class is reached.') . '</div>',
+      ];
+    }
+
   }
 }
 
@@ -1431,7 +1444,10 @@ function opigno_learning_path_group_access(Group $group, $operation, AccountInte
   $is_platform_um = $account->hasPermission('manage group members in any group');
 
   $group_type = $group->type->entity->id();
-  $group_visibility = $group->field_learning_path_visibility->value;
+  $group_visibility = NULL;
+  if ($group->hasField('field_learning_path_visibility')) {
+    $group_visibility = $group->get('field_learning_path_visibility')->value;
+  }
 
   switch ($operation) {
     case 'join':
@@ -1484,6 +1500,19 @@ function opigno_learning_path_group_access(Group $group, $operation, AccountInte
         case 'learning_path':
           $membership = $group->getMember($account);
           $is_member = $membership !== FALSE;
+
+          // Deny if there are unfinished required trainings.
+          // Don't block training admins and group managers.
+          if ($operation == 'take' && (!$group->hasPermission('administer members', $account)
+            || !$group->hasPermission('edit group', $account))
+          ) {
+            // List of required trainings that should to be finished by user
+            // before he can start a current training.
+            $uncompleted = LearningPathAccess::hasUncompletedRequiredTrainings($group, $account);
+            if (!empty($uncompleted)) {
+              return AccessResult::forbidden();
+            }
+          }
 
           switch ($group_visibility) {
             case 'public':
@@ -1780,27 +1809,17 @@ function opigno_learning_path_entity_delete(EntityInterface $entity) {
  */
 function opigno_learning_path_get_student_managers($group) {
   $users = [];
-
   $owner = $group->getOwner();
   $users[$owner->id()] = $owner;
 
-  $content = $group->getContent();
-  $student_manager_role = 'learning_path-user_manager';
+  $membership_loader = \Drupal::service('group.membership_loader');
+  $student_managers = $membership_loader->loadByGroup($group, ['learning_path-user_manager']);
 
-  /** @var \Drupal\group\Entity\GroupContentInterface $item */
-  foreach ($content as $item) {
-    $entity = $item->getEntity();
-    $type = $entity->getEntityTypeId();
+  foreach ($student_managers as $membership) {
+    $user = $membership->getUser();
 
-    if ($type !== 'user') {
-      continue;
-    }
-
-    $membership = $group->getMember($entity);
-    $roles = array_keys($membership->getRoles());
-
-    if (in_array($student_manager_role, $roles)) {
-      $users[$entity->id()] = $entity;
+    if ($user) {
+      $users[$user->id()] = $user;
     }
   }
 
@@ -2191,6 +2210,10 @@ function opigno_learning_path_get_module_step($group_id, $uid, OpignoModule $mod
       'group_content_type_id' => 'ContentTypeModule',
       'entity_id' => $id,
     ]));
+
+    if (!is_object($content)) {
+      return array_shift($results);
+    }
 
     // Get actual score for Module.
     $actual_score = opigno_module_get_user_module_score($module, $user);
@@ -2717,7 +2740,8 @@ function opigno_learning_path_get_steps($group_id, $uid, $only_modules_and_cours
       $best_score = isset($step_info)
         && opigno_learning_path_is_attempted($step_info, $uid)
         ? $step_info['best score'] : 100;
-      $managed_content = $managed_content->getNextStep($best_score, $attempts_raw, $module, $guidedNavigation);
+
+      $managed_content = $managed_content->getNextStep($best_score, $attempts_raw, $module, $guidedNavigation, $type_id);
     }
 
     $results[$key] = $steps;

@@ -67,7 +67,7 @@ class LearningPathValidator {
       // Show message only if user click on "next" button from current route.
       $current_route = \Drupal::service('current_route_match');
       $current_step = (int) $current_route->getParameter('current');
-      if ($current_step === $redirect_step && !$module->getSkillsActive()) {
+      if ($current_step === $redirect_step) {
         $messenger = \Drupal::messenger();
         $messenger->addError(t('Please, add at least one activity to @module module!', [
           '@module' => $module->label(),

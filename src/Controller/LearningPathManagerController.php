@@ -109,9 +109,11 @@ class LearningPathManagerController extends ControllerBase {
     $response->addCommand(
       new SettingsCommand([
         'formValues' => $item,
-        'messages' => drupal_get_messages(NULL, TRUE),
+        'messages' => \Drupal::messenger()->all(),
       ], TRUE)
     );
+
+    \Drupal::messenger()->deleteAll();
 
     return $response;
   }
