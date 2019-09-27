@@ -487,20 +487,23 @@ class LearningPathMembersForm extends FormBase {
         ];
       }
 
-      $form['members_next_btn_bottom'] = [
-        '#type' => 'button',
-        '#value' => $this->t('Next'),
-        '#name' => 'next',
-        '#ajax' => [
-          'wrapper' => 'group_members_list',
-          'callback' => [$this, 'group_members_list_btn'],
-          'method' => 'replace',
-          'effect' => 'fade',
-        ],
-        '#attributes' => [
-          'class' => ['btn-group-members-list-next'],
-        ],
-      ];
+      // Show only if there is more that 100 members per page.
+      if (count($content) >= 100) {
+        $form['members_next_btn_bottom'] = [
+          '#type' => 'button',
+          '#value' => $this->t('Next'),
+          '#name' => 'next',
+          '#ajax' => [
+            'wrapper' => 'group_members_list',
+            'callback' => [$this, 'group_members_list_btn'],
+            'method' => 'replace',
+            'effect' => 'fade',
+          ],
+          '#attributes' => [
+            'class' => ['btn-group-members-list-next'],
+          ],
+        ];
+      }
     }
 
     $form['#attached']['library'][] = 'opigno_learning_path/member_overview';

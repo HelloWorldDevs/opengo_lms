@@ -7,6 +7,8 @@ use Drupal\Core\Ajax\OpenModalDialogCommand;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Form\FormBuilderInterface;
+use Drupal\Core\Link;
+use Drupal\Core\Url;
 use Drupal\group\Entity\Group;
 use Drupal\user\Entity\User;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -419,9 +421,9 @@ class LearningPathMembershipController extends ControllerBase {
         ->invalidateTags($tags);
 
       // Set notification.
-      opigno_set_message($uid, t('Enrollment validated to a new training @name', [
-        '@name' => $group->label(),
-      ]));
+      $message = $this->t('Enrollment validated to a new training "@name"', ['@name' => $group->label()]);
+      $url = '/group/' . $gid;
+      opigno_set_message($uid, $message, $url);
 
       // Send email.
       $module = 'opigno_learning_path';

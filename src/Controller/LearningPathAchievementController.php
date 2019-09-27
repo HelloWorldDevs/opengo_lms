@@ -1380,7 +1380,7 @@ class LearningPathAchievementController extends ControllerBase {
     $registration = $member->getCreatedTime();
     $registration = $date_formatter->format($registration, 'custom', 'F d, Y');
 
-    $validation = opigno_learning_path_completed_on($gid, $uid);
+    $validation = opigno_learning_path_completed_on($gid, $uid, TRUE);
     $validation = $validation > 0
       ? $date_formatter->format($validation, 'custom', 'F d, Y')
       : '';
@@ -1535,7 +1535,7 @@ class LearningPathAchievementController extends ControllerBase {
           '#type' => 'html_tag',
           '#tag' => 'div',
           '#attributes' => [
-            'class' => ['lp_step_summary_score'],
+            'class' => ['lp_step_summary_progress'],
           ],
           '#value' => t('@score%', ['@score' => $progress]),
         ],
