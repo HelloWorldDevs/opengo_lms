@@ -23,7 +23,7 @@
         $dropdown.removeClass('invisible');
       }
 
-      var $class_users = $('#class_users', context);
+      var $class_users = $('#new_class_users-available', context);
       var $class_users_autocomplete = $('#class_users_autocomplete', context);
       if ($class_users && $class_users_autocomplete) {
         $class_users_autocomplete

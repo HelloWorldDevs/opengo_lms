@@ -622,3 +622,43 @@ function opigno_learning_path_update_8021() {
   $data = $storage->read('entity_browser.browser.media_entity_browser_groups');
   $config_storage->write('entity_browser.browser.media_entity_browser_groups', $data);
 }
+
+/**
+ * Create Group Members Table view.
+ */
+function opigno_learning_path_update_8022() {
+  $config_path = drupal_get_path('module', 'opigno_learning_path')
+    . '/config/install';
+
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+
+  $configs = [
+    'views.view.opigno_group_members_table',
+  ];
+
+  foreach ($configs as $item) {
+    $data = $storage->read($item);
+    $config_storage->write($item, $data);
+  }
+}
+
+/**
+ * Update Group Members Table view.
+ */
+function opigno_learning_path_update_8023() {
+  $config_path = drupal_get_path('module', 'opigno_learning_path')
+    . '/config/install';
+
+  $storage = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+
+  $configs = [
+    'views.view.opigno_group_members_table',
+  ];
+
+  foreach ($configs as $item) {
+    $data = $storage->read($item);
+    $config_storage->write($item, $data);
+  }
+}
