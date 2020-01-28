@@ -1805,6 +1805,20 @@ function opigno_learning_path_entity_update(EntityInterface $entity) {
     LearningPathAccess::mergeUserStatus($entity);
   }
 
+  if ($entity->bundle() == 'learning_path') {
+    $db_connection = \Drupal::service('database');
+    try {
+      $db_connection->update('opigno_learning_path_achievements')
+        ->fields(['name' => $entity->label()])
+        ->condition('gid', $entity->id())
+        ->execute();
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('opigno_learning_path')->error($e->getMessage());
+      \Drupal::messenger()->addMessage($e->getMessage(), 'error');
+    }
+  }
+
   if ($entity->getEntityTypeId() === 'user_module_status') {
     // Try to get training id from path.
     $route = \Drupal::routeMatch();
