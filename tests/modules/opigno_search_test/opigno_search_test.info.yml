@@ -1,8 +1,0 @@
-name: OpignoLearningPath Test
-description: Support module for Opigno Search testing
-package: Testing
-type: module
-dependencies:
-  - search_api:search_api
-  - search_api:search_api_db
-core: 8.x
