@@ -1957,12 +1957,11 @@ class LearningPathAchievementController extends ControllerBase {
     $selector = '#achievements-wrapper';
 
     $content = $this->build_page($page);
-    if (empty($content)) {
-      throw new NotFoundHttpException();
-    }
 
     $response = new AjaxResponse();
-    $response->addCommand(new AppendCommand($selector, $content));
+    if (!empty($content)) {
+      $response->addCommand(new AppendCommand($selector, $content));
+    }
     return $response;
   }
 

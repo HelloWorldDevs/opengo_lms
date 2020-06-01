@@ -533,7 +533,7 @@ function opigno_learning_path_preprocess_opigno_certificate(array &$variables) {
   if ($referencing_entity) {
     $completed = opigno_learning_path_completed_on($referencing_entity->id(), \Drupal::currentUser()->id(), TRUE);
     if ($completed) {
-      $variables['completed_on'] = \Drupal::service('date.formatter')->format($completed, NULL, 'd/M/Y');
+      $variables['completed_on'] = \Drupal::service('date.formatter')->format($completed, 'custom', 'd/M/Y');
     }
 
     // @todo: add a proper API function to get courses for a learning path.
