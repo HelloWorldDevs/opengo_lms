@@ -1975,6 +1975,7 @@ class LearningPathAchievementController extends ControllerBase {
    *   Index array.
    */
   public function index($page = 0) {
+    $profile = file_exists('profiles/opigno_lms/libraries/slick/slick/slick.css') ? '_profile' : '';
     $content = [
       '#type' => 'container',
       '#attributes' => [
@@ -2005,6 +2006,7 @@ class LearningPathAchievementController extends ControllerBase {
       '#attached' => [
         'library' => [
           'opigno_learning_path/achievements',
+          'opigno_learning_path/achievements_slick' . $profile,
         ],
       ],
     ];

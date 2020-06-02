@@ -538,6 +538,7 @@ function opigno_learning_path_preprocess_opigno_certificate(array &$variables) {
 
     // @todo: add a proper API function to get courses for a learning path.
     $managed_content = OpignoGroupManagedContent::loadByProperties(['group_id' => $referencing_entity->id()]);
+    $course_titles = [];
     foreach ($managed_content as $content) {
       // Need the content type object to get the LearningPathContent object.
       $content_type_id = $content->getGroupContentTypeId();

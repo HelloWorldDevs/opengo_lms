@@ -121,6 +121,22 @@ achievements:
     - core/drupalSettings
     - core/drupal.ajax
 
+achievements_slick:
+  version: VERSION
+  css:
+    component:
+      /libraries/slick/slick/slick.css: {}
+  js:
+    /libraries/slick/slick/slick.min.js: { minified: true }
+
+achievements_slick_profile:
+  version: VERSION
+  css:
+    component:
+      /profiles/opigno_lms/libraries/slick/slick/slick.css: {}
+  js:
+    /profiles/opigno_lms/libraries/slick/slick/slick.min.js: { minified: true }
+
 creation_steps:
   version: VERSION
   css:
