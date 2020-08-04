@@ -36,3 +36,6 @@ services:
   opigno_learning_path.join_form:
     class: Drupal\opigno_learning_path\JoinService
     arguments: ['@current_user', '@entity.form_builder']
+  opigno_learning_path.progress:
+    class: Drupal\opigno_learning_path\Progress
+    arguments: ['@current_user', '@database', '@request_stack']

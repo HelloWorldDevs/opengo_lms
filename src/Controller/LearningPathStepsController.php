@@ -79,6 +79,7 @@ class LearningPathStepsController extends ControllerBase {
 
     $uid = $user->id();
     $gid = $group->id();
+    $is_owner = $uid === $group->getOwnerId();
 
     $is_ajax = \Drupal::request()->isXmlHttpRequest();
 
@@ -112,7 +113,7 @@ class LearningPathStepsController extends ControllerBase {
           }
         }
 
-        if ($is_mandatory) {
+        if ($is_mandatory && !$is_owner) {
           $name = $step['name'];
           $required = $step['required score'];
           if ($required > 0 || $step['typology'] == 'Meeting') {
@@ -335,6 +336,7 @@ class LearningPathStepsController extends ControllerBase {
     $user = $this->currentUser();
     $uid = $user->id();
     $gid = $group->id();
+    $is_owner = $uid === $group->getOwnerId();
     $cid = $parent_content->id();
 
     // Get training guided navigation option.
@@ -377,8 +379,8 @@ class LearningPathStepsController extends ControllerBase {
           }
         }
 
-        if ($current_step['current attempt score'] < $required ||
-          OpignoGroupManagerController::mustBeVisitedMeeting($current_step, $group)) {
+        if ($current_step['current attempt score'] < $required  && !$is_owner ||
+          OpignoGroupManagerController::mustBeVisitedMeeting($current_step, $group)  && !$is_owner) {
 
           $course_entity = OpignoGroupManagedContent::load($current_step['cid']);
           $course_content_type = $this->content_type_manager->createInstance(
@@ -450,7 +452,7 @@ class LearningPathStepsController extends ControllerBase {
         $name = $course['name'];
         $required = $course['required score'];
         if ($required > 0) {
-          if ($course['best score'] < $required) {
+          if ($course['best score'] < $required && !$is_owner) {
             $module_content = OpignoGroupManagedContent::getFirstStep($course['id']);
             $module_content_type = $this->content_type_manager->createInstance(
               $module_content->getGroupContentTypeId()
@@ -470,7 +472,7 @@ class LearningPathStepsController extends ControllerBase {
           }
         }
         else {
-          if ($course['attempts'] === 0) {
+          if ($course['attempts'] === 0 && !$is_owner) {
             $module_content = OpignoGroupManagedContent::getFirstStep($course['id']);
 
             OpignoGroupContext::setGroupId($group->id());
@@ -486,7 +488,7 @@ class LearningPathStepsController extends ControllerBase {
     }
 
     // Skip live meetings and instructor-led trainings.
-    $skip_types = ['Meeting', 'ILT'];
+    $skip_types = []; //['Meeting', 'ILT'];
     for ($next_step_index = $current_step_index + 1;
       $next_step_index < $count
       && in_array($steps[$next_step_index]['typology'], $skip_types);
@@ -515,7 +517,7 @@ class LearningPathStepsController extends ControllerBase {
         }
       }
 
-      if ($is_mandatory) {
+      if ($is_mandatory && !$is_owner) {
         $name = $next_step['name'];
         $required = $next_step['required score'];
         // But if the live meeting or instructor-led training is
