@@ -16,9 +16,7 @@
  */
 #}
 
-{% set active_certificate = is_passed and has_certificate %}
-{% set certificate_class = not active_certificate ? 'lp_summary_certificate_inactive' %}
-{% set certificate_url = active_certificate ? 'internal:/certificate/group/' ~ group_id ~ '/pdf' %}
+{% set certificate_class = not certificate_url ? 'lp_summary_certificate_inactive' %}
 
 <div class="lp_summary d-flex flex-wrap py-5">
   <div class="lp_summary_content">
@@ -31,10 +29,9 @@
   </div>
   <div class="{{ state_class }}"></div>
   <div class="lp_summary_certificate {{ certificate_class }}">
-    {% if active_certificate %}
-      {{ link('Download certificate'|t, certificate_url, {'class' : ['lp_summary_certificate_text']}) }}
-
-      <a href="{{ url(certificate_url) }}" class="lp_summary_certificate_icon">
+    {% if certificate_url %}
+      <a href="{{ certificate_url }}" class="lp_summary_certificate_text">{{ 'Download certificate'|t }}</a>
+      <a href="{{ certificate_url }}" class="lp_summary_certificate_icon">
         <span class="sr-only"> {{ 'Download certificate'|t }}</span>
       </a>
     {% else %}

@@ -567,17 +567,21 @@ class Progress {
 
     $validation_message = !empty($validation) ? t('Validation date: @date<br />', ['@date' => $validation]) : '';
 
+    $has_certificate = !$group->get('field_certificate')->isEmpty();
+
     return [
       '#theme' => 'opigno_learning_path_training_summary',
       '#progress' => $progress,
       '#score' => round(opigno_learning_path_get_score($group_id, $account_id, FALSE, $latest_cert_date)),
       '#group_id' => $group_id,
-      '#has_certificate' => !$group->get('field_certificate')->isEmpty(),
+      '#has_certificate' => $has_certificate,
       '#is_passed' => $is_passed,
       '#state_class' => $state_class,
       '#registration_date' => $registration,
       '#validation_message' => $validation_message . $expiration_message,
       '#time_spend' => $time_spent,
+      '#certificate_url' => $has_certificate && $is_passed ?
+        Url::fromUri('internal:/certificate/group/' . $group_id . '/pdf') : FALSE,
     ];
   }
 }

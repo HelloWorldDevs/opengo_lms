@@ -155,6 +155,7 @@ function opigno_learning_path_theme() {
         'registration_date' => NULL,
         'validation_message' => NULL,
         'time_spend' => NULL,
+        'certificate_url' => NULL,
       ],
     ],
     'opigno_learning_path_training_details' => [
@@ -452,7 +453,7 @@ function opigno_learning_path_preprocess_page(&$variables) {
   if (opigno_learning_path_is_lp_route()) {
     unset($variables['page']['content']['platon_local_tasks']);
   }
-  
+
   // Check if there is required trainings.
   if ($route == 'entity.group.canonical'
     && $group
