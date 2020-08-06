@@ -163,6 +163,14 @@ class Progress {
       $latest_cert_date = '';
     }
 
+    // Progress should be shown only for member of group.
+    $group = Group::load($group_id);
+    $account = User::load($account_id);
+    $existing = $group->getMember($account);
+    if ($existing === FALSE) {
+      $class = 'empty';
+    }
+
     switch ($class) {
       case 'group-page':
         return $this->getProgressBuildGroupPage($group_id, $account_id, $latest_cert_date);
@@ -188,6 +196,12 @@ class Progress {
           '#theme' => 'opigno_learning_path_progress',
           '#class' => $class,
           '#value' => $this->getProgressRound($group_id, $account_id, $latest_cert_date),
+        ];
+  
+      case 'empty':
+        // Empty progress.
+        return [
+           '#markup' => '',
         ];
 
       default:

@@ -748,7 +748,7 @@ opigno_learning_path.progress:
   defaults:
     _controller: '\Drupal\opigno_learning_path\Controller\LearningPathProgress::getHTML'
   requirements:
-    _entity_access: 'group.take'
+    _access: 'TRUE'
   options:
     parameters:
       group:

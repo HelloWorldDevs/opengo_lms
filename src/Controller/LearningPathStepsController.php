@@ -113,10 +113,10 @@ class LearningPathStepsController extends ControllerBase {
           }
         }
 
-        if ($is_mandatory && !$is_owner) {
+        if ($is_mandatory) {
           $name = $step['name'];
           $required = $step['required score'];
-          if ($required > 0 || $step['typology'] == 'Meeting') {
+          if ($required > 0 || ($step['typology'] == 'Meeting' && !$is_owner)) {
             if ($step['best score'] < $required || OpignoGroupManagerController::mustBeVisitedMeeting($step, $group)) {
               $course_entity = OpignoGroupManagedContent::load($step['cid']);
               $course_content_type = $this->content_type_manager->createInstance(
@@ -379,8 +379,8 @@ class LearningPathStepsController extends ControllerBase {
           }
         }
 
-        if ($current_step['current attempt score'] < $required  && !$is_owner ||
-          OpignoGroupManagerController::mustBeVisitedMeeting($current_step, $group)  && !$is_owner) {
+        if ($current_step['current attempt score'] < $required ||
+          OpignoGroupManagerController::mustBeVisitedMeeting($current_step, $group) && !$is_owner) {
 
           $course_entity = OpignoGroupManagedContent::load($current_step['cid']);
           $course_content_type = $this->content_type_manager->createInstance(
@@ -452,7 +452,7 @@ class LearningPathStepsController extends ControllerBase {
         $name = $course['name'];
         $required = $course['required score'];
         if ($required > 0) {
-          if ($course['best score'] < $required && !$is_owner) {
+          if ($course['best score'] < $required) {
             $module_content = OpignoGroupManagedContent::getFirstStep($course['id']);
             $module_content_type = $this->content_type_manager->createInstance(
               $module_content->getGroupContentTypeId()
@@ -472,7 +472,7 @@ class LearningPathStepsController extends ControllerBase {
           }
         }
         else {
-          if ($course['attempts'] === 0 && !$is_owner) {
+          if ($course['attempts'] === 0) {
             $module_content = OpignoGroupManagedContent::getFirstStep($course['id']);
 
             OpignoGroupContext::setGroupId($group->id());
@@ -517,7 +517,7 @@ class LearningPathStepsController extends ControllerBase {
         }
       }
 
-      if ($is_mandatory && !$is_owner) {
+      if ($is_mandatory) {
         $name = $next_step['name'];
         $required = $next_step['required score'];
         // But if the live meeting or instructor-led training is
