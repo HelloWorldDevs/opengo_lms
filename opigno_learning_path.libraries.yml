@@ -190,3 +190,4 @@ progress:
     - core/jquery
     - core/jquery.once
     - core/drupalSettings
+    - core/drupal.ajax
