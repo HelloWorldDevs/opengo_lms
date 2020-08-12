@@ -713,8 +713,8 @@ class LearningPathAchievementController extends ControllerBase {
         $is_module = $step['typology'] === 'Module';
         $is_course = $step['typology'] === 'Course';
 
-        $time_spent = ($step['attempted'] && $step['time spent'] > 0) ? $date_formatter->formatInterval($step['time spent']) : '&dash;';
-        $completed = ($step['attempted'] && $step['completed on'] > 0) ? $date_formatter->format($step['completed on'], 'custom', 'F d Y') : '&dash;';
+        $time_spent = ($step['attempted'] && $step['time spent'] > 0) ? $date_formatter->formatInterval($step['time spent']) : 0;
+        $completed = ($step['attempted'] && $step['completed on'] > 0) ? $date_formatter->format($step['completed on'], 'custom', 'F d Y') : '';
 
         if ($is_module) {
           $module = OpignoModule::load($step['id']);
