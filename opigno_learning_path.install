@@ -11,6 +11,7 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Core\Config\FileStorage;
 use Drupal\opigno_learning_path\LearningPathAccess;
+use Drupal\user\Entity\Role;
 
 /**
  * Creates database table for Learning Path group user statuses.
@@ -884,4 +885,26 @@ function opigno_learning_path_update_8032() {
   $config_storage = \Drupal::service('config.storage');
   $data = $storage->read('views.view.opigno_training_catalog');
   $config_storage->write('views.view.opigno_training_catalog', $data);
+}
+
+/**
+ * Add access to contectual links.
+ */
+function opigno_learning_path_update_8033() {
+
+  // Grand users for access to contextual links.
+  $permission = 'access contextual links';
+
+  $role = Role::load('content_manager');
+  $role->grantPermission($permission);
+  $role->save();
+
+  $role = Role::load('user_manager');
+  $role->grantPermission($permission);
+  $role->save();
+
+  $permission = 'bypass group access';
+  $role = Role::load('content_manager');
+  $role->grantPermission($permission);
+  $role->save();
 }
