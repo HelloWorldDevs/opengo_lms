@@ -547,12 +547,12 @@ class LearningPathAchievementController extends ControllerBase {
           ['data' => $this->build_step_name($step)],
           ['data' => $this->build_step_score($step)],
           ['data' => $this->build_step_state($step)],
-          [
-            'data' => Link::createFromRoute(t('details'), 'opigno_module.module_result', [
+          !empty($step['id']) && !empty($step['best_attempt']) ? [
+            'data' => Link::createFromRoute($this->t('details'), 'opigno_module.module_result', [
               'opigno_module' => $step['id'],
               'user_module_status' => $step['best_attempt'],
             ])->toRenderable(),
-          ],
+          ] : [],
         ],
       ];
     }, $steps);

@@ -10,6 +10,7 @@ use Drupal\opigno_group_manager\Controller\OpignoGroupManagerController;
 use Drupal\opigno_group_manager\Entity\OpignoGroupManagedContent;
 use Drupal\opigno_learning_path\Entity\LPStatus;
 use Drupal\opigno_learning_path\LearningPathAccess;
+use Drupal\opigno_learning_path\LearningPathContent;
 use Drupal\opigno_module\Entity\OpignoModule;
 
 /**
@@ -210,10 +211,10 @@ class LearningPathController extends ControllerBase {
             }
             else {
               // Get link to module.
-              $parent_content_id = $course_steps[$course_step_key - 1]['cid'];
+              $course_parent_content_id = $course_steps[$course_step_key - 1]['cid'];
               $link = Link::createFromRoute($course_step['name'], 'opigno_learning_path.steps.next', [
                 'group' => $group->id(),
-                'parent_content' => $parent_content_id,
+                'parent_content' => $course_parent_content_id,
               ])
                 ->toString();
             }
@@ -246,6 +247,7 @@ class LearningPathController extends ControllerBase {
           }
 
           $step['course_steps'] = $course_steps;
+          $steps[$key]['course_steps'] = $course_steps;
         }
         elseif ($step['typology'] === 'Module') {
           $step['module'] = OpignoModule::load($step['id']);
@@ -326,12 +328,28 @@ class LearningPathController extends ControllerBase {
               $link = $free_link;
             }
             elseif (!empty($steps[$key - 1]['cid'])) {
-              $parent_content_id = $steps[$key - 1]['cid'];
-              $link = Link::createFromRoute($title, 'opigno_learning_path.steps.next', [
-                'group' => $group->id(),
-                'parent_content' => $parent_content_id,
-              ])
-                ->toString();
+              // Get previous step cid.
+              if ($steps[$key - 1]['typology'] == 'Course') {
+                // If previous step is course get it's last step.
+                if (!empty($steps[$key - 1]['course_steps'])) {
+                  $course_last_step = end($steps[$key - 1]['course_steps']);
+                  if (!empty($course_last_step['cid'])) {
+                    $parent_content_id = $course_last_step['cid'];
+                  }
+                }
+              }
+              else {
+                // If previous step isn't a course.
+                $parent_content_id = $steps[$key - 1]['cid'];
+              }
+
+              if (!empty($parent_content_id)) {
+                $link = Link::createFromRoute($title, 'opigno_learning_path.steps.next', [
+                  'group' => $group->id(),
+                  'parent_content' => $parent_content_id,
+                ])
+                  ->toString();
+              }
             }
           }
         }
