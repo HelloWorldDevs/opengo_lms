@@ -3807,6 +3807,7 @@ function opigno_learning_path_save_step_achievements(
   $keys = [
     'uid' => $uid,
     'gid' => $gid,
+    'typology' => $step['typology'],
     'entity_id' => $step['id'],
     'parent_id' => $parent_id,
   ];
