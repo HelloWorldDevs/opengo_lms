@@ -17,6 +17,9 @@ use Drupal\opigno_learning_path\LPStatusInterface;
  * @ContentEntityType(
  *   id = "user_lp_status",
  *   label = @Translation("User Learning Path status"),
+ *   handlers = {
+ *     "views_data" = "Drupal\opigno_learning_path\Entity\LPStatusViewsData",
+ *   },
  *   base_table = "user_lp_status",
  *   entity_keys = {
  *     "id" = "id",

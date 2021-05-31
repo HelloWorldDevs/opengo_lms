@@ -104,6 +104,7 @@ class LearningPathMembershipController extends ControllerBase {
    */
   public function addUserToTrainingAutocomplete(Group $group) {
     $matches = [];
+    $is_class = $group->getGroupType()->id() == 'opigno_class';
     $string = \Drupal::request()->query->get('q');
     if ($string !== NULL) {
       $like_string = '%' . $this->connection->escapeLike($string) . '%';
@@ -140,38 +141,40 @@ class LearningPathMembershipController extends ControllerBase {
         ];
       }
 
-      // Find classes by name.
-      $query = \Drupal::entityQuery('group')
-        ->condition('type', 'opigno_class')
-        ->condition('label', $like_string, 'LIKE')
-        ->sort('label')
-        ->range(0, 20);
+      if (!$is_class) {
+        // Find classes by name.
+        $query = \Drupal::entityQuery('group')
+          ->condition('type', 'opigno_class')
+          ->condition('label', $like_string, 'LIKE')
+          ->sort('label')
+          ->range(0, 20);
 
-      $gids = $query->execute();
-      $classes = Group::loadMultiple($gids);
+        $gids = $query->execute();
+        $classes = Group::loadMultiple($gids);
 
-      $db_connection = \Drupal::service('database');
-      /** @var \Drupal\group\Entity\Group $class */
-      foreach ($classes as $class) {
-        // Check if class already added.
-        $is_class_added = $db_connection->select('group_content_field_data', 'g_c_f_d')
-          ->fields('g_c_f_d', ['id'])
-          ->condition('gid', $group->id())
-          ->condition('entity_id', $class->id())
-          ->condition('type', 'group_content_type_27efa0097d858')
-          ->execute()->fetchField();
+        $db_connection = \Drupal::service('database');
+        /** @var \Drupal\group\Entity\Group $class */
+        foreach ($classes as $class) {
+          // Check if class already added.
+          $is_class_added = $db_connection->select('group_content_field_data', 'g_c_f_d')
+            ->fields('g_c_f_d', ['id'])
+            ->condition('gid', $group->id())
+            ->condition('entity_id', $class->id())
+            ->condition('type', 'group_content_type_27efa0097d858')
+            ->execute()->fetchField();
 
-        if (!$is_class_added) {
-          // If class haven't added yet.
-          $id = $class->id();
-          $name = $class->label();
+          if (!$is_class_added) {
+            // If class haven't added yet.
+            $id = $class->id();
+            $name = $class->label();
 
-          $matches[] = [
-            'value' => "$name (Group #$id)",
-            'label' => "$name (Group #$id)",
-            'type' => 'group',
-            'id' => 'class_' . $id,
-          ];
+            $matches[] = [
+              'value' => "$name (Group #$id)",
+              'label' => "$name (Group #$id)",
+              'type' => 'group',
+              'id' => 'class_' . $id,
+            ];
+          }
         }
       }
     }
@@ -397,7 +400,7 @@ class LearningPathMembershipController extends ControllerBase {
   }
 
   /**
-   * Ajax callback used in opingo_learning_path_member_overview.js.
+   * Ajax callback used in opigno_learning_path_member_overview.js.
    *
    * Removes member from learning path.
    *
@@ -427,7 +430,7 @@ class LearningPathMembershipController extends ControllerBase {
   }
 
   /**
-   * Ajax callback used in opingo_learning_path_member_overview.js.
+   * Ajax callback used in opigno_learning_path_member_overview.js.
    *
    * Removes class from learning path.
    */
@@ -462,7 +465,7 @@ class LearningPathMembershipController extends ControllerBase {
   }
 
   /**
-   * Ajax callback used in opingo_learning_path_member_overview.js.
+   * Ajax callback used in opigno_learning_path_member_overview.js.
    *
    * Toggles user role in learning path.
    */
@@ -505,7 +508,7 @@ class LearningPathMembershipController extends ControllerBase {
   }
 
   /**
-   * Ajax callback used in opingo_learning_path_member_overview.js.
+   * Ajax callback used in opigno_learning_path_member_overview.js.
    *
    * Validates user role in learning path.
    */

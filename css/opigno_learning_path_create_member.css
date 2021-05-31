@@ -55,7 +55,7 @@
   padding-left: 70px;
   padding-top: 20px;
   text-align: left;
-  width: 323px;
+  width: 100%;
 }
 
 .learning-path-create-member-form .btn_create:hover {
@@ -67,7 +67,7 @@
 
 .learning-path-create-user-form,
 .learning-path-create-class-form {
-  margin: 0 40px;
+  margin: 0 32px;
   padding-bottom: 40px;
   position: relative;
 }
@@ -143,6 +143,17 @@
   display: block;
   margin-bottom: 3rem !important;
 }
+
+.learning-path-create-class-form .form-item-new-class-users .multiselect-wrapper {
+  margin: 0;
+}
+
+.learning-path-create-class-form .form-item-new-class-users .multiselect-wrapper .multiselect-available,
+.learning-path-create-class-form .form-item-new-class-users .multiselect-wrapper .multiselect-selected {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
 
 .learning-path-create-class-form .btn_create {
   bottom: 0;

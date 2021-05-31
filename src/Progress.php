@@ -197,7 +197,7 @@ class Progress {
           '#class' => $class,
           '#value' => $this->getProgressRound($group_id, $account_id, $latest_cert_date),
         ];
-  
+
       case 'empty':
         // Empty progress.
         return [
@@ -427,8 +427,9 @@ class Progress {
       $edit_url)->toRenderable();
     $edit_button['#attributes']['class'][] = 'lp_progress_admin_edit';
     $edit_button['#attributes']['class'][] = 'lp_progress_control';
-    $members_button = Link::fromTextAndUrl(Markup::create('<span class="sr-only">' . $this->t('Member of training') . '</span>'), $members_url)->toRenderable();
+    $members_button = Link::fromTextAndUrl(Markup::create('<i class="icon-pencil"></i><span class="sr-only">' . $this->t('Member of training') . '</span>'), $members_url)->toRenderable();
     $members_button['#attributes']['class'][] = 'lp_progress_admin_edit';
+    $members_button['#attributes']['class'][] = 'lp_progress_control';
 
     $continue_button_text = $this->t('Continue Training');
     $continue_button = Link::fromTextAndUrl($continue_button_text, $continue_url)->toRenderable();
@@ -484,6 +485,15 @@ class Progress {
         'home_link' => $home_link,
         'progress' => $progress,
        ],
+      '#configuration' => [
+        'id' => 'opigno_module_learning_path_progress_block',
+        'label' => 'Learning path progress',
+        'provider' => 'opigno_module',
+        'label_display' => '0'
+      ],
+      '#plugin_id' => 'opigno_module_learning_path_progress_block',
+      '#base_plugin_id' => 'opigno_module_learning_path_progress_block',
+      '#derivative_plugin_id' => NULL
     ];
 
     return $build;

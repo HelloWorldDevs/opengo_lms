@@ -270,7 +270,7 @@ class LearningPathAchievementController extends ControllerBase {
       // else - get the best attempt.
       $attempt = $this->getTargetAttempt($attempts, $module);
       $max_score = $attempt->calculateMaxScore();
-      $score_percent = opigno_learning_path_get_attempt_score($attempt);
+      $score_percent = $attempt->getAttemptScore();
       $score = round($score_percent * $max_score / 100);
     }
     else {
@@ -414,10 +414,15 @@ class LearningPathAchievementController extends ControllerBase {
         $activities,
         (isset($attempt)
           ? [
-            Link::createFromRoute('Details', 'opigno_module.module_result', [
-              'opigno_module' => $module->id(),
-              'user_module_status' => $attempt->id(),
-            ])->toRenderable(),
+            Link::createFromRoute(
+              $this->t('Details'),
+              'opigno_module.module_result',
+              [
+                'opigno_module' => $module->id(),
+                'user_module_status' => $attempt->id(),
+              ],
+              ['query' => ['skip-links' => TRUE]]
+            )->toRenderable(),
           ]
           : []),
       ],
@@ -485,7 +490,7 @@ class LearningPathAchievementController extends ControllerBase {
       // else - get the best attempt.
       $attempt = $this->getTargetAttempt($attempts, $module);
       $max_score = $attempt->calculateMaxScore();
-      $score_percent = opigno_learning_path_get_attempt_score($attempt);
+      $score_percent = $attempt->getAttemptScore();
       $score = round($score_percent * $max_score / 100);
     }
     else {
@@ -1108,14 +1113,7 @@ class LearningPathAchievementController extends ControllerBase {
       $attempt = end($attempts);
     }
     else {
-      usort($attempts, function ($a, $b) {
-        /** @var \Drupal\opigno_module\Entity\UserModuleStatus $a */
-        /** @var \Drupal\opigno_module\Entity\UserModuleStatus $b */
-        $b_score = opigno_learning_path_get_attempt_score($b);
-        $a_score = opigno_learning_path_get_attempt_score($a);
-        return $b_score - $a_score;
-      });
-      $attempt = reset($attempts);
+      $attempt = opigno_learning_path_best_attempt($attempts);
     }
 
     return $attempt;

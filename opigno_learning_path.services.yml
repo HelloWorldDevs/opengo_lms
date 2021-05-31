@@ -2,6 +2,9 @@ services:
   opigno_learning_path.content_types.manager:
     class: Drupal\opigno_learning_path\LearningPathContentTypesManager
     parent: default_plugin_manager
+  opigno_learning_path.members.manager:
+    class: Drupal\opigno_learning_path\LearningPathMembersManager
+    parent: default_plugin_manager
 
 #  opigno_learning_path.lp_tools_database:
 #    class: Drupal\opigno_learning_path\Database\LearningPathContentsDatabase
@@ -33,3 +36,6 @@ services:
   opigno_learning_path.progress:
     class: Drupal\opigno_learning_path\Progress
     arguments: ['@current_user', '@database', '@request_stack']
+  opigno_lps:
+    class: Drupal\opigno_learning_path\LpSteps
+    arguments: ['@current_user', '@database', '@module_handler']

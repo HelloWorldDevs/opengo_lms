@@ -21,6 +21,14 @@
         <div class="lp_step_summary">
           <div class="lp_step_summary_title_wrapper">
             <h3 class="lp_step_summary_title">{{ course_step.title }}</h3>
+
+            {% if course_step.sub_title %}
+              <h4 class="lp_step_summary_subtitle">{{ course_step.sub_title }}</h4>
+            {% endif %}
+
+            {% if course_step.description %}
+              <div class="lp_step_summary_description">{{ course_step.description|raw }}</div>
+            {% endif %}
           </div>
           {{ course_step.summary_details_table }}
         </div>
@@ -36,7 +44,7 @@
             <h4 class="lp_step_summary_subtitle">{{ step.sub_title }}</h4>
           {% endif %}
 
-          {%  if step.description %}
+          {% if step.description %}
             <div class="lp_step_summary_description">{{ step.description|raw }}</div>
           {% endif %}
         </div>

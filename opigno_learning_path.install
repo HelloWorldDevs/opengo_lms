@@ -856,6 +856,10 @@ function opigno_learning_path_update_8030() {
  * Creates create cronjobs.
  */
 function opigno_learning_path_update_8031() {
+  // Enable ultimate_cron.
+  if (!\Drupal::moduleHandler()->moduleExists('ultimate_cron')) {
+    \Drupal::service('module_installer')->install(['ultimate_cron']);
+  }
 
   // Enable new module opigno_cron.
   if (!\Drupal::moduleHandler()->moduleExists('opigno_cron')) {
@@ -896,15 +900,62 @@ function opigno_learning_path_update_8033() {
   $permission = 'access contextual links';
 
   $role = Role::load('content_manager');
-  $role->grantPermission($permission);
-  $role->save();
+  if ($role) {
+    $role->grantPermission($permission);
+    $role->save();
+  }
 
   $role = Role::load('user_manager');
-  $role->grantPermission($permission);
-  $role->save();
+  if ($role) {
+    $role->grantPermission($permission);
+    $role->save();
+  }
 
   $permission = 'bypass group access';
   $role = Role::load('content_manager');
-  $role->grantPermission($permission);
-  $role->save();
+  if ($role) {
+    $role->grantPermission($permission);
+    $role->save();
+  }
+}
+
+/**
+ * Add access to dropzone upload files.
+ */
+function opigno_learning_path_update_8034() {
+
+  // Grand users for access to contextual links.
+  $permission = 'dropzone upload files';
+
+  $role = Role::load('content_manager');
+  if ($role) {
+    $role->revokePermission($permission);
+    $role->save();
+  }
+
+  $role = Role::load('user_manager');
+  if ($role) {
+    $role->revokePermission($permission);
+    $role->save();
+  }
+
+  $role = Role::load('authenticated');
+  if ($role) {
+    $role->grantPermission($permission);
+    $role->save();
+  }
+}
+
+/**
+ * Add alternative text to training catalog.
+ */
+function opigno_learning_path_update_8035() {
+  // Add new cron configuretions.
+  $config_path = drupal_get_path('module', 'opigno_learning_path')
+    . '/config/install';
+  $storage = new FileStorage($config_path);
+
+  $config_storage = \Drupal::service('config.storage');
+  $data = $storage->read('group.role.learning_path-member');
+  $config_storage->write('group.role.learning_path-member', $data);
 }

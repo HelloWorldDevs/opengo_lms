@@ -1,6 +1,13 @@
 (function ($, Drupal, drupalSettings) {
   Drupal.behaviors.opignoLearningPathCreateMember = {
     attach: function (context, settings) {
+      Drupal.opignoAutocompliteMultiselect({
+        m_selected: '#new_class_users',
+        m_available: '#new_class_users-available',
+        autocomplete: '#class_users_autocomplete',
+        dropdown: '.ui-widget.ui-widget-content.ui-autocomplete',
+        context: context,
+      });
       var $dialog = $('#drupal-modal');
       $dialog.on('dialogopen', function(event, ui) {
         $dialog.dialog('option', 'position', {

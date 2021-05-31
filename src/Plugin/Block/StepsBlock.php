@@ -3,14 +3,24 @@
 namespace Drupal\opigno_learning_path\Plugin\Block;
 
 use Drupal\Core\Block\BlockBase;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Link;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Routing\ResettableStackedRouteMatchInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\group\Entity\Group;
+use Drupal\opigno_group_manager\ContentTypeBase;
 use Drupal\opigno_group_manager\Controller\OpignoGroupManagerController;
 use Drupal\opigno_group_manager\Entity\OpignoGroupManagedContent;
+use Drupal\opigno_group_manager\OpignoGroupContentTypesManager;
 use Drupal\opigno_group_manager\OpignoGroupContext;
 use Drupal\Core\Cache\Cache;
+use Drupal\opigno_ilt\ILTInterface;
 use Drupal\opigno_learning_path\Entity\LPStatus;
 use Drupal\opigno_learning_path\LearningPathContent;
+use Drupal\opigno_learning_path\Progress;
+use Drupal\opigno_moxtra\MeetingInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides a 'article' block.
@@ -20,57 +30,86 @@ use Drupal\opigno_learning_path\LearningPathContent;
  *   admin_label = @Translation("LP Steps block")
  * )
  */
-class StepsBlock extends BlockBase {
+class StepsBlock extends BlockBase implements ContainerFactoryPluginInterface {
 
   /**
-   * Returns score.
+   * @var AccountProxyInterface
    */
-  protected function buildScore($step) {
-    $is_attempted = $step['attempts'] > 0;
+  protected $account;
 
-    if ($is_attempted) {
-      $score = [
-        '#type' => 'html_tag',
-        '#tag' => 'span',
-        '#value' => $step['best score'],
-        '#attributes' => [
-          'class' => ['lp_steps_block_score'],
-        ],
-      ];
-    }
-    else {
-      $score = ['#markup' => '&dash;'];
-    }
+  /**
+   * @var ResettableStackedRouteMatchInterface
+   */
+  protected $routeMatch;
 
-    return [
-      'data' => $score,
-    ];
+  /**
+   * @var EntityTypeManagerInterface
+   */
+  protected $entityTypeManager;
+
+  /**
+   * @var Progress
+   */
+  protected $progress;
+
+  /**
+   * @var OpignoGroupContentTypesManager
+   */
+  protected $opignoGroupContentTypesManager;
+
+  /**
+   * StepsBlock constructor.
+   *
+   * @param array $configuration
+   * @param string $plugin_id
+   * @param mixed $plugin_definition
+   * @param AccountProxyInterface $account
+   * @param ResettableStackedRouteMatchInterface $route_match
+   * @param EntityTypeManagerInterface $entity_type_manager
+   * @param Progress $progress
+   * @param OpignoGroupContentTypesManager $opigno_group_content_types_manager
+   */
+  public function __construct(
+    array $configuration,
+    $plugin_id,
+    $plugin_definition,
+    AccountProxyInterface $account,
+    ResettableStackedRouteMatchInterface $route_match,
+    EntityTypeManagerInterface $entity_type_manager,
+    Progress $progress,
+    OpignoGroupContentTypesManager $opigno_group_content_types_manager
+  ) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+    $this->account = $account;
+    $this->routeMatch = $route_match;
+    $this->entityTypeManager = $entity_type_manager;
+    $this->progress = $progress;
+    $this->opignoGroupContentTypesManager = $opigno_group_content_types_manager;
   }
 
   /**
-   * Returns state.
+   * @param ContainerInterface $container
+   * @param array $configuration
+   * @param string $plugin_id
+   * @param mixed $plugin_definition
+   *
+   * @return StepsBlock
    */
-  protected function buildState($step) {
-    $uid = \Drupal::currentUser()->id();
-    $status = opigno_learning_path_get_step_status($step, $uid, TRUE);
-    $class = [
-      'pending' => 'lp_steps_block_step_pending',
-      'failed' => 'lp_steps_block_step_failed',
-      'passed' => 'lp_steps_block_step_passed',
-    ];
-
-    if (isset($class[$status])) {
-      return [
-        'data' => [
-          '#type' => 'html_tag',
-          '#tag' => 'span',
-          '#attributes' => ['class' => [$class[$status]]],
-        ],
-      ];
-    }
-    else {
-      return ['data' => ['#markup' => '&dash;']];
-    }
+  public static function create(
+    ContainerInterface $container,
+    array $configuration,
+    $plugin_id,
+    $plugin_definition) {
+    return new self(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get('current_user'),
+      $container->get('current_route_match'),
+      $container->get('entity.manager'),
+      $container->get('opigno_learning_path.progress'),
+      $container->get('opigno_group_manager.content_types.manager')
+    );
   }
 
   /**
@@ -85,19 +124,16 @@ class StepsBlock extends BlockBase {
    * {@inheritdoc}
    */
   public function build() {
-    $user = \Drupal::currentUser();
 
-    $uid = $user->id();
-    $route_name = \Drupal::routeMatch()->getRouteName();
+    $uid = $this->account->id();
+    $route_name = $this->routeMatch->getRouteName();
     if ($route_name == 'opigno_module.group.answer_form') {
-      $group = \Drupal::routeMatch()->getParameter('group');
+      $group = $this->routeMatch->getParameter('group');
       $gid = $group->id();
     }
     else {
       $gid = OpignoGroupContext::getCurrentGroupId();
-      if (isset($gid) && is_numeric($gid)) {
-        $group = Group::load($gid);
-      }
+      $group = Group::load($gid);
     }
 
     if (empty($group)) {
@@ -118,8 +154,7 @@ class StepsBlock extends BlockBase {
       $steps = LearningPathContent::getAllStepsOnlyModules($gid, $uid);
     }
 
-    /** @var \Drupal\user\UserInterface $user */
-    $user = \Drupal::currentUser();
+    $user = $this->account;
     $steps = array_filter($steps, function ($step) use ($user) {
       if ($step['typology'] === 'Meeting') {
         // If the user have not the collaborative features role.
@@ -128,8 +163,8 @@ class StepsBlock extends BlockBase {
         }
 
         // If the user is not a member of the meeting.
-        /** @var \Drupal\opigno_moxtra\MeetingInterface $meeting */
-        $meeting = \Drupal::entityTypeManager()
+        /** @var MeetingInterface $meeting */
+        $meeting = $this->entityTypeManager
           ->getStorage('opigno_moxtra_meeting')
           ->load($step['id']);
         if (!$meeting->isMember($user->id())) {
@@ -138,8 +173,8 @@ class StepsBlock extends BlockBase {
       }
       elseif ($step['typology'] === 'ILT') {
         // If the user is not a member of the ILT.
-        /** @var \Drupal\opigno_ilt\ILTInterface $ilt */
-        $ilt = \Drupal::entityTypeManager()
+        /** @var ILTInterface $ilt */
+        $ilt = $this->entityTypeManager
           ->getStorage('opigno_ilt')
           ->load($step['id']);
         if (!$ilt->isMember($user->id())) {
@@ -154,8 +189,7 @@ class StepsBlock extends BlockBase {
     $expired = LPStatus::isCertificateExpired($group, $uid);
 
     $score = opigno_learning_path_get_score($gid, $uid);
-    $progress_service = \Drupal::service('opigno_learning_path.progress');
-    $progress = $progress_service->getProgressRound($gid, $uid);
+    $progress = $this->progress->getProgressRound($gid, $uid);
 
     $is_passed = opigno_learning_path_is_passed($group, $uid, $expired);
 
@@ -181,12 +215,16 @@ class StepsBlock extends BlockBase {
       if ($i == 0) {
         // Load first step entity.
         $first_step = OpignoGroupManagedContent::load($steps[$i]['cid']);
-        /* @var \Drupal\opigno_group_manager\OpignoGroupContentTypesManager $content_types_manager*/
-        $content_types_manager = \Drupal::service('opigno_group_manager.content_types.manager');
-        $content_type = $content_types_manager->createInstance($first_step->getGroupContentTypeId());
-        $step_url = $content_type->getStartContentUrl($first_step->getEntityId(), $gid);
-        $link = Link::createFromRoute($steps[$i]['name'], $step_url->getRouteName(), $step_url->getRouteParameters())
-          ->toString();
+        if ($first_step) {
+          /** @var ContentTypeBase $content_type */
+          $content_type = $this->opignoGroupContentTypesManager->createInstance($first_step->getGroupContentTypeId());
+          $step_url = $content_type->getStartContentUrl($first_step->getEntityId(), $gid);
+          $link = Link::createFromRoute($steps[$i]['name'], $step_url->getRouteName(), $step_url->getRouteParameters())
+            ->toString();
+        }
+        else {
+          $link = '-';
+        }
       }
       else {
         // Get link to module.
@@ -199,88 +237,108 @@ class StepsBlock extends BlockBase {
       }
 
       array_push($step_info, [
-        $link,
-        $this->buildScore($steps[$i]),
-        $this->buildState($steps[$i]),
+        'name' => $link,
+        'score' => $this->buildScore($steps[$i]),
+        'state' => $this->buildState($steps[$i]),
       ]);
 
     }
 
-    $summary = [
-      '#type' => 'container',
+    $state_summary = [
+      'class' => $state_class,
+      'title' => $state_title,
+      'score' => $this->t('Average score : @score%', ['@score' => $score]),
+      'progress' => $this->t('Progress : @progress%', ['@progress' => $progress]),
+    ];
+
+    $table_summary = [
+      '#type' => 'table',
+      '#header' => [
+        $this->t('Name'),
+        $this->t('Score'),
+        $this->t('State'),
+      ],
+      '#rows' => $step_info,
       '#attributes' => [
-        'class' => ['lp_steps_block_summary'],
-      ],
-      [
-        '#type' => 'html_tag',
-        '#tag' => 'span',
-        '#attributes' => [
-          'class' => [$state_class],
-        ],
-        '#value' => '',
-      ],
-      [
-        '#type' => 'html_tag',
-        '#tag' => 'h3',
-        '#attributes' => [
-          'class' => ['lp_steps_block_summary_title'],
-        ],
-        '#value' => $state_title,
-      ],
-      [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#attributes' => [
-          'class' => ['lp_steps_block_summary_score'],
-        ],
-        '#value' => $this->t('Average score : @score%', [
-          '@score' => $score,
-        ]),
-      ],
-      [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#attributes' => [
-          'class' => ['lp_steps_block_summary_progress'],
-        ],
-        '#value' => $this->t('Progress : @progress%', [
-          '@progress' => $progress,
-        ]),
+        'class' => ['lp_steps_block_table'],
       ],
     ];
 
-    return [
-      '#type' => 'container',
+    $build = [
+      '#theme' => 'opigno_learning_path_step_block',
       '#attributes' => [
         'class' => ['lp_steps_block'],
-      ],
-      $summary,
-      [
-        '#type' => 'html_tag',
-        '#tag' => 'h3',
-        '#value' => $title,
-        '#attributes' => [
-          'class' => ['lp_steps_block_title'],
-        ],
-      ],
-      [
-        '#type' => 'table',
-        '#header' => [
-          $this->t('Name'),
-          $this->t('Score'),
-          $this->t('State'),
-        ],
-        '#rows' => $step_info,
-        '#attributes' => [
-          'class' => ['lp_steps_block_table'],
-        ],
       ],
       '#attached' => [
         'library' => [
           'opigno_learning_path/steps_block',
         ],
       ],
+      '#title' => $title,
+      '#state_summary' => $state_summary,
+      '#table_summary' => $table_summary,
     ];
+
+    return $build;
+  }
+
+  /**
+   * Builds the score.
+   *
+   * @param array $step
+   *
+   * @return mixed|null
+   */
+  protected function buildScore(array $step) {
+    $is_attempted = $step['attempts'] > 0;
+
+    if ($is_attempted) {
+      $score = [
+        '#type' => 'html_tag',
+        '#tag' => 'span',
+        '#value' => $step['best score'],
+        '#attributes' => [
+          'class' => ['lp_steps_block_score'],
+        ],
+      ];
+    }
+    else {
+      $score = ['#markup' => '&dash;'];
+    }
+
+    return [
+      'data' => $score,
+    ];
+  }
+
+  /**
+   * Builds the state.
+   *
+   * @param array $step
+   *
+   * @return string|null
+   */
+  protected function buildState(array $step) {
+    $uid = \Drupal::currentUser()->id();
+    $status = opigno_learning_path_get_step_status($step, $uid, TRUE);
+    $class = [
+      'pending' => 'lp_steps_block_step_pending',
+      'failed' => 'lp_steps_block_step_failed',
+      'passed' => 'lp_steps_block_step_passed',
+    ];
+
+    if (isset($class[$status])) {
+      return [
+        'data' => [
+          '#type' => 'html_tag',
+          '#tag' => 'span',
+          '#attributes' => ['class' => [$class[$status]]],
+        ],
+      ];
+    }
+    else {
+      return ['data' => ['#markup' => '&dash;']];
+    }
   }
 
 }

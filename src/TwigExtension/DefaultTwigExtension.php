@@ -136,23 +136,23 @@ class DefaultTwigExtension extends \Twig_Extension {
 
     $route_name = $route->getRouteName();
     $visibility = $group->field_learning_path_visibility->value;
-    $access = isset($group) && $group->access('view', $account) && ($group->hasPermission('join group', $account) || $visibility == 'public');
+    $access = isset($group) && $group->access('view', $account) && ($group->hasPermission('join group', $account) || $visibility == 'public' || $visibility == 'semiprivate');
+
+    // If training is paid.
+    $is_member = $group->getMember($account) !== FALSE;
+    $module_commerce_enabled = \Drupal::moduleHandler()->moduleExists('opigno_commerce');
+    if ($module_commerce_enabled
+      && $group->hasField('field_lp_price')
+      && $group->get('field_lp_price')->value != 0
+      && !$is_member) {
+
+      return '';
+    }
 
     if ($route_name == 'entity.group.canonical' && $access) {
       $link = NULL;
       $validation = LearningPathAccess::requiredValidation($group, $account);
-      $is_member = $group->getMember($account) !== FALSE;
       $is_anonymous = $account->id() === 0;
-      $module_commerce_enabled = \Drupal::moduleHandler()->moduleExists('opigno_commerce');
-
-      // If training is paid.
-      if ($module_commerce_enabled
-        && $group->hasField('field_lp_price')
-        && $group->get('field_lp_price')->value != 0
-        && !$is_member) {
-
-        return '';
-      }
 
       if ($visibility == 'semiprivate' && $validation) {
         $joinLabel = t('Request subscription to the training');
@@ -186,6 +186,15 @@ class DefaultTwigExtension extends \Twig_Extension {
           'args' => ['group' => $group->id()],
         ];
       }
+
+    if ($route_name == 'entity.group.canonical' && $is_anonymous && $visibility == 'semiprivate') {
+      $url = Url::fromRoute('entity.group.canonical', ['group' => $group->id()]);
+      $link = [
+        'title' => t('Create an account and subscribe'),
+        'route' => 'user.login',
+        'args' => ['prev_path' => render($url)->toString()],
+      ];
+    }
 
       if ($link) {
         $url = Url::fromRoute($link['route'], $link['args'], ['attributes' => $attributes]);
@@ -222,13 +231,14 @@ class DefaultTwigExtension extends \Twig_Extension {
       return [];
     }
 
+    $args = [];
     $current_route = \Drupal::routeMatch()->getRouteName();
     $visibility = $group->field_learning_path_visibility->value;
     $account = \Drupal::currentUser();
     $is_anonymous = $account->id() === 0;
     if ($is_anonymous && $visibility != 'public') {
       if ($visibility != 'semiprivate'
-            || (!$group->hasField('field_lp_price')
+            && (!$group->hasField('field_lp_price')
             || $group->get('field_lp_price')->value == 0)) {
         return [];
       }
@@ -259,7 +269,7 @@ class DefaultTwigExtension extends \Twig_Extension {
       $attributes['class'][] = 'use-ajax';
       $attributes['class'][] = 'start-link';
     }
-    elseif (!$group->getMember($account)) {
+    elseif (!$group->getMember($account) || $is_anonymous) {
       if ($group->hasPermission('join group', $account)) {
         if ($current_route == 'entity.group.canonical') {
           $text = $validation ?  t('Request subscription to the training') : t('Subscribe to training');
@@ -273,6 +283,17 @@ class DefaultTwigExtension extends \Twig_Extension {
           $attributes['class'][] = 'join-link';
         }
       }
+      elseif ($visibility === 'semiprivate' && $is_anonymous) {
+        if ($current_route == 'entity.group.canonical') {
+          $text = t('Create an account and subscribe');
+          $route = 'user.login';
+          $args += ['prev_path' => Url::fromRoute('entity.group.canonical', ['group' => $group->id()])->toString()];
+        }
+        else {
+          $text = t('Learn more');
+          $route =  'entity.group.canonical';
+        }
+      }
       else {
         return '';
       }
@@ -284,7 +305,7 @@ class DefaultTwigExtension extends \Twig_Extension {
     }
     else {
       $text = opigno_learning_path_started($group, $account) ? t('Continue training') : t('Start');
-      $route = 'opigno_learning_path.steps.start';
+      $route = 'opigno_learning_path.steps.type_start';
       $attributes['class'][] = 'use-ajax';
 
       if (opigno_learning_path_started($group, $account)) {
@@ -295,7 +316,9 @@ class DefaultTwigExtension extends \Twig_Extension {
       }
     }
 
-    $args = ['group' => $group->id()];
+    $type = $current_route === 'view.opigno_training_catalog.training_catalogue' ? 'catalog' : 'group';
+
+    $args += ['group' => $group->id(), 'type' => $type];
     $url = Url::fromRoute($route, $args, ['attributes' => $attributes]);
     $l = Link::fromTextAndUrl($text, $url)->toRenderable();
 

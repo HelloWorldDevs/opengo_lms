@@ -245,8 +245,19 @@ opigno_learning_path.steps.start:
     parameters:
       group:
        type: entity:group
-      account:
-       type: entity:user
+
+opigno_learning_path.steps.type_start:
+  path: '/group/{group}/learning-path/start/{type}'
+  defaults:
+    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathStepsController::start'
+    _title: 'Learning Path start'
+  requirements:
+    _entity_access: 'group.take'
+    _custom_access: '\Drupal\opigno_learning_path\Controller\LearningPathStepsController::startAccess'
+  options:
+    parameters:
+      group:
+       type: entity:group
 
 opigno_learning_path.steps.next:
   path: '/group/{group}/learning-path/nextstep/{parent_content}'
@@ -273,8 +284,6 @@ opigno_learning_path.steps.finish:
     parameters:
       group:
        type: entity:group
-      account:
-       type: entity:user
 
 opigno_learning_path.steps.steps:
   path: '/group/{group}/learning-path/steps'
@@ -287,8 +296,6 @@ opigno_learning_path.steps.steps:
     parameters:
       group:
        type: entity:group
-      account:
-       type: entity:user
 
 opigno_learning_path.content_steps:
   path: '/group/{group}/content-steps/{current}'
@@ -306,37 +313,37 @@ opigno_learning_path.content_steps:
        type: entity:user
 
 ### RESULTS ###
-opigno_learning_path.results:
-  path: '/group/{group}/learning-path/results'
-  defaults:
-    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathResults::results'
-    _title: 'Results'
-    mode: 'results'
-  requirements:
-    _entity_access: 'group.take'
-  options:
-    parameters:
-      group:
-       type: entity:group
-      account:
-       type: entity:user
+#opigno_learning_path.results:
+#  path: '/group/{group}/learning-path/results'
+#  defaults:
+#    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathResults::results'
+#    _title: 'Results'
+#    mode: 'results'
+#  requirements:
+#    _entity_access: 'group.take'
+#  options:
+#    parameters:
+#      group:
+#       type: entity:group
+#      account:
+#       type: entity:user
 
-opigno_learning_path.results.delete:
-  path: '/group/{group}/learning-path/results/{result}/delete'
-  defaults:
-    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathResults::delete'
-    _title: 'Results'
-    mode: 'delete'
-  requirements:
-    _entity_access: 'result.delete'
-  options:
-    parameters:
-      group:
-        type: entity:group
-      account:
-       type: entity:user
-      result:
-        type: entity:learning_path_result
+#opigno_learning_path.results.delete:
+#  path: '/group/{group}/learning-path/results/{result}/delete'
+#  defaults:
+#    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathResults::delete'
+#    _title: 'Results'
+#    mode: 'delete'
+#  requirements:
+#    _entity_access: 'result.delete'
+#  options:
+#    parameters:
+#      group:
+#        type: entity:group
+#      account:
+#       type: entity:user
+#      result:
+#        type: entity:learning_path_result
 
 #TODO: Maybe change ROOT url from /group/ to /learning-path/ ?
 
@@ -434,7 +441,7 @@ opigno_learning_path.entities.get_activities_conditional:
   defaults:
     _controller: '\Drupal\opigno_learning_path\Controller\LearningPathContentController::getModuleRequiredActivities'
   requirements:
-    _permission: 'access administration pages'
+    _custom_access: '\Drupal\opigno_learning_path\Controller\LearningPathContentController::getModuleRequiredActivitiesAccess'
   options:
     parameters:
       opigno_entity_type:

@@ -30,6 +30,7 @@ class LearningPathCreateMemberForm extends FormBase {
     ];
 
     $group = $this->getRequest()->get('group');
+    $is_class = $group->getGroupType()->id() == 'opigno_class';
     $args = [
       'group' => $group !== NULL ? $group->id() : 0,
     ];
@@ -42,15 +43,19 @@ class LearningPathCreateMemberForm extends FormBase {
     $form['create_user']['#attributes']['class'][] = 'btn_create';
     $form['create_user']['#attributes']['class'][] = 'use-ajax';
     $form['create_user']['#attributes']['data-dialog-type'] = 'modal';
+    $form['create_user']['#attributes']['data-dialog-options'] = json_encode(['dialogClass' => 'modal-dialog-sidebar']);
 
-    $form['create_class'] = Link::createFromRoute(
-      $this->t('Create a new class'),
-      'opigno_learning_path.membership.create_class',
-      $args
-    )->toRenderable();
-    $form['create_class']['#attributes']['class'][] = 'btn_create';
-    $form['create_class']['#attributes']['class'][] = 'use-ajax';
-    $form['create_class']['#attributes']['data-dialog-type'] = 'modal';
+    if (!$is_class) {
+      $form['create_class'] = Link::createFromRoute(
+        $this->t('Create a new class'),
+        'opigno_learning_path.membership.create_class',
+        $args
+      )->toRenderable();
+      $form['create_class']['#attributes']['class'][] = 'btn_create';
+      $form['create_class']['#attributes']['class'][] = 'use-ajax';
+      $form['create_class']['#attributes']['data-dialog-type'] = 'modal';
+      $form['create_class']['#attributes']['data-dialog-options'] = json_encode(['dialogClass' => 'modal-dialog-sidebar']);
+    }
 
     $form['#attached']['library'][] = 'core/drupal.dialog.ajax';
     $form['#attached']['library'][] = 'opigno_learning_path/create_member';

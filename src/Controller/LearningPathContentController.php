@@ -17,6 +17,11 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Drupal\Core\Access\AccessResult;
+use Drupal\opigno_learning_path\LearningPathAccess;
+use Drupal\Core\Session\AccountProxy;
+use Drupal\opigno_group_manager\OpignoGroupContext;
+use Drupal\opigno_group_manager\Entity\OpignoGroupManagedContent;
 
 /**
  * Controller for all the actions of the Learning Path content.
@@ -24,12 +29,14 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 class LearningPathContentController extends ControllerBase {
 
   private $content_types_manager;
+  protected $currentUser;
 
   /**
    * {@inheritdoc}
    */
-  public function __construct(OpignoGroupContentTypesManager $content_types_manager) {
+  public function __construct(OpignoGroupContentTypesManager $content_types_manager, AccountProxy $current_account) {
     $this->content_types_manager = $content_types_manager;
+    $this->currentUser = $current_account;
   }
 
   /**
@@ -37,7 +44,8 @@ class LearningPathContentController extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('opigno_group_manager.content_types.manager')
+      $container->get('opigno_group_manager.content_types.manager'),
+      $container->get('current_user')
     );
   }
 
@@ -260,6 +268,102 @@ class LearningPathContentController extends ControllerBase {
   }
 
   /**
+   * Returns Right access conditional activities with the module.
+   */
+  public function getModuleRequiredActivitiesAccess($opigno_entity_type, $opigno_entity_id) {
+    $group_id = OpignoGroupContext::getCurrentGroupId();
+    if (LearningPathAccess::memberHasRole('admin', $this->currentUser, $group_id)) {
+      return AccessResult::allowed();
+    }
+    return AccessResult::allowedIfHasPermission($this->currentUser, 'bypass group access');
+  }
+
+
+  /**
+   * Returns conditional activities with the module.
+   *
+   * @param \Drupal\opigno_module\Entity\OpignoModule $opigno_module
+   *   Entity OpignoModule".
+   * @param array $results
+   *   Results.
+   */
+  protected function getModuleConditionals(OpignoModule $opigno_module, &$results = []) {
+    if ($opigno_module) {
+      $activities = $this->getModuleActivitiesEntities($opigno_module);
+      $conditional_h5p_types = ['H5P.TrueFalse', 'H5P.MultiChoice'];
+
+      if ($activities) {
+        // Get only H5P.TrueFalse/H5P.MultiChoice activities.
+        foreach ($activities as $key => $activity) {
+          $exclude = FALSE;
+          $activity = OpignoActivity::load($activity->id);
+
+          if ($activity->hasField('opigno_h5p')) {
+            $opigno_h5p = $activity->get('opigno_h5p')->getValue();
+            if (!empty($opigno_h5p[0]['h5p_content_id']) && $h5p_content_id = $opigno_h5p[0]['h5p_content_id']) {
+              $h5p_content = H5PContent::load($h5p_content_id);
+              $library = $h5p_content->getLibrary();
+              if (!in_array($library->name, $conditional_h5p_types)) {
+                $exclude = TRUE;
+              }
+
+              if ($library->name == 'H5P.TrueFalse') {
+                $params = $h5p_content->getParameters();
+                $activities[$key]->answers[0] = [
+                  'id' => $activity->id() . '-0',
+                  'correct' => $params->correct == 'true' ? TRUE : FALSE,
+                  'text' => trim(strip_tags(nl2br(str_replace([
+                    '\n',
+                    '\r'
+                  ], '', $params->l10n->trueText)))),
+                ];
+                $activities[$key]->answers[1] = [
+                  'id' => $activity->id() . '-1',
+                  'correct' => $params->correct == 'false' ? TRUE : FALSE,
+                  'text' => trim(strip_tags(nl2br(str_replace([
+                    '\n',
+                    '\r'
+                  ], '', $params->l10n->falseText)))),
+                ];
+              }
+
+              if ($library->name == 'H5P.MultiChoice') {
+                $answers = $h5p_content->getParameters()->answers;
+                if ($answers) {
+                  foreach ($answers as $k => $answer) {
+                    $activities[$key]->answers[$k] = [
+                      'id' => $activity->id() . '-' . $k,
+                      'correct' => $answer->correct,
+                      'text' => trim(strip_tags(nl2br(str_replace([
+                        '\n',
+                        '\r'
+                      ], '', $answer->text)))),
+                    ];
+                  }
+                }
+              }
+            }
+            else {
+              $exclude = TRUE;
+            }
+          }
+          else {
+            $exclude = TRUE;
+          }
+
+          if ($exclude) {
+            unset($activities[$key]);
+            $results['simple'] = TRUE;
+          }
+          else {
+            $results['conditional'][] = $activities[$key];
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * Returns conditional activities with the module.
    *
    * @param string $opigno_entity_type
@@ -277,62 +381,18 @@ class LearningPathContentController extends ControllerBase {
     ];
 
     if ($opigno_entity_type == 'ContentTypeModule') {
-      if ($opigno_module = OpignoModule::load($opigno_entity_id)) {
-        $activities = $this->getModuleActivitiesEntities($opigno_module);
-        $conditional_h5p_types = ['H5P.TrueFalse', 'H5P.MultiChoice'];
+      $opigno_module = OpignoModule::load($opigno_entity_id);
+      $this->getModuleConditionals($opigno_module, $results);
+    }
 
-        if ($activities) {
-          // Get only H5P.TrueFalse/H5P.MultiChoice activities.
-          foreach ($activities as $key => $activity) {
-            $exclude = FALSE;
-            $activity = OpignoActivity::load($activity->id);
-
-            if ($activity->hasField('opigno_h5p') && $h5p_content_id = $activity->get('opigno_h5p')->getValue()[0]['h5p_content_id']) {
-              $h5p_content = H5PContent::load($h5p_content_id);
-              $library = $h5p_content->getLibrary();
-              if (!in_array($library->name, $conditional_h5p_types)) {
-                $exclude = TRUE;
-              }
-
-              if ($library->name == 'H5P.TrueFalse') {
-                $params = $h5p_content->getParameters();
-                $activities[$key]->answers[0] = [
-                  'id' => $activity->id() . '-0',
-                  'correct' => $params->correct == 'true' ? TRUE : FALSE,
-                  'text' => trim(strip_tags(nl2br(str_replace(['\n', '\r'], '', $params->l10n->trueText)))),
-                ];
-                $activities[$key]->answers[1] = [
-                  'id' => $activity->id() . '-1',
-                  'correct' => $params->correct == 'false' ? TRUE : FALSE,
-                  'text' => trim(strip_tags(nl2br(str_replace(['\n', '\r'], '', $params->l10n->falseText)))),
-                ];
-              }
-
-              if ($library->name == 'H5P.MultiChoice') {
-                $answers = $h5p_content->getParameters()->answers;
-                if ($answers) {
-                  foreach ($answers as $k => $answer) {
-                    $activities[$key]->answers[$k] = [
-                      'id' => $activity->id() . '-' . $k,
-                      'correct' => $answer->correct,
-                      'text' => trim(strip_tags(nl2br(str_replace(['\n', '\r'], '', $answer->text)))),
-                    ];
-                  }
-                }
-              }
-            }
-            else {
-              $exclude = TRUE;
-            }
-
-            if ($exclude) {
-              unset($activities[$key]);
-              $results['simple'] = TRUE;
-            }
-            else {
-              $results['conditional'][] = $activities[$key];
-            }
-          }
+    if ($opigno_entity_type == 'ContentTypeCourse') {
+      $course_steps = OpignoGroupManagedContent::loadByGroupId($opigno_entity_id);
+      if (!empty($course_steps)) {
+        // Check if each course module has at least one activity.
+        foreach ($course_steps as $course_step) {
+          $id = $course_step->getEntityId();
+          $opigno_module = OpignoModule::load($id);
+          $this->getModuleConditionals($opigno_module, $results);
         }
       }
     }

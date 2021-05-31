@@ -59,9 +59,9 @@ member_add:
   version: VERSION
   css:
     theme:
-      css/opingo_learning_path_member_add.css: {}
+      css/opigno_learning_path_member_add.css: {}
   js:
-    js/opingo_learning_path_member_add.js: {}
+    js/opigno_learning_path_member_add.js: {}
   dependencies:
     - core/jquery
     - core/jquery.once
@@ -72,9 +72,9 @@ create_member:
   version: VERSION
   css:
     theme:
-      css/opingo_learning_path_create_member.css: {}
+      css/opigno_learning_path_create_member.css: {}
   js:
-    js/opingo_learning_path_create_member.js: {}
+    js/opigno_learning_path_create_member.js: {}
   dependencies:
     - core/jquery
     - core/jquery.once
@@ -84,9 +84,9 @@ member_overview:
   version: VERSION
   css:
     theme:
-      css/opingo_learning_path_member_overview.css: {}
+      css/opigno_learning_path_member_overview.css: {}
   js:
-    js/opingo_learning_path_member_overview.js: {}
+    js/opigno_learning_path_member_overview.js: {}
   dependencies:
     - core/jquery
     - core/jquery.once
@@ -178,6 +178,13 @@ iframe_opigno_lp_manager:
 opigno_autocomplite_multiselect:
   js:
     js/opigno_autocomplite_multiselect.js: {}
+
+run_force:
+  js:
+    js/opigno_learning_path_run.js: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
 
 progress:
   version: VERSION

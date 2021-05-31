@@ -293,10 +293,13 @@ class LearningPathController extends ControllerBase {
             DrupalDateTime::FORMAT,
             $end_date
           );
-
+          $end_date_format = $end_date->format('g:i A');
+          if ($start_date->format('jS F Y') != $end_date->format('jS F Y')) {
+            $end_date_format = $end_date->format('jS F Y - g:i A');
+          }
           $title .= ' / ' . $this->t('@start to @end', [
             '@start' => $start_date->format('jS F Y - g:i A'),
-            '@end' => $end_date->format('g:i A'),
+            '@end' => $end_date_format,
           ]);
         }
 
