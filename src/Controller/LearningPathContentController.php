@@ -271,10 +271,22 @@ class LearningPathContentController extends ControllerBase {
    * Returns Right access conditional activities with the module.
    */
   public function getModuleRequiredActivitiesAccess($opigno_entity_type, $opigno_entity_id) {
+    // Check global roles.
+    $roles = $this->currentUser->getRoles();
+    foreach ($roles as $role) {
+      if (in_array($role, ['administrator', 'content_manager'])) {
+        return AccessResult::allowed();
+      }
+    }
+
+    // Check group roles.
     $group_id = OpignoGroupContext::getCurrentGroupId();
-    if (LearningPathAccess::memberHasRole('admin', $this->currentUser, $group_id)) {
+    if (LearningPathAccess::memberHasRole('admin', $this->currentUser, $group_id) ||
+      LearningPathAccess::memberHasRole('content_manager', $this->currentUser, $group_id))
+    {
       return AccessResult::allowed();
     }
+
     return AccessResult::allowedIfHasPermission($this->currentUser, 'bypass group access');
   }
 
