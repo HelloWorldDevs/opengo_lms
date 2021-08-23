@@ -23,6 +23,14 @@ opigno_learning_path.learning_path_settings:
       type: text
     opigno_learning_path_notify_admin_mails:
       type: string
+    opigno_learning_path_student_does_activity_notify:
+      type: integer
+    opigno_learning_path_student_does_activity:
+      type: string
+    opigno_learning_path_students_answer_is_reviewed_notify:
+      type: integer
+    opigno_learning_path_students_answer_is_reviewed:
+      type: string
 
 group_content_enabler.config.parent_role_mapping:
   type: 'group_content_type'

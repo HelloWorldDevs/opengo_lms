@@ -2,7 +2,9 @@
 
 namespace Drupal\opigno_learning_path\Controller;
 
+use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Link;
 use Drupal\group\Entity\Group;
 use Drupal\group\Entity\GroupInterface;
@@ -55,6 +57,7 @@ class LearningPathContentController extends ControllerBase {
   public function coursesIndex(Group $group, Request $request) {
     // Check if user has uncompleted steps.
     $validation = LearningPathValidator::stepsValidate($group);
+    $gid = $group->id();
 
     if ($validation instanceof RedirectResponse) {
       return $validation;
@@ -73,11 +76,12 @@ class LearningPathContentController extends ControllerBase {
       '#attached' => ['library' => ['opigno_group_manager/manage_app']],
       '#base_path' => $request->getBasePath(),
       '#base_href' => $request->getPathInfo(),
-      '#learning_path_id' => $group->id(),
+      '#learning_path_id' => $gid,
       '#group_type' => $group_type,
       '#view_type' => $view_type,
       '#next_link' => isset($next_link) ? render($next_link) : NULL,
       '#user_has_info_card' => $tempstore->get('hide_info_card') ? FALSE : TRUE,
+      '#parent_learning_path' => $group_type == 'learning_path' ? '?learning_path=' . $gid : '',
     ];
   }
 
@@ -227,15 +231,101 @@ class LearningPathContentController extends ControllerBase {
       ];
     }
 
+    // Sort according to position.
+    $modules = $this->sortModulesArray($modules, $group);
+
     // Return all the contents in JSON format.
     return new JsonResponse($modules, Response::HTTP_OK);
+  }
+
+  /**
+   * Sort.
+   *
+   * @param array $modules
+   *   Initial modules array.
+   * @param \Drupal\Core\Entity\EntityInterface $group
+   *   Training group.
+   *
+   * @return array
+   *   Sorted modules array.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   */
+  protected function sortModulesArray(array $modules, EntityInterface $group): array {
+    try {
+      $managed_contents = OpignoGroupManagedContent::loadByProperties(['group_id' => $group->id()]);
+    }
+    catch (InvalidPluginDefinitionException $e) {
+      return $modules;
+    }
+
+    // Creating full array of training steps and courses sub-steps.
+    $modules_positioned = [];
+    foreach ($managed_contents as $content) {
+      $id = $content->getEntityId();
+      $x = $content->getCoordinateX();
+      $y = $content->getCoordinateY();
+
+      if ($content->getGroupContentType()->getId() == 'ContentTypeCourse') {
+        // Course steps.
+        if ($course_managed_contents = OpignoGroupManagedContent::loadByProperties(['group_id' => $content->getEntityId()])) {
+          foreach ($course_managed_contents as $course_content) {
+            $course_id = $course_content->getEntityId();
+            $course_x = $course_content->getCoordinateX();
+            $course_y = $course_content->getCoordinateY();
+
+            foreach ($modules as $mod) {
+              if ($mod['entity_id'] == $course_id) {
+                $modules_positioned[$y][$x][$course_y][$course_x] = $mod;
+              }
+            }
+          }
+        }
+      }
+      else {
+        // Ordinary steps.
+        foreach ($modules as $module) {
+          if ($module['entity_id'] == $id) {
+            $modules_positioned[$y][$x] = $module;
+          }
+        }
+      }
+    }
+
+    // Training steps sorting including courses sub-steps.
+    ksort($modules_positioned);
+    $sorted_modules = [];
+    foreach ($modules_positioned as $items) {
+      $is_course = FALSE;
+      $item = NULL;
+      foreach ($items as $item) {
+        if (!array_key_exists('entity_id', $item)) {
+          $is_course = TRUE;
+        }
+      }
+      if ($is_course) {
+        // Course steps.
+        if (!empty($item)) {
+          ksort($item);
+          foreach ($item as $i) {
+            $sorted_modules = array_merge($sorted_modules, $i);
+          }
+        }
+      }
+      else {
+        // Ordinary steps.
+        $sorted_modules = array_merge($sorted_modules, $items);
+      }
+    }
+
+    return $sorted_modules;
   }
 
   /**
    * Returns module activities count.
    */
   public function countActivityInModule(OpignoModule $opigno_module) {
-    $activities = [];
     /* @var $db_connection \Drupal\Core\Database\Connection */
     $db_connection = \Drupal::service('database');
     $query = $db_connection->select('opigno_activity', 'oa');

@@ -301,7 +301,8 @@ class LearningPathAchievementController extends ControllerBase {
         $state_class = 'lp_step_state_pending';
       }
       else {
-        $state_class = isset($answer) ? 'lp_step_state_passed' : 'lp_step_state_failed';
+        $state_class = isset($answer)
+          ? 'lp_step_state_passed' : ($max_score == 0 ? 'lp_step_state_pending' : 'lp_step_state_failed');
       }
 
       return [

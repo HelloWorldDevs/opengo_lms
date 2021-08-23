@@ -560,32 +560,36 @@ class LearningPathMembershipController extends ControllerBase {
       $url = Url::fromRoute('entity.group.canonical', ['group' => $group->id()])->toString();
       opigno_set_message($uid, $message, $url);
 
-      // Send email.
-      $module = 'opigno_learning_path';
-      $key = 'opigno_learning_path_membership_validated';
-      $email = $user->getEmail();
-      $lang = $user->getPreferredLangcode();
-      $params = [];
-      $params['subject'] = $this->t('Your membership to the training @training has been approved', [
-        '@training' => $group->label(),
-      ]);
-      $site_config = \Drupal::config('system.site');
-      $link = $group->toUrl()->setAbsolute()->toString();
-      $args = [
-        '@username' => $user->getDisplayName(),
-        '@training' => $group->label(),
-        ':link' => $link,
-        '@link_text' => $link,
-        '@platform' => $site_config->get('name'),
-      ];
-      $params['message'] = $this->t('Dear @username
+      $config = \Drupal::config('opigno_learning_path.learning_path_settings');
+      $send_to_users = $config->get('opigno_learning_path_notify_users');
+      if ($send_to_users) {
+        // Send email.
+        $module = 'opigno_learning_path';
+        $key = 'opigno_learning_path_membership_validated';
+        $email = $user->getEmail();
+        $lang = $user->getPreferredLangcode();
+        $params = [];
+        $params['subject'] = $this->t('Your membership to the training @training has been approved', [
+          '@training' => $group->label(),
+        ]);
+        $site_config = \Drupal::config('system.site');
+        $link = $group->toUrl()->setAbsolute()->toString();
+        $args = [
+          '@username' => $user->getDisplayName(),
+          '@training' => $group->label(),
+          ':link' => $link,
+          '@link_text' => $link,
+          '@platform' => $site_config->get('name'),
+        ];
+        $params['message'] = $this->t('Dear @username
 
 Your membership to the training @training has been approved. You can now access this training at: <a href=":link">@link_text</a>
 
 @platform', $args);
 
-      \Drupal::service('plugin.manager.mail')
-        ->mail($module, $key, $email, $lang, $params);
+        \Drupal::service('plugin.manager.mail')
+          ->mail($module, $key, $email, $lang, $params);
+      }
     }
 
     return new JsonResponse();

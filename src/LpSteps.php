@@ -150,9 +150,7 @@ class LpSteps {
         $best_score = round(array_sum(array_map(function ($step) {
             return $step['best score'];
           }, $course_steps)) / $step_count);
-        $score = round(array_sum(array_map(function ($step) {
-            return $step['current attempt score'];
-          }, $course_steps)) / $step_count);
+        $score = $this->courseGetScore($course_steps);
       }
       else {
         $best_score = 0;
@@ -213,6 +211,29 @@ class LpSteps {
     }
 
     return $results[$key];
+  }
+
+  /**
+   * Calculate course score.
+   */
+  private function courseGetScore(array $course_steps): float {
+    $step_count = count($course_steps);
+    // If a course contains a mandatory module that has a total max score of 0
+    // (because all activities inside have max score 0) then we should
+    // consider that score is 100%.
+    $set_full = TRUE;
+    foreach ($course_steps as $step) {
+      if (($step['best score'] != 100) || ($step['mandatory'] != 1)) {
+        $set_full = FALSE;
+      }
+    }
+    if ($set_full) {
+      return 100;
+    }
+
+    return round(array_sum(array_map(function ($step) {
+        return $step['current attempt score'];
+      }, $course_steps)) / $step_count);
   }
 
   /**

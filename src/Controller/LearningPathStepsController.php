@@ -266,7 +266,10 @@ class LearningPathStepsController extends ControllerBase {
       if (!empty($results)) {
         // Check training structure.
         $is_valid = TRUE;
-        foreach ($steps as $step) {
+        $steps_mandatory = array_filter($steps, function ($step) {
+          return $step['mandatory'];
+        });
+        foreach ($steps_mandatory as $step) {
           $filtered = array_filter($results, function ($result) use ($results, $step) {
             if (isset($step['parent'])) {
               $step_parent = $step['parent'];
@@ -415,7 +418,7 @@ class LearningPathStepsController extends ControllerBase {
     $current_step = NULL;
     $current_step_index = 0;
     for ($i = 0; $i < $count - 1; ++$i) {
-      if ($steps[$i]['cid'] === $cid || (!$freeNavigation && ($steps[$i]['required score'] > $steps[$i]['current attempt score']))) {
+      if ($steps[$i]['cid'] === $cid || (!$freeNavigation && ($steps[$i]['required score'] > $steps[$i]['best score']))) {
         $current_step_index = $i;
         $current_step = $steps[$i];
         break;
@@ -437,8 +440,11 @@ class LearningPathStepsController extends ControllerBase {
           }
         }
 
-        if (($current_step['mandatory'] && !$current_step['attempts']) || $current_step['best score'] < $required ||
+        if (($current_step['mandatory'] && !$current_step['attempts']) ||
+          ($current_step['mandatory'] && $current_step['attempts'] && empty($current_step['completed on'])) ||
+          $current_step['best score'] < $required ||
           OpignoGroupManagerController::mustBeVisitedMeeting($current_step, $group) && !$is_owner) {
+
           $course_entity = OpignoGroupManagedContent::load($current_step['cid']);
           $course_content_type = $this->content_type_manager->createInstance(
             $course_entity->getGroupContentTypeId()

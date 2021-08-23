@@ -364,6 +364,7 @@ class LearningPathAccess {
    * Prepares and sends emails to users.
    */
   public static function notifyUsersByMail(Group $group, $uid, $status, $token = FALSE) {
+    $user = \Drupal::currentUser();
     $config = \Drupal::config('opigno_learning_path.learning_path_settings');
     $send_to_admins = $config->get('opigno_learning_path_notify_admin');
     $send_to_users = $config->get('opigno_learning_path_notify_users');
@@ -418,7 +419,17 @@ class LearningPathAccess {
         }
       }
 
-      if ($send_to_users) {
+      // Set flag for notifying users by email.
+      $send = FALSE;
+      $send_message = \Drupal::request()->get('send_message');
+      if (empty($send_message)) {
+        $route_name = \DRUPAL::routeMatch()->getRouteName();
+        if ($route_name != 'entity.group_content.add_form') {
+          $send = $send_to_users && ($uid !== $user->id());
+        }
+      }
+
+      if ($send) {
         $to = $account->getEmail();
         $message = $config->get('opigno_learning_path_notify_user_user_' . $events[$status]);
 

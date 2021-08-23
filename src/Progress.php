@@ -11,6 +11,7 @@ use Drupal\user\Entity\User;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
+use Drupal\Core\Datetime\DrupalDateTime;
 
 /**
  * Class JoinService.
@@ -87,6 +88,19 @@ class Progress {
    *   Attempted activities count / total activities count.
    */
   public function getProgressRound($group_id, $account_id, $latest_cert_date = '') {
+    // Firstly check achievements data.
+    $query = $this->database
+      ->select('opigno_learning_path_achievements', 'a')
+      ->fields('a', ['score'])
+      ->condition('a.gid', $group_id)
+      ->condition('a.uid', $account_id)
+      ->condition('a.status', 'completed');
+
+    $achievements_data = $query->execute()->fetchAssoc();
+
+    if ($achievements_data) {
+      return $achievements_data['score'];
+    }
 
     if (!$latest_cert_date) {
       $group = Group::load($group_id);
@@ -157,7 +171,6 @@ class Progress {
    *   Renderable array.
    */
   public function getProgressBuild($group_id, $account_id, $latest_cert_date, $class) {
-
     // If $latest_cert_date argument is 0 than it means it empty;
     if ($latest_cert_date === 0) {
       $latest_cert_date = '';
@@ -228,7 +241,6 @@ class Progress {
     $group = Group::load($group_id);
     $account = User::load($account_id);
 
-
     $date_formatter = \Drupal::service('date.formatter');
 
     $expiration_message = '';
@@ -239,13 +251,33 @@ class Progress {
       }
     }
 
-    // If training certification not expired
-    // or expiration not set.
-    $progress = $this->getProgressRound($group_id, $account_id, $latest_cert_date);
+    // Get data from achievements.
+    $query = $this->database
+      ->select('opigno_learning_path_achievements', 'a')
+      ->fields('a', ['score', 'progress', 'time', 'completed'])
+      ->condition('a.gid', $group_id)
+      ->condition('a.uid', $account_id)
+      ->condition('a.status', 'completed');
 
-    $is_passed = opigno_learning_path_is_passed($group, $account_id);
-    if ($is_passed || $progress == 100) {
+    $achievements_data = $query->execute()->fetchAssoc();
+    if ($achievements_data) {
+      $score = $achievements_data['score'];
+      $completed = $achievements_data['completed'];
+
+      if ($achievements_data['completed']) {
+        $format = 'Y-m-d H:i:s';
+        $completed = DrupalDateTime::createFromFormat($format, $achievements_data['completed']);
+        $completed = $completed->format('F d, Y');
+      }
+
+      $state = $this->t('Passed');
+      $progress = $achievements_data['progress'];
+      $is_passed = TRUE;
+    }
+    else {
       $score = opigno_learning_path_get_score($group_id, $account_id);
+      $progress = $this->getProgressRound($group_id, $account_id, $latest_cert_date);
+      $is_passed = opigno_learning_path_is_passed($group, $account_id);
 
       $completed = opigno_learning_path_completed_on($group_id, $account_id);
       $completed = $completed > 0
@@ -253,6 +285,9 @@ class Progress {
         : '';
 
       $state = $is_passed ? $this->t('Passed') : $this->t('Failed');
+    }
+
+    if ($is_passed || $progress == 100) {
       // Expire message if necessary.
       if ($expiration_set) {
         // Expiration set, create expiration message.
@@ -431,7 +466,13 @@ class Progress {
     $members_button['#attributes']['class'][] = 'lp_progress_admin_edit';
     $members_button['#attributes']['class'][] = 'lp_progress_control';
 
-    $continue_button_text = $this->t('Continue Training');
+    // Set button text depending on if the learning path is started or ongoing.
+    $continue_button_text = opigno_learning_path_started($group, \Drupal::currentUser()) ? $this->t('Continue Training') : $this->t('Start');
+    // If learning path is passed, set button text accordingly.
+    if (opigno_learning_path_is_passed($group, $account_id)) {
+      $continue_button_text = $this->t('Passed');
+    }
+
     $continue_button = Link::fromTextAndUrl($continue_button_text, $continue_url)->toRenderable();
     $continue_button['#attributes']['class'][] = 'lp_progress_continue';
     $continue_button['#attributes']['class'][] = 'use-ajax';
@@ -517,8 +558,6 @@ class Progress {
     $group = Group::load($group_id);
     $account = User::load($account_id);
 
-    $progress = $this->getProgressRound($group_id, $account_id, $latest_cert_date);
-
     /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
     $date_formatter = \Drupal::service('date.formatter');
 
@@ -527,15 +566,46 @@ class Progress {
     $registration = $member->getCreatedTime();
     $registration = $date_formatter->format($registration, 'custom', 'F d, Y');
 
-    $validation = opigno_learning_path_completed_on($group_id, $account_id, TRUE);
-    $validation = $validation > 0
-      ? $date_formatter->format($validation, 'custom', 'F d, Y')
-      : '';
+    // Get data from achievements.
+    $query = $this->database
+      ->select('opigno_learning_path_achievements', 'a')
+      ->fields('a', ['score', 'progress', 'time', 'completed'])
+      ->condition('a.gid', $group_id)
+      ->condition('a.uid', $account_id)
+      ->condition('a.status', 'completed');
 
-    $time_spent = opigno_learning_path_get_time_spent($group_id, $account_id);
-    $time_spent = $date_formatter->formatInterval($time_spent);
+    $achievements_data = $query->execute()->fetchAssoc();
 
-    $result = FALSE;
+    if ($achievements_data) {
+      if ($achievements_data['completed']) {
+        $format = 'Y-m-d H:i:s';
+        $completed = DrupalDateTime::createFromFormat($format, $achievements_data['completed']);
+        $validation = $completed->format('F d, Y');
+      }
+
+      if ($achievements_data['score']) {
+        $score = $achievements_data['score'];
+      }
+
+      if ($achievements_data['progress']) {
+        $progress = $achievements_data['progress'];
+      }
+
+      if ($achievements_data['time']) {
+        $time_spent = $date_formatter->formatInterval($achievements_data['time']);
+      }
+    } else {
+      $validation = opigno_learning_path_completed_on($group_id, $account_id, TRUE);
+      $validation = $validation > 0
+        ? $date_formatter->format($validation, 'custom', 'F d, Y')
+        : '';
+
+      $time_spent = opigno_learning_path_get_time_spent($group_id, $account_id);
+      $time_spent = $date_formatter->formatInterval($time_spent);
+      $score = round(opigno_learning_path_get_score($group_id, $account_id, FALSE, $latest_cert_date));
+      $progress = $this->getProgressRound($group_id, $account_id, $latest_cert_date);
+    }
+
     $expiration_message = '';
     $expiration_set = LPStatus::isCertificateExpireSet($group);
     $expired = FALSE;
@@ -552,20 +622,12 @@ class Progress {
         $expiration_message = $expiration_message . ' ' . $date_formatter->format($expiration_timestamp, 'custom', 'F d, Y');
       }
     }
-    else {
-      $result = $this->database
-        ->select('opigno_learning_path_achievements', 'a')
-        ->fields('a', ['status'])
-        ->condition('uid', $account->id())
-        ->condition('gid', $group->id())
-        ->execute()
-        ->fetchField();
-    }
 
-    if ($result !== FALSE) {
+
+    if ($achievements_data) {
       // Use cached result.
       $is_attempted = TRUE;
-      $is_passed = $result === 'completed';
+      $is_passed = TRUE;
     }
     else {
       // Check the actual data.
@@ -596,7 +658,7 @@ class Progress {
     return [
       '#theme' => 'opigno_learning_path_training_summary',
       '#progress' => $progress,
-      '#score' => round(opigno_learning_path_get_score($group_id, $account_id, FALSE, $latest_cert_date)),
+      '#score' => $score,
       '#group_id' => $group_id,
       '#has_certificate' => $has_certificate,
       '#is_passed' => $is_passed,

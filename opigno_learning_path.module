@@ -64,6 +64,7 @@ function opigno_learning_path_theme() {
         'view_type' => NULL,
         'next_link' => NULL,
         'user_has_info_card' => NULL,
+        'parent_learning_path' => NULL,
       ],
     ],
     'opigno_learning_path_modules' => [
@@ -938,6 +939,12 @@ function opigno_learning_path_get_step_list_aside() {
       '#value' => t('Activities'),
     ];
 
+    $activities_bank_link = [
+      '#type' => 'html_tag',
+      '#tag' => 'span',
+      '#value' => t('Activities bank'),
+    ];
+
     $members_link = [
       '#type' => 'html_tag',
       '#tag' => 'span',
@@ -981,7 +988,7 @@ function opigno_learning_path_get_step_list_aside() {
     $steps = [
       1 => $description_link,
       2 => $activities_link,
-      3 => $activities_bank_link,
+      3 => $activities_bank_link
     ];
   }
   elseif ($group_type == 'opigno_class') {
@@ -2089,7 +2096,10 @@ function opigno_learning_path_entity_delete(EntityInterface $entity) {
 
   if ($entity->bundle() == 'group_content_type_27efa0097d858') {
     // Get Class members.
-    $members = $entity->getEntity()->getMembers();
+    $members = FALSE;
+    if ($entity && $entity->getEntity()) {
+      $members = $entity->getEntity()->getMembers();
+    }
     // Get class group id.
     $gid = $entity->getGroup()->id();
 
@@ -2279,6 +2289,8 @@ function opigno_learning_path_mail($key, &$message, $params) {
     'opigno_learning_path_membership_needs_validate',
     'opigno_learning_path_membership_validated',
     'training_expiring_certification',
+    'opigno_learning_path_managers_notify',
+    'opigno_learning_path_user_notify',
   ])) {
     $message['from'] = \Drupal::config('system.site')->get('mail');
     $message['subject'] = $params['subject'];
@@ -3592,8 +3604,9 @@ function opigno_learning_path_save_step_achievements(
   }
   // Set score for other group contents - only best score.
   elseif (isset($step['current attempt score']) && $step['typology'] != 'Meeting' && $step['typology'] != 'ILT') {
-    $query = $query->expression('score', 'GREATEST(score, :score)', [
+    $query = $query->expression('score', 'GREATEST(score, :score, :best_score)', [
       ':score' => $step['current attempt score'],
+      ':best_score' => $fields['score'],
     ]);
   }
 

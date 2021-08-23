@@ -148,6 +148,67 @@ class LearningPathAdminSettingsForm extends ConfigFormBase {
       ];
     }
 
+    $form['opigno_learning_path_mail']['opigno_learning_path_student_does_activity_notify'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Notify manager'),
+      '#description' => $this->t('If checked a manager will be notified when student does an activity.'),
+      '#default_value' => $config->get('opigno_learning_path_student_does_activity_notify'),
+    ];
+    $form['opigno_learning_path_mail']['opigno_learning_path_student_does_activity'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Message to a manager when student does an activity.'),
+      '#default_value' => $config->get('opigno_learning_path_student_does_activity'),
+    ];
+    $form['opigno_learning_path_mail']['student_does_activity_tokens'] = [
+      '#type' => 'container',
+      [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#value' => t('Tokens:'),
+      ],
+      [
+        '#theme' => 'item_list',
+        '#list_type' => 'ul',
+        '#items' => [
+          '[module] - ' . $this->t('module name'),
+          '[link] - ' . $this->t('link to evaluate'),
+          '[manager] - ' . $this->t('manager name'),
+          '[user] - ' . $this->t('user name'),
+          '[sitename] - ' . $this->t('site name'),
+        ],
+      ],
+    ];
+
+    $form['opigno_learning_path_mail']['opigno_learning_path_students_answer_is_reviewed_notify'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Notify student'),
+      '#description' => $this->t('If checked a student will be notified when student does an activity.'),
+      '#default_value' => $config->get('opigno_learning_path_students_answer_is_reviewed_notify'),
+    ];
+    $form['opigno_learning_path_mail']['opigno_learning_path_students_answer_is_reviewed'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Message to a student when his answer has been reviewed.'),
+      '#default_value' => $config->get('opigno_learning_path_students_answer_is_reviewed'),
+    ];
+    $form['opigno_learning_path_mail']['students_answer_is_reviewed_tokens'] = [
+      '#type' => 'container',
+      [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#value' => t('Tokens:'),
+      ],
+      [
+        '#theme' => 'item_list',
+        '#list_type' => 'ul',
+        '#items' => [
+          '[module] - ' . $this->t('module name'),
+          '[manager] - ' . $this->t('manager name'),
+          '[user] - ' . $this->t('user name'),
+          '[sitename] - ' . $this->t('site name'),
+        ],
+      ],
+    ];
+
     return parent::buildForm($form, $form_state);
   }
 
@@ -175,6 +236,10 @@ class LearningPathAdminSettingsForm extends ConfigFormBase {
       ->set('opigno_learning_path_notify_user_user_approval', $form_state->getValue('opigno_learning_path_notify_user_user_approval'))
       ->set('opigno_learning_path_notify_user_user_blocked', $form_state->getValue('opigno_learning_path_notify_user_user_blocked'))
       ->set('opigno_learning_path_notify_user_user_certificate_expired', $form_state->getValue('opigno_learning_path_notify_user_user_certificate_expired'))
+      ->set('opigno_learning_path_student_does_activity_notify', $form_state->getValue('opigno_learning_path_student_does_activity_notify'))
+      ->set('opigno_learning_path_student_does_activity', $form_state->getValue('opigno_learning_path_student_does_activity'))
+      ->set('opigno_learning_path_students_answer_is_reviewed_notify', $form_state->getValue('opigno_learning_path_students_answer_is_reviewed_notify'))
+      ->set('opigno_learning_path_students_answer_is_reviewed', $form_state->getValue('opigno_learning_path_students_answer_is_reviewed'))
       ->save();
   }
 

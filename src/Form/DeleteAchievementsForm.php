@@ -9,6 +9,7 @@ use Drupal\Core\Form\ConfirmFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Drupal\group\Entity\Group;
+use Drupal\opigno_module\Entity\OpignoModule;
 use Drupal\opigno_module\Entity\UserModuleStatus;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -147,7 +148,10 @@ class DeleteAchievementsForm extends ConfirmFormBase {
 
           $group = Group::load($gid);
           if (isset($group)) {
+            // Load modules of a LP group.
             $modules = $group->getContentEntities('opigno_module_group');
+            // Delete all answers connected to this user and LP.
+            $this->deleteAnswers((int) $group->id(), $uid, $modules);
             $module = reset($modules);
             if (!empty($module)) {
               // Create new unfinished user module attempt on the first module
@@ -166,6 +170,33 @@ class DeleteAchievementsForm extends ConfirmFormBase {
       }
       elseif ($element['#name'] === 'cancel') {
         $form_state->setRedirectUrl($this->getCancelUrl());
+      }
+    }
+  }
+
+  /**
+   * Delete answers.
+   */
+  private function deleteAnswers(int $group_id, int $uid, array $modules) {
+    foreach ($modules as $module) {
+      if (!$module instanceof OpignoModule) {
+        continue;
+      }
+      $user_module_statuses = \Drupal::entityTypeManager()->getStorage('user_module_status')->loadByProperties(
+        [
+          'learning_path' => $group_id,
+          'user_id' => $uid,
+          'module' => $module->id(),
+        ]
+      );
+      foreach ($user_module_statuses as $status) {
+        if (!$status instanceof UserModuleStatus) {
+          continue;
+        }
+        $answers = $status->getAnswers();
+        foreach ($answers as $answer) {
+          $answer->delete();
+        }
       }
     }
   }

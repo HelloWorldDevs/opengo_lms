@@ -100,7 +100,7 @@ class StepsBlock extends BlockBase implements ContainerFactoryPluginInterface {
     array $configuration,
     $plugin_id,
     $plugin_definition) {
-    return new self(
+    return new static(
       $configuration,
       $plugin_id,
       $plugin_definition,
