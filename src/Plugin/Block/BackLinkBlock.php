@@ -36,6 +36,7 @@ class BackLinkBlock extends SystemBreadcrumbBlock implements ContainerFactoryPlu
         'opigno_module.group.answer_form',
         'entity.group.canonical',
         'view.opigno_training_catalog.training_catalogue',
+        'opigno_module.module_result',
       ]),
     ];
   }
