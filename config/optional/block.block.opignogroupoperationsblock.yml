@@ -5,9 +5,9 @@ dependencies:
     - group
     - opigno_learning_path
   theme:
-    - platon
+    - aristotle
 id: opignogroupoperationsblock
-theme: platon
+theme: aristotle
 region: content
 weight: -1
 provider: null

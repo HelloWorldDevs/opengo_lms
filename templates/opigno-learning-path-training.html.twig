@@ -8,10 +8,18 @@
  * - elements: The training elements.
  */
 #}
-
-<div class="lp_wrapper">
-  <h2 class="lp_title px-3 px-md-5 pt-5 pb-4 mb-0 h4 text-uppercase">
-    {{ 'Training: @label'|t({'@label': elements['#label']}) }}
-  </h2>
-  {{ elements }}
+<div class="content-box p-0">
+  <div class="training">
+    <div class="training__image">
+      {% if content.field_learning_path_media_image[0] %}
+        {{ content.field_learning_path_media_image }}
+      {% else %}
+        {{ opigno_catalog_get_default_image('learning_path', label) }}
+      {% endif %}
+    </div>
+    <div class="training__container"><h2 class="training__title">{{ 'Training - @label'|t({'@label': elements['#label']}) }}</h2>
+      {{ elements|without('details') }}
+    </div>
+  </div>
 </div>
+{{ elements.details }}

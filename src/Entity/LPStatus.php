@@ -216,7 +216,7 @@ class LPStatus extends ContentEntityBase implements LPStatusInterface {
     $db_connection = \Drupal::service('database');
     try {
       $result = $db_connection->select('user_lp_status', 'lp')
-        ->fields('lps', ['status'])
+        ->fields('lp')
         ->condition('gid', $gid)
         ->condition('uid', $uid)
         ->orderBy('finished', 'DESC')
@@ -227,21 +227,7 @@ class LPStatus extends ContentEntityBase implements LPStatusInterface {
       \Drupal::messenger()->addMessage($e->getMessage(), 'error');
     }
 
-    if (!empty($result)) {
-      if ($type == 'best') {
-        if (in_array('passed', $result)) {
-          return 'passed';
-        }
-        elseif (in_array('failed', $result)) {
-          return 'failed';
-        }
-      }
-      else {
-        return array_shift($stack);
-      }
-    }
-
-    return '';
+    return array_shift($result);
   }
 
   /**
@@ -392,6 +378,28 @@ class LPStatus extends ContentEntityBase implements LPStatusInterface {
   }
 
   /**
+   * Returns training certificate expired unixtime for the user.
+   */
+  public static function isCertificateExpiredDate(Group $group, $uid) {
+    $result = FALSE;
+    if (self::isCertificateExpireSet($group)) {
+      $db_connection = \Drupal::service('database');
+      try {
+        // Try to get user training expired timestamp.
+        $result = $db_connection->select('user_lp_status_expire', 'lps')
+          ->fields('lps', ['latest_cert_date', 'expire'])
+          ->condition('gid', $group->id())
+          ->condition('uid', $uid)
+          ->execute()->fetch();
+      } catch (\Exception $e) {
+        \Drupal::logger('opigno_learning_path')->error($e->getMessage());
+        \Drupal::messenger()->addMessage($e->getMessage(), 'error');
+      }
+    }
+    return $result;
+  }
+
+  /**
    * Returns flag if training certificate expired for the user.
    *
    * @param \Drupal\group\Entity\Group $group
@@ -403,27 +411,11 @@ class LPStatus extends ContentEntityBase implements LPStatusInterface {
    *   True if training certificate expired for the user, false otherwise.
    */
   public static function isCertificateExpired(Group $group, $uid) {
-    if (self::isCertificateExpireSet($group)) {
-      $db_connection = \Drupal::service('database');
-      try {
-        // Try to get user training expired timestamp.
-        $result = $db_connection->select('user_lp_status_expire', 'lps')
-          ->fields('lps', ['expire'])
-          ->condition('gid', $group->id())
-          ->condition('uid', $uid)
-          ->execute()->fetchField();
-      }
-      catch (\Exception $e) {
-        \Drupal::logger('opigno_learning_path')->error($e->getMessage());
-        \Drupal::messenger()->addMessage($e->getMessage(), 'error');
-      }
-
-      if (!empty($result) && $result < time()) {
-        // Certification expired.
-        return TRUE;
-      }
+    $result = self::isCertificateExpiredDate($group, $uid);
+    if (!empty($result) && isset($result->expire) && $result->expire < time()) {
+      // Certification expired.
+      return TRUE;
     }
-
     return FALSE;
   }
 

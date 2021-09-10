@@ -1,55 +1,22 @@
 {#
 /**
  * @file
- * Default theme implementation to display the training content step.
+ * Default theme implementation to display the training content elements.step.
  *
  * Available variables:
- * - step: The step object with all the data.
- * - group: The Group object which the steps is part of.
+ * - elements.step: The elements.step object with all the data.
+ * - group: The Group object which the elements.steps is part of.
  */
 #}
-<div class="lp_step">
-  <div class="lp_step_title_wrapper">
-    {% if step.mandatory %}
-      <span class="lp_step_required"></span>
-    {% endif %}
-    <h3 class="lp_step_title">{{ step.name }}</h3>
-  </div>
-  {% if step.typology == 'Course' %}
-    {% for course_step in step.course_steps %}
-      <div class="lp_step_content">
-        <div class="lp_step_summary">
-          <div class="lp_step_summary_title_wrapper">
-            <h3 class="lp_step_summary_title">{{ course_step.title }}</h3>
-
-            {% if course_step.sub_title %}
-              <h4 class="lp_step_summary_subtitle">{{ course_step.sub_title }}</h4>
-            {% endif %}
-
-            {% if course_step.description %}
-              <div class="lp_step_summary_description">{{ course_step.description|raw }}</div>
-            {% endif %}
-          </div>
-          {{ course_step.summary_details_table }}
-        </div>
-      </div>
-    {% endfor %}
-  {% else %}
-    <div class="lp_step_content">
-      <div class="lp_step_summary">
-        <div class="lp_step_summary_title_wrapper">
-          <h3 class="lp_step_summary_title">{{ step.title }}</h3>
-
-          {% if step.sub_title %}
-            <h4 class="lp_step_summary_subtitle">{{ step.sub_title }}</h4>
-          {% endif %}
-
-          {% if step.description %}
-            <div class="lp_step_summary_description">{{ step.description|raw }}</div>
-          {% endif %}
-        </div>
-        {{ step.summary_details_table }}
-      </div>
+{{ elements.step.summary_details_table }}
+{% if elements.step.course_steps %}
+<tr>
+  <td colspan="6">
+    <div class="inner-table">
+      <table class="statistics-table table-striped responsive-enabled table table-hover" data-striping="1">
+        {{ elements.step.course_steps }}
+      </table>
     </div>
-  {% endif %}
-</div>
+  </td>
+</tr>
+{% endif %}

@@ -66,7 +66,6 @@ member_add:
     - core/jquery
     - core/jquery.once
     - core/drupalSettings
-    - opigno_learning_path/opigno_autocomplite_multiselect
 
 create_member:
   version: VERSION
@@ -175,10 +174,6 @@ iframe_opigno_lp_manager:
     theme:
       css/iframe_opigno_lp_manager.css: {}
 
-opigno_autocomplite_multiselect:
-  js:
-    js/opigno_autocomplite_multiselect.js: {}
-
 run_force:
   js:
     js/opigno_learning_path_run.js: {}
@@ -198,3 +193,8 @@ progress:
     - core/jquery.once
     - core/drupalSettings
     - core/drupal.ajax
+
+back_button:
+  version: VERSION
+  js:
+    js/opigno_learning_path_back_button.js: {}

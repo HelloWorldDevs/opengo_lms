@@ -679,19 +679,34 @@ opigno_learning_path.membership.overview:
       account:
        type: entity:user
 
-opigno_learning_path.achievements:
-  path: '/achievements/{page}'
+opigno_learning_path.training:
+  path: '/group/{group}/training-statistic'
   defaults:
-    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathAchievementController::index'
-    _title: 'My Achievements'
-    page: 0
+    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathAchievementController::buildTrainingProgress'
+    _title_callback: '\Drupal\opigno_learning_path\Controller\LearningPathAchievementController::buildTrainingProgressTitle'
   requirements:
-    _user_is_logged_in: 'TRUE'
-    page: '[0-9]+'
+    _custom_access: '\Drupal\opigno_learning_path\Controller\LearningPathAchievementController::buildTrainingProgressAccess'
+    group: '[0-9]+'
   options:
     parameters:
+      group:
+        type: entity:group
+
+opigno_learning_path.training_by_user:
+  path: '/group/{group}/training-statistic/{account}'
+  defaults:
+    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathAchievementController::buildTrainingProgress'
+    _title_callback: '\Drupal\opigno_learning_path\Controller\LearningPathAchievementController::buildTrainingProgressTitle'
+  requirements:
+    _custom_access: '\Drupal\opigno_learning_path\Controller\LearningPathAchievementController::buildTrainingProgressAccess'
+    group: '[0-9]+'
+    account: '[0-9]+'
+  options:
+    parameters:
+      group:
+        type: entity:group
       account:
-       type: entity:user
+        type: entity:user
 
 opigno_learning_path.achievements.page_ajax:
   path: '/ajax/achievements/{page}'
@@ -762,4 +777,3 @@ opigno_learning_path.progress:
        type: entity:group
       account:
        type: entity:user
-

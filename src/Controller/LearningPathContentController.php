@@ -6,6 +6,7 @@ use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Link;
+use Drupal\Core\Render\Markup;
 use Drupal\group\Entity\Group;
 use Drupal\group\Entity\GroupInterface;
 use Drupal\h5p\Entity\H5PContent;
@@ -69,7 +70,7 @@ class LearningPathContentController extends ControllerBase {
     $view_type = ($group_type == 'opigno_course')
       ? 'manager' : 'modules';
 
-    $tempstore = \Drupal::service('user.private_tempstore')->get('opigno_group_manager');
+    $tempstore = \Drupal::service('tempstore.private')->get('opigno_group_manager');
 
     return [
       '#theme' => 'opigno_learning_path_courses',
@@ -96,7 +97,7 @@ class LearningPathContentController extends ControllerBase {
       return $validation;
     }
 
-    $tempstore = \Drupal::service('user.private_tempstore')->get('opigno_group_manager');
+    $tempstore = \Drupal::service('tempstore.private')->get('opigno_group_manager');
     $next_link = $this->getNextLink($group);
     return [
       '#theme' => 'opigno_learning_path_modules',
@@ -143,15 +144,14 @@ class LearningPathContentController extends ControllerBase {
       else {
         return $next_link;
       }
-      $next_link = Link::createFromRoute($link_text, 'opigno_learning_path.content_steps', [
+      $next_link = Link::createFromRoute(Markup::create($link_text . '<i class="fi fi-rr-angle-small-right"></i>'), 'opigno_learning_path.content_steps', [
         'group' => $group->id(),
         'current' => ($current_step) ? $current_step : 0,
       ], [
         'attributes' => [
           'class' => [
             'btn',
-            'btn-success',
-            'color-white',
+            'btn-rounded',
           ],
         ],
       ])->toRenderable();

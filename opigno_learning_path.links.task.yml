@@ -18,10 +18,10 @@ opigno_learning_path.steps.start:
   title: 'Start'
   base_route: entity.group.canonical
 
-#opigno_learning_path.results:
-#  route_name: opigno_learning_path.results
-#  title: 'Results'
-#  base_route: entity.group.canonical
+opigno_learning_path.results:
+  route_name: opigno_learning_path.training
+  title: 'Results'
+  base_route: entity.group.canonical
 
 opigno_learning_path.steps.my_result:
   route_name: opigno_learning_path.steps.finish

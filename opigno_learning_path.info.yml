@@ -1,7 +1,7 @@
 name: Opigno Learning Path
 type: module
 description: Add the Learning Path feature to the opigno instance.
-core: 8.x
+core_version_requirement: ^9
 package: Opigno
 dependencies:
   - better_exposed_filters:better_exposed_filters
@@ -22,4 +22,5 @@ dependencies:
   - dropzonejs:dropzonejs_eb_widget
   - opigno_learning_path:opigno_alter_entity_autocomplete
   - opigno_cron:opigno_cron
+  - opigno_learning_path:opigno_user_selection
 configure: opigno_learning_path.learning_path_settings

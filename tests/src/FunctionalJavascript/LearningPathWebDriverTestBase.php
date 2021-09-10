@@ -44,6 +44,8 @@ abstract class LearningPathWebDriverTestBase extends WebDriverTestBase {
    */
   protected $accountSwitcher;
 
+  protected $defaultTheme = 'stable';
+
   /**
    * {@inheritdoc}
    */

@@ -2,16 +2,17 @@
 
 namespace Drupal\opigno_learning_path;
 
+use Drupal\Core\Datetime\DrupalDateTime;
+use Drupal\Core\Link;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\opigno_learning_path\Entity\LPStatus;
-use Symfony\Component\HttpFoundation\RequestStack;
-use Drupal\group\Entity\Group;
-use Drupal\user\Entity\User;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\Core\Link;
 use Drupal\Core\Url;
-use Drupal\Core\Datetime\DrupalDateTime;
+use Drupal\group\Entity\Group;
+use Drupal\opigno_learning_path\Entity\LPResult;
+use Drupal\opigno_learning_path\Entity\LPStatus;
+use Drupal\user\Entity\User;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Class JoinService.
@@ -75,6 +76,22 @@ class Progress {
   }
 
   /**
+   * Check achievements data.
+   *
+   * it can be reused, but leave as it is for backward compatibility.
+   * @see \Drupal\opigno_learning_path\Progress::getProgressRound
+   */
+  public function getProgressAchievementsData($group_id, $account_id) {
+    // Firstly check achievements data.
+    $query = $this->database
+      ->select('opigno_learning_path_achievements', 'a')
+      ->fields('a')
+      ->condition('a.gid', $group_id)
+      ->condition('a.uid', $account_id);
+    return $query->execute()->fetchAssoc();
+  }
+
+  /**
    * Get round integer of progress.
    *
    * @param int $group_id
@@ -101,7 +118,6 @@ class Progress {
     if ($achievements_data) {
       return $achievements_data['score'];
     }
-
     if (!$latest_cert_date) {
       $group = Group::load($group_id);
       $latest_cert_date = LPStatus::getTrainingStartDate($group, $account_id);
@@ -125,7 +141,7 @@ class Progress {
    * @return array
    *   Renderable array.
    */
-  public function getProgressAjaxContainer($group_id, $account_id, $latest_cert_date = '', $class = 'basic') {
+  public function getProgressAjaxContainer($group_id, $account_id, $latest_cert_date = '', $class = 'basic', $build_html = FALSE) {
 
     if (!$latest_cert_date) {
       $group = Group::load($group_id);
@@ -140,11 +156,11 @@ class Progress {
     // Maybe in some cases we need to have pre-loaded progress bar without ajax.
     // An example unit tests or so.
     $preload = $this->requestStack->getCurrentRequest()->query->get('preload-progress');
-    if ($preload) {
+    if ($preload || $build_html) {
       return $this->getProgressBuild($group_id, $account_id, $latest_cert_date, $class);
     }
 
-    // HTML structure for ajax comntainer.
+    // HTML structure for ajax container.
     return [
       '#theme' => 'opigno_learning_path_progress_ajax_container',
       '#group_id' => $group_id,
@@ -158,11 +174,11 @@ class Progress {
   /**
    * Get get progress bar it self.
    *
-   * @param int $group_id
+   * @param int|string $group_id
    *   Group ID.
-   * @param int $uid
+   * @param int|string $account_id
    *   User ID.
-   * @param int $latest_cert_date
+   * @param int|string $latest_cert_date
    *   Latest certification date.
    * @param string $class
    *   identifier for progress bar.
@@ -170,7 +186,7 @@ class Progress {
    * @return array
    *   Renderable array.
    */
-  public function getProgressBuild($group_id, $account_id, $latest_cert_date, $class) {
+  public function getProgressBuild($group_id, $account_id, $latest_cert_date, string $class) {
     // If $latest_cert_date argument is 0 than it means it empty;
     if ($latest_cert_date === 0) {
       $latest_cert_date = '';
@@ -189,26 +205,26 @@ class Progress {
         return $this->getProgressBuildGroupPage($group_id, $account_id, $latest_cert_date);
 
       case 'module-page':
+        // @todo We can reuse a getProgressBuildGroupPage method.
         return $this->getProgressBuildModulePage($group_id, $account_id, $latest_cert_date);
 
       case 'achievements-page':
         return $this->getProgressBuildAchievementsPage($group_id, $account_id, $latest_cert_date);
 
       case 'full':
-        // Full: label, value, bar.
+      case 'mini':
+        // Full: value, mini - with the progress bar.
         return [
           '#theme' => 'opigno_learning_path_progress',
-          '#label' => $this->t('Some title'),
-          '#class' => $class,
           '#value' => $this->getProgressRound($group_id, $account_id, $latest_cert_date),
+          '#show_bar' => $class === 'mini',
         ];
 
-      case 'mini':
-        // Mini: value, bar.
+      case 'circle':
         return [
-          '#theme' => 'opigno_learning_path_progress',
-          '#class' => $class,
-          '#value' => $this->getProgressRound($group_id, $account_id, $latest_cert_date),
+          '#theme' => 'lp_circle_progress',
+          '#radius' => 31,
+          '#progress' => $this->getProgressRound($group_id, $account_id, $latest_cert_date),
         ];
 
       case 'empty':
@@ -390,115 +406,37 @@ class Progress {
       ];
     }
 
-    $content = [];
-    $content[] = [
-      '#type' => 'container',
-      '#attributes' => [
-        'class' => ['col-sm-9', 'mb-3'],
-      ],
-      [
-        '#type' => 'container',
-        '#attributes' => [
-          'class' => ['lp_progress'],
-        ],
-        [
-          '#type' => 'html_tag',
-          '#tag' => 'p',
-          '#attributes' => [
-            'class' => ['lp_progress_label'],
-          ],
-          '#value' => $this->t('Global Training Progress'),
-        ],
-        [
-          '#type' => 'html_tag',
-          '#tag' => 'p',
-          '#attributes' => [
-            'class' => ['lp_progress_value'],
-          ],
-          '#value' => $progress . '%',
-        ],
-        [
-          '#type' => 'container',
-          '#attributes' => [
-            'class' => ['lp_progress_bar'],
-          ],
-          [
-            '#type' => 'html_tag',
-            '#tag' => 'div',
-            '#attributes' => [
-              'class' => ['lp_progress_bar_completed'],
-              'style' => "width: $progress%",
-            ],
-            '#value' => '',
-          ],
-        ],
-      ],
-      isset($summary) ? $summary : [],
-      '#attached' => [
-        'library' => [
-          'opigno_learning_path/training_content',
-          'core/drupal.dialog.ajax',
-        ],
-      ],
+    $content_progress = [
+      '#theme' => 'lp_progress',
+      '#progress' => $progress,
+      '#summary' => $this->buildSummary($group, $account),
     ];
+    return $content_progress;
+  }
 
-    $continue_route = 'opigno_learning_path.steps.start';
-    $edit_route = 'entity.group.edit_form';
-    $members_route = 'opigno_learning_path.membership.overview';
+  /**
+   * {@inheritdoc}
+   */
+  public function buildSummary($group, $account) {
+    $uid = $account->id();
+    // Get user training expiration flag.
+    $has_experation_date = LPStatus::isCertificateExpireSet($group);
+    $expired = LPStatus::isCertificateExpired($group, $uid);
+    $expired_date = LPStatus::isCertificateExpiredDate($group, $uid);
+    $status = $this->getProgressAchievementsData($group->id(), $uid);
+    $result = LPResult::getCurrentLPAttempt($group, $account);
+    $is_passed = opigno_learning_path_is_passed($group, $uid, $expired);
+    $build = isset($result->started) ? [
+      '#theme' => 'opigno_learning_path_step_block_progress',
+      '#passed' => $is_passed,
+      '#expired' => $expired,
+      '#has_experation_date' => $has_experation_date,
+      '#expired_date' => $expired_date->expire ?? 0,
+      '#complite_date' => strtotime($status["registered"]) ?? 0,
+      '#started_date' => $result->started->value ?? 0,
+    ] : [];
 
-    $route_args = ['group' => $group->id()];
-    $continue_url = Url::fromRoute($continue_route, $route_args);
-    $edit_url = Url::fromRoute($edit_route, $route_args);
-    $members_url = Url::fromRoute($members_route, $route_args);
-
-    $admin_continue_button = Link::fromTextAndUrl(
-      Markup::create('<i class="icon-chevron-right1"></i><span class="sr-only">' . $this->t('Continue training') . '</span>'),
-      $continue_url)->toRenderable();
-    $admin_continue_button['#attributes']['class'][] = 'lp_progress_admin_continue';
-    $admin_continue_button['#attributes']['class'][] = 'use-ajax';
-    $admin_continue_button['#attributes']['class'][] = 'lp_progress_control';
-    $edit_button = Link::fromTextAndUrl(
-      Markup::create('<i class="icon-pencil"></i><span class="sr-only">' . $this->t('Edit training') . '</span>'),
-      $edit_url)->toRenderable();
-    $edit_button['#attributes']['class'][] = 'lp_progress_admin_edit';
-    $edit_button['#attributes']['class'][] = 'lp_progress_control';
-    $members_button = Link::fromTextAndUrl(Markup::create('<i class="icon-pencil"></i><span class="sr-only">' . $this->t('Member of training') . '</span>'), $members_url)->toRenderable();
-    $members_button['#attributes']['class'][] = 'lp_progress_admin_edit';
-    $members_button['#attributes']['class'][] = 'lp_progress_control';
-
-    // Set button text depending on if the learning path is started or ongoing.
-    $continue_button_text = opigno_learning_path_started($group, \Drupal::currentUser()) ? $this->t('Continue Training') : $this->t('Start');
-    // If learning path is passed, set button text accordingly.
-    if (opigno_learning_path_is_passed($group, $account_id)) {
-      $continue_button_text = $this->t('Passed');
-    }
-
-    $continue_button = Link::fromTextAndUrl($continue_button_text, $continue_url)->toRenderable();
-    $continue_button['#attributes']['class'][] = 'lp_progress_continue';
-    $continue_button['#attributes']['class'][] = 'use-ajax';
-
-    $buttons = [];
-    if ($group->access('update', $account)) {
-      $buttons[] = $admin_continue_button;
-      $buttons[] = $edit_button;
-    }
-    elseif ($group->access('administer members', $account)) {
-      $buttons[] = $admin_continue_button;
-      $buttons[] = $members_button;
-    }
-    else {
-      $buttons[] = $continue_button;
-    }
-
-    $content[] = [
-      '#type' => 'container',
-      '#attributes' => [
-        'class' => ['col-sm-3', 'mb-3', 'd-flex'],
-      ],
-      $buttons,
-    ];
-
-    return $content;
+    return $build;
   }
 
   /**
@@ -513,6 +451,8 @@ class Progress {
    *
    * @return array
    *   Renderable array.
+   *
+   * @opigno_deprecated
    */
   public function getProgressBuildModulePage($group_id, $account_id, $latest_cert_date) {
     $home_link = Link::createFromRoute(Markup::create($this->t('home') . '<i class="icon-home-2"></i>'), 'entity.group.canonical', ['group' => $group_id], ['attributes' => ['class' => ['w-100']]])->toRenderable();
@@ -523,8 +463,9 @@ class Progress {
     $build = [
       '#theme' => 'block__opigno_module_learning_path_progress_block',
       'content' => [
-        'home_link' => $home_link,
+        // 'home_link' => $home_link,
         'progress' => $progress,
+        'fullpage' => FALSE,
        ],
       '#configuration' => [
         'id' => 'opigno_module_learning_path_progress_block',
@@ -564,7 +505,7 @@ class Progress {
     /** @var \Drupal\group\Entity\GroupContent $member */
     $member = $group->getMember($account)->getGroupContent();
     $registration = $member->getCreatedTime();
-    $registration = $date_formatter->format($registration, 'custom', 'F d, Y');
+    $registration = $date_formatter->format($registration, 'custom', 'm/d/Y');
 
     // Get data from achievements.
     $query = $this->database
@@ -623,7 +564,6 @@ class Progress {
       }
     }
 
-
     if ($achievements_data) {
       // Use cached result.
       $is_attempted = TRUE;
@@ -636,19 +576,19 @@ class Progress {
     }
 
     if ($is_passed) {
-      $state_class = 'lp_summary_step_state_passed';
+      $state_class = 'passed';
     }
     elseif ($progress == 100 && !opigno_learning_path_is_passed($group, $account_id)) {
-      $state_class = 'lp_summary_step_state_failed';
+      $state_class = 'failed';
     }
     elseif ($is_attempted) {
-      $state_class = 'lp_summary_step_state_in_progress';
+      $state_class = 'in progress';
     }
     elseif ($expired) {
-      $state_class = 'lp_summary_step_state_expired';
+      $state_class = 'expired';
     }
     else {
-      $state_class = 'lp_summary_step_state_not_started';
+      $state_class = 'not started';
     }
 
     $validation_message = !empty($validation) ? t('Validation date: @date<br />', ['@date' => $validation]) : '';
@@ -667,7 +607,8 @@ class Progress {
       '#validation_message' => $validation_message . $expiration_message,
       '#time_spend' => $time_spent,
       '#certificate_url' => $has_certificate && $is_passed ?
-        Url::fromUri('internal:/certificate/group/' . $group_id . '/pdf') : FALSE,
+      Url::fromUri('internal:/certificate/group/' . $group_id . '/pdf') : FALSE,
     ];
   }
+
 }

@@ -33,7 +33,7 @@
   left: 0;
   top: 0;
   bottom: 0;
-  background: #CF4320;
+  background: #4ad3b0;
   animation: growandshrink 1s linear infinite;
 }
 
@@ -106,8 +106,6 @@
 .learning-path-progress.progress-bar-module-page,
 .learning-path-progress.progress-bar-group-page {
   width: 100%;
-  padding: 15px;
-  height: 216px;
   justify-content: center;
 }
 

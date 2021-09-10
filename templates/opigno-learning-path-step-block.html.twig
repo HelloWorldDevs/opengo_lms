@@ -10,8 +10,8 @@
 
   <div class="tableresponsive-toggle-columns">
     <button type="button" class="link tableresponsive-toggle"
-      title="Show table cells that were hidden to make the table fit within a small screen."
-      style="display: none;">
+            title="Show table cells that were hidden to make the table fit within a small screen."
+            style="display: none;">
       {{ 'Hide lower priority columns'|t }}
     </button>
   </div>
@@ -21,15 +21,15 @@
   <table class="lp_steps_block_table responsive-enabled table table-hover" data-striping="1">
 
     <thead>
-      <tr>
-        {% for header in table_summary.headers %}
+    <tr>
+      {% for header in table_summary.headers %}
         <th>{{ header }}</th>
-        {% endfor %}
-      </tr>
+      {% endfor %}
+    </tr>
     </thead>
 
     <tbody>
-      {% for row in table_summary.data %}
+    {% for row in table_summary.data %}
       <tr>
         <td>{{ row.name }}</td>
         <td>
@@ -41,13 +41,13 @@
         </td>
         <td>
           {% if row.state %}
-          <span class="{{ row.state }}"></span>
+            <span class="{{ row.state }}"></span>
           {% else %}
-          -
+            -
           {% endif %}
         </td>
       </tr>
-      {% endfor %}
+    {% endfor %}
     </tbody>
   </table>
 </div>

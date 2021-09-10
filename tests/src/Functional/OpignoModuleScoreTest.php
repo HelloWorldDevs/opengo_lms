@@ -23,8 +23,8 @@ class OpignoModuleScoreTest extends LearningPathBrowserTestBase {
       'search',
     ]);
 
-    \Drupal::service('theme_handler')->install(['platon']);
-    \Drupal::service('theme_handler')->setDefault('platon');
+    \Drupal::service('theme_handler')->install(['aristotle']);
+    \Drupal::service('theme_handler')->setDefault('aristotle');
 
   }
 

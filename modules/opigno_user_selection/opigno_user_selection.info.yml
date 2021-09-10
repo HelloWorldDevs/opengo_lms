@@ -1,0 +1,5 @@
+name: 'Opigno User Selection'
+type: module
+description: 'Opigno User Selection Module'
+package: 'Custom'
+core_version_requirement: ^9

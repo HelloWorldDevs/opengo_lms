@@ -1,0 +1,7 @@
+user_selection_list:
+  path: '/user_selection/users'
+  defaults:
+    _title: 'OpignoUserSelectionController'
+    _controller: '\Drupal\opigno_user_selection\Controller\OpignoUserSelectionController::post'
+  requirements:
+    _permission: 'access content'

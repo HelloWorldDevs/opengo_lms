@@ -3,24 +3,17 @@
 namespace Drupal\opigno_learning_path\Plugin\Block;
 
 use Drupal\Core\Block\BlockBase;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Link;
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-use Drupal\Core\Routing\ResettableStackedRouteMatchInterface;
-use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\Url;
 use Drupal\group\Entity\Group;
-use Drupal\opigno_group_manager\ContentTypeBase;
-use Drupal\opigno_group_manager\Controller\OpignoGroupManagerController;
 use Drupal\opigno_group_manager\Entity\OpignoGroupManagedContent;
 use Drupal\opigno_group_manager\OpignoGroupContentTypesManager;
-use Drupal\opigno_group_manager\OpignoGroupContext;
-use Drupal\Core\Cache\Cache;
-use Drupal\opigno_ilt\ILTInterface;
-use Drupal\opigno_learning_path\Entity\LPStatus;
-use Drupal\opigno_learning_path\LearningPathContent;
-use Drupal\opigno_learning_path\Progress;
-use Drupal\opigno_moxtra\MeetingInterface;
+use Drupal\opigno_learning_path\Controller\LearningPathStepsController;
+use Drupal\opigno_learning_path\Traits\LearningPathAchievementTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Core\Security\TrustedCallbackInterface;
 
 /**
  * Provides a 'article' block.
@@ -30,70 +23,32 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   admin_label = @Translation("LP Steps block")
  * )
  */
-class StepsBlock extends BlockBase implements ContainerFactoryPluginInterface {
+class StepsBlock extends BlockBase implements ContainerFactoryPluginInterface, TrustedCallbackInterface {
+
+  use LearningPathAchievementTrait;
 
   /**
-   * @var AccountProxyInterface
-   */
-  protected $account;
-
-  /**
-   * @var ResettableStackedRouteMatchInterface
-   */
-  protected $routeMatch;
-
-  /**
-   * @var EntityTypeManagerInterface
-   */
-  protected $entityTypeManager;
-
-  /**
-   * @var Progress
-   */
-  protected $progress;
-
-  /**
-   * @var OpignoGroupContentTypesManager
+   * Service "opigno_group_manager.content_types.manager" definition.
+   *
+   * @var \Drupal\opigno_group_manager\OpignoGroupContentTypesManager
    */
   protected $opignoGroupContentTypesManager;
 
   /**
-   * StepsBlock constructor.
-   *
-   * @param array $configuration
-   * @param string $plugin_id
-   * @param mixed $plugin_definition
-   * @param AccountProxyInterface $account
-   * @param ResettableStackedRouteMatchInterface $route_match
-   * @param EntityTypeManagerInterface $entity_type_manager
-   * @param Progress $progress
-   * @param OpignoGroupContentTypesManager $opigno_group_content_types_manager
+   * {@inheritdoc}
    */
   public function __construct(
     array $configuration,
     $plugin_id,
     $plugin_definition,
-    AccountProxyInterface $account,
-    ResettableStackedRouteMatchInterface $route_match,
-    EntityTypeManagerInterface $entity_type_manager,
-    Progress $progress,
     OpignoGroupContentTypesManager $opigno_group_content_types_manager
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
-    $this->account = $account;
-    $this->routeMatch = $route_match;
-    $this->entityTypeManager = $entity_type_manager;
-    $this->progress = $progress;
     $this->opignoGroupContentTypesManager = $opigno_group_content_types_manager;
   }
 
   /**
-   * @param ContainerInterface $container
-   * @param array $configuration
-   * @param string $plugin_id
-   * @param mixed $plugin_definition
-   *
-   * @return StepsBlock
+   * {@inheritdoc}
    */
   public static function create(
     ContainerInterface $container,
@@ -104,10 +59,6 @@ class StepsBlock extends BlockBase implements ContainerFactoryPluginInterface {
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('current_user'),
-      $container->get('current_route_match'),
-      $container->get('entity.manager'),
-      $container->get('opigno_learning_path.progress'),
       $container->get('opigno_group_manager.content_types.manager')
     );
   }
@@ -117,228 +68,262 @@ class StepsBlock extends BlockBase implements ContainerFactoryPluginInterface {
    */
   public function getCacheContexts() {
     // Every new route this block will rebuild.
-    return Cache::mergeContexts(parent::getCacheContexts(), ['route']);
+    return Cache::mergeContexts(parent::getCacheContexts(), [
+      'route',
+      'opigno_current:group_id',
+      'opigno_current:content_id',
+      'opigno_current:activity_id',
+    ]);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getGroupByRouteOrContext() {
+    // By default a getCurrentGroupId gets a group by orute parameter.
+    return Group::load($this->getCurrentGroupId());
   }
 
   /**
    * {@inheritdoc}
    */
   public function build() {
+    $group = $this->getGroupByRouteOrContext();
 
-    $uid = $this->account->id();
-    $route_name = $this->routeMatch->getRouteName();
-    if ($route_name == 'opigno_module.group.answer_form') {
-      $group = $this->routeMatch->getParameter('group');
-      $gid = $group->id();
-    }
-    else {
-      $gid = OpignoGroupContext::getCurrentGroupId();
-      $group = Group::load($gid);
-    }
+    $steps = $this->getStepsByGroup($group);
 
-    if (empty($group)) {
-      return [];
-    }
-
-    $title = $group->label();
-
-    // Get training guided navigation option.
-    $freeNavigation = !OpignoGroupManagerController::getGuidedNavigation($group);
-
-    if ($freeNavigation) {
-      // Get all steps for LP.
-      $steps = LearningPathContent::getAllStepsOnlyModules($gid, $uid, TRUE);
-    }
-    else {
-      // Get guided steps.
-      $steps = LearningPathContent::getAllStepsOnlyModules($gid, $uid);
-    }
-
-    $user = $this->account;
-    $steps = array_filter($steps, function ($step) use ($user) {
-      if ($step['typology'] === 'Meeting') {
-        // If the user have not the collaborative features role.
-        if (!$user->hasPermission('view meeting entities')) {
-          return FALSE;
-        }
-
-        // If the user is not a member of the meeting.
-        /** @var MeetingInterface $meeting */
-        $meeting = $this->entityTypeManager
-          ->getStorage('opigno_moxtra_meeting')
-          ->load($step['id']);
-        if (!$meeting->isMember($user->id())) {
-          return FALSE;
-        }
-      }
-      elseif ($step['typology'] === 'ILT') {
-        // If the user is not a member of the ILT.
-        /** @var ILTInterface $ilt */
-        $ilt = $this->entityTypeManager
-          ->getStorage('opigno_ilt')
-          ->load($step['id']);
-        if (!$ilt->isMember($user->id())) {
-          return FALSE;
-        }
-      }
-
-      return TRUE;
-    });
-
-    // Get user training expiration flag.
-    $expired = LPStatus::isCertificateExpired($group, $uid);
-
-    $score = opigno_learning_path_get_score($gid, $uid);
-    $progress = $this->progress->getProgressRound($gid, $uid);
-
-    $is_passed = opigno_learning_path_is_passed($group, $uid, $expired);
-
-    if ($is_passed) {
-      $state_class = 'lp_steps_block_summary_state_passed';
-      $state_title = $this->t('Passed');
-    }
-    else {
-      $state_class = 'lp_steps_block_summary_state_pending';
-      $state_title = $this->t('In progress');
-    }
     // Get group context.
-    $cid = OpignoGroupContext::getCurrentGroupContentId();
+    $cid = $this->getCurrentGroupContentId();
     if (!$cid) {
       return [];
     }
-    $gid = OpignoGroupContext::getCurrentGroupId();
-    $step_info = [];
-    // Reindex steps array.
+    if (!$steps) {
+      return [];
+    }
     $steps = array_values($steps);
-    for ($i = 0; $i < count($steps); $i++) {
-      // Build link for first step.
-      if ($i == 0) {
-        // Load first step entity.
-        $first_step = OpignoGroupManagedContent::load($steps[$i]['cid']);
-        if ($first_step) {
-          /** @var ContentTypeBase $content_type */
-          $content_type = $this->opignoGroupContentTypesManager->createInstance($first_step->getGroupContentTypeId());
-          $step_url = $content_type->getStartContentUrl($first_step->getEntityId(), $gid);
-          $link = Link::createFromRoute($steps[$i]['name'], $step_url->getRouteName(), $step_url->getRouteParameters())
-            ->toString();
-        }
-        else {
-          $link = '-';
-        }
-      }
-      else {
-        // Get link to module.
-        $parent_content_id = $steps[$i - 1]['cid'];
-        $link = Link::createFromRoute($steps[$i]['name'], 'opigno_learning_path.steps.next', [
-          'group' => $gid,
-          'parent_content' => $parent_content_id,
-        ])
-          ->toString();
-      }
-
-      array_push($step_info, [
-        'name' => $link,
-        'score' => $this->buildScore($steps[$i]),
-        'state' => $this->buildState($steps[$i]),
-      ]);
-
+    if (!$steps) {
+      return [];
     }
-
-    $state_summary = [
-      'class' => $state_class,
-      'title' => $state_title,
-      'score' => $this->t('Average score : @score%', ['@score' => $score]),
-      'progress' => $this->t('Progress : @progress%', ['@progress' => $progress]),
-    ];
-
-    $table_summary = [
-      '#type' => 'table',
-      '#header' => [
-        $this->t('Name'),
-        $this->t('Score'),
-        $this->t('State'),
-      ],
-      '#rows' => $step_info,
-      '#attributes' => [
-        'class' => ['lp_steps_block_table'],
-      ],
-    ];
-
-    $build = [
-      '#theme' => 'opigno_learning_path_step_block',
-      '#attributes' => [
-        'class' => ['lp_steps_block'],
-      ],
-      '#attached' => [
-        'library' => [
-          'opigno_learning_path/steps_block',
-        ],
-      ],
-      '#title' => $title,
-      '#state_summary' => $state_summary,
-      '#table_summary' => $table_summary,
-    ];
-
-    return $build;
-  }
-
-  /**
-   * Builds the score.
-   *
-   * @param array $step
-   *
-   * @return mixed|null
-   */
-  protected function buildScore(array $step) {
-    $is_attempted = $step['attempts'] > 0;
-
-    if ($is_attempted) {
-      $score = [
-        '#type' => 'html_tag',
-        '#tag' => 'span',
-        '#value' => $step['best score'],
-        '#attributes' => [
-          'class' => ['lp_steps_block_score'],
-        ],
-      ];
+    foreach ($steps as $index => &$step) {
+      $step['step_previous'] = $steps[$index - 1] ?? FALSE;
+      $step['step_first'] = $index === 0;
+      $step['step_last'] = count($steps) - 1 === ($index);
     }
-    else {
-      $score = ['#markup' => '&dash;'];
-    }
-
     return [
-      'data' => $score,
+      '#type' => 'container',
+      [
+        '#theme' => 'opigno_lp_step_activity',
+        'title' => [
+          '#markup' => $group->label(),
+        ],
+        'steps' => $steps,
+        '#pre_render' => [
+          [$this, 'processModuleList'],
+        ],
+      ],
     ];
   }
 
   /**
-   * Builds the state.
+   * Process module list.
    *
-   * @param array $step
-   *
-   * @return string|null
+   * @throws \Drupal\Component\Plugin\Exception\PluginException
    */
-  protected function buildState(array $step) {
-    $uid = \Drupal::currentUser()->id();
-    $status = opigno_learning_path_get_step_status($step, $uid, TRUE);
-    $class = [
-      'pending' => 'lp_steps_block_step_pending',
-      'failed' => 'lp_steps_block_step_failed',
-      'passed' => 'lp_steps_block_step_passed',
-    ];
-
-    if (isset($class[$status])) {
-      return [
-        'data' => [
-          '#type' => 'html_tag',
-          '#tag' => 'span',
-          '#attributes' => ['class' => [$class[$status]]],
+  public function processModuleList($elements) {
+    foreach ($elements["steps"] as &$step) {
+      $link = $this->getLinkToStart($step);
+      $step = [
+        // @todo seems it is a bad idea to generate a thme based on typology.
+        '#theme' => sprintf('%s_%s', 'opigno_lp_step', strtolower($step["typology"])),
+        'step' => $step,
+        '#state' => $this->getState($step),
+        '#current' => $this->isModuleCurrent($step),
+        '#link' => FALSE,
+        '#locked' => !$link,
+        '#pre_render' => [
+          [$this, 'processActivityList'],
         ],
       ];
     }
-    else {
-      return ['data' => ['#markup' => '&dash;']];
-    }
+    return $elements;
   }
 
+  /**
+   * Converts a step array to a renderable array.
+   */
+  public function processActivityList($elements) {
+
+    $meta = CacheableMetadata::createFromRenderArray($elements);
+
+    if (in_array($elements["step"]['typology'], ['Module'])) {
+      [
+        $training,
+        $course,
+        $module,
+      ] = $this->getTrainingAndCourse($elements["step"]);
+      [
+        $activities,
+        $attempts,
+      ] = $this->getActivities($training, $course, $module);
+      $meta->addCacheableDependency($attempts);
+      $activity_status = $this->getActivityStatus($activities, $attempts, $module);
+      $activity_passed = array_filter($activity_status, static function ($status) {
+        return 'passed' === $status;
+      });
+      $next = FALSE;
+      $current_module = $this->isModuleCurrent($elements["step"]);
+      foreach ($activities as &$activity) {
+        $meta->addCacheableDependency($activity);
+        $state = $activity_status[$activity->id()] ?? 'pending';
+        $current = $this->getCurrentActivityId() === $activity->id();
+        $is_link = in_array($state, ['passed']);
+        $activity = [
+          '#theme' => 'opigno_lp_step_module_activity',
+          '#activity' => $activity,
+          "#state" => $state,
+          '#current' => $current,
+          '#link' => $current_module && ($current || $is_link || $next) ? Url::fromRoute('opigno_module.group.answer_form', [
+            'group' => $training->id(),
+            'opigno_activity' => $activity->id(),
+            'opigno_module' => $module->id(),
+          ])->toString() : FALSE,
+          '#pre_render' => [
+            [$this, 'processActivityStatus'],
+          ],
+        ];
+        $next = $is_link && $current;
+      }
+
+      $elements['activity_counter'] = [
+        '#markup' => $this->t('%passed/%total activities done', [
+          '%passed' => count($activity_passed),
+          '%total' => count($activity_status),
+        ]),
+      ];
+
+      $elements['activities'] = $activities;
+    }
+
+    $meta->applyTo($elements);
+    return $elements;
+  }
+
+  /**
+   * Activity pre-processor.
+   */
+  public function processActivityStatus($elements) {
+    $elements['title'] = [
+      '#markup' => $elements['#activity']->label(),
+    ];
+    return $elements;
+  }
+
+  /**
+   * Get the current active module.
+   */
+  protected function isModuleCurrent(array $step): bool {
+    return $this->getCurrentGroupContentId() == $step['cid'];
+  }
+
+  /**
+   * Get the state of the module.
+   */
+  protected function getState(array $step): ?string {
+    return opigno_learning_path_get_step_status($step, $this->currentUser()
+      ->id(), TRUE);
+  }
+
+  /**
+   * Take a module link.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\PluginException
+   * @todo Previously it can be take or next link, it should be researched.
+   *
+   */
+  protected function getLink($step): Url {
+    $content_step = OpignoGroupManagedContent::load($step['cid']);
+    /** @var \Drupal\opigno_group_manager\ContentTypeBase $content_type */
+    $content_type = $this->opignoGroupContentTypesManager->createInstance($content_step->getGroupContentTypeId());
+    $step_url = $content_type->getStartContentUrl($content_step->getEntityId(), $this->getCurrentGroupId());
+    return Url::fromRoute($step_url->getRouteName(), $step_url->getRouteParameters());
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getLinkToStart($step): ?Url {
+    $link = NULL;
+    /** @var \Drupal\opigno_learning_path\Controller\LearningPathStepsController $controller */
+    $controller = \Drupal::classResolver(LearningPathStepsController::class);
+    if ($step['step_first']) {
+      return $this->getLink($step);
+    }
+    else {
+      $group_id = $this->getCurrentGroupId();
+      $parent_content_id = $step["step_previous"]["cid"];
+      $group = Group::load($group_id);
+      $course_entity = OpignoGroupManagedContent::load($parent_content_id);
+      $resp = $controller->getNextStep($group, $course_entity, FALSE);
+      if (($resp["#type"] ?? FALSE) != 'html_tag') {
+        // @todo an access to link should be checked here.
+        //
+        // if the response is a html type, that means the function returns
+        // a redirect message, because we reuse the legacy code
+        // that actually is not developed for the checking an access to route.
+        return Url::fromRoute('opigno_learning_path.steps.next', [
+          'group' => $group_id,
+          'parent_content' => $parent_content_id,
+        ]);
+      }
+    }
+    return $link;
+  }
+
+  /**
+   * Loading a training/course and module entities by step array.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   */
+  protected function getTrainingAndCourse($step): array {
+
+    $step_training = $this->getStepTraining($step);
+    if (!$step_training) {
+      $step_training = [
+        'cid' => $step['cid'],
+        'id' => FALSE,
+      ];
+    }
+
+    /** @var \Drupal\opigno_group_manager\OpignoGroupContent $content */
+    $content = $this->entityTypeManager()
+      ->getStorage('opigno_group_content')
+      ->load($step_training["cid"]);
+    $training = ($content instanceof OpignoGroupManagedContent) ? $content->getGroup() : NULL;
+    $course = ($step_training["id"] ? $this->entityTypeManager()
+      ->getStorage('group')
+      ->load($step_training["id"]) : FALSE) ?: NULL;
+    $module = $this->entityTypeManager()
+      ->getStorage('opigno_module')
+      ->load($step["id"]) ?: NULL;
+    return [$training, $course, $module];
+  }
+
+  /**
+   * If the module has a course as a parent object just return it.
+   */
+  protected function getStepTraining(array $elements) {
+    return $elements["parent"] ?? FALSE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function trustedCallbacks() {
+    return [
+      'processModuleList',
+      'processActivityList',
+      'processActivityStatus'
+    ];
+  }
 }

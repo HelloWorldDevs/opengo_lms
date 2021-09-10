@@ -6,12 +6,14 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
+use Drupal\group\Entity\Group;
+use Drupal\group\Entity\GroupInterface;
 use Drupal\opigno_group_manager\Controller\OpignoGroupManagerController;
 use Drupal\opigno_group_manager\Entity\OpignoGroupManagedContent;
 use Drupal\opigno_learning_path\Entity\LPStatus;
 use Drupal\opigno_learning_path\LearningPathAccess;
-use Drupal\opigno_learning_path\LearningPathContent;
 use Drupal\opigno_module\Entity\OpignoModule;
+use Drupal\taxonomy\Entity\Term;
 
 /**
  * Class LearningPathController.
@@ -20,6 +22,8 @@ class LearningPathController extends ControllerBase {
 
   /**
    * Returns step score cell.
+   *
+   * @opigno_deprecated
    */
   protected function build_step_score_cell($step) {
     if (in_array($step['typology'], ['Module', 'Course', 'Meeting', 'ILT'])) {
@@ -55,7 +59,23 @@ class LearningPathController extends ControllerBase {
   }
 
   /**
+   * Returns step score cell.
+   */
+  protected function build_step_score_label($step) {
+    if (in_array($step['typology'], ['Module', 'Course', 'Meeting', 'ILT'])) {
+      $score = $step['best score'];
+
+      return $score . '%';
+    }
+    else {
+      return '0%';
+    }
+  }
+
+  /**
    * Returns step state cell.
+   *
+   * @opigno_deprecated
    */
   protected function build_step_state_cell($step) {
     $user = $this->currentUser();
@@ -84,6 +104,19 @@ class LearningPathController extends ControllerBase {
   }
 
   /**
+   * Returns step state cell.
+   */
+  protected function build_step_state_label($step) {
+    $user = $this->currentUser();
+    $uid = $user->id();
+
+    $status = opigno_learning_path_get_step_status($step, $uid, TRUE);
+    return [
+      'class' => $status,
+    ];
+  }
+
+  /**
    * Returns course row.
    */
   protected function build_course_row($step) {
@@ -104,17 +137,10 @@ class LearningPathController extends ControllerBase {
   }
 
   /**
-   * Returns training content.
+   * Training content.
    */
   public function trainingContent() {
-    /** @var \Drupal\group\Entity\Group $group */
-    $group = \Drupal::routeMatch()->getParameter('group');
-    $user = \Drupal::currentUser();
-
-    // Get training certificate expiration flag.
-    $latest_cert_date = LPStatus::getTrainingStartDate($group, $user->id());
-
-    $content = [
+    $build = [
       '#attached' => [
         'library' => [
           'core/drupal.dialog.ajax',
@@ -122,17 +148,39 @@ class LearningPathController extends ControllerBase {
       ],
       '#theme' => 'opigno_learning_path_training_content',
     ];
+    /** @var \Drupal\group\Entity\Group $group */
+    $group = \Drupal::routeMatch()->getParameter('group');
+    if(!($group instanceof GroupInterface)){
+      // On of  case an anonymous user hasn't an access to the group.
+      return $build;
+    }
+    $user = \Drupal::currentUser();
+
+    // Get training certificate expiration flag.
+    $latest_cert_date = LPStatus::getTrainingStartDate($group, $user->id());
 
     // If not a member.
     if (!$group->getMember($user)
       || (!$user->isAuthenticated() && $group->field_learning_path_visibility->value === 'semiprivate')) {
-      return $content;
+      return $build;
     }
 
     // Check if membership has status 'pending'.
     if (!LearningPathAccess::statusGroupValidation($group, $user)) {
-      return $content;
+      return $build;
     }
+
+    $steps = $this->trainingContentSteps($build, $group, $user, $latest_cert_date);
+    $this->trainingContentMain($build, $steps);
+    $this->trainingContentDocuments($build, $group);
+    $this->trainingContentForum($build, $group, $user);
+    return $build;
+  }
+
+  /**
+   * Training content steps.
+   */
+  public function trainingContentSteps(&$content, $group, $user, $latest_cert_date) {
 
     // Get training guided navigation option.
     $freeNavigation = !OpignoGroupManagerController::getGuidedNavigation($group);
@@ -183,8 +231,8 @@ class LearningPathController extends ControllerBase {
         $sub_title = '';
         $link = NULL;
         $free_link = NULL;
-        $score = $this->build_step_score_cell($step);
-        $state = $this->build_step_state_cell($step);
+        $score = $this->build_step_score_label($step);
+        $state = $this->build_step_state_label($step);
         unset($start_date);
         unset($end_date);
 
@@ -223,31 +271,24 @@ class LearningPathController extends ControllerBase {
             $course_step['title'] = !empty($link) ? $link : $course_step['name'];
 
             $course_step['summary_details_table'] = [
-              '#type' => 'table',
-              '#attributes' => [
-                'class' => ['lp_step_summary_details'],
-              ],
-              '#header' => [
-                $this->t('Score'),
-                $this->t('State'),
-              ],
-              '#rows' => [
-                [
-                  [
-                    'class' => 'lp_step_details_result',
-                    'data' => $this->build_step_score_cell($course_step),
-                  ],
-                  [
-                    'class' => 'lp_step_details_state',
-                    'data' => $this->build_step_state_cell($course_step),
-                  ],
-                ],
-              ],
+              '#theme' => 'opigno_learning_path_training_content_step_summary_details_table',
+              '#mandatory' => $step["mandatory"],
+              '#type' => $course_step["typology"],
+              '#steps' => $course_step['title'],
+              '#status' => $this->build_step_state_label($course_step),
+              '#progress' => $this->build_step_score_label($course_step),
             ];
           }
 
-          $step['course_steps'] = $course_steps;
-          $steps[$key]['course_steps'] = $course_steps;
+          $course_steps_array = array_map(function ($value) use ($group) {
+            return [
+              '#theme' => 'opigno_learning_path_training_content_step',
+              'step' => $value,
+              '#group' => $group,
+            ];
+          }, $course_steps);
+          $step['course_steps'] = $course_steps_array;
+          $steps[$key]['course_steps'] = $course_steps_array;
         }
         elseif ($step['typology'] === 'Module') {
           $step['module'] = OpignoModule::load($step['id']);
@@ -364,31 +405,18 @@ class LearningPathController extends ControllerBase {
         $step['state'] = $state;
 
         $step['summary_details_table'] = [
-          '#type' => 'table',
-          '#attributes' => [
-            'class' => ['lp_step_summary_details'],
-          ],
-          '#header' => [
-            $this->t('Score'),
-            $this->t('State'),
-          ],
-          '#rows' => [
-            [
-              [
-                'class' => 'lp_step_details_result',
-                'data' => $score,
-              ],
-              [
-                'class' => 'lp_step_details_state',
-                'data' => $state,
-              ],
-            ],
-          ],
+          '#theme' => 'opigno_learning_path_training_content_step_summary_details_table',
+          '#mandatory' => $step["mandatory"],
+          '#type' => $step["typology"],
+          '#steps' => $step['title'],
+          '#substeps' => (bool) ($step['course_steps'] ?? FALSE),
+          '#status' => $state,
+          '#progress' => $score,
         ];
 
         $steps_array[] = [
           '#theme' => 'opigno_learning_path_training_content_step',
-          '#step' => $step,
+          'step' => $step,
           '#group' => $group,
         ];
       }
@@ -397,22 +425,20 @@ class LearningPathController extends ControllerBase {
         $steps = $steps_array;
       }
     }
+    return $steps;
+  }
 
-    // $TFTController = new TFTController();
-    // $listGroup = $TFTController->listGroup($group->id());
-    $tft_url = Url::fromRoute('tft.group', ['group' => $group->id()])->toString();
-
+  /**
+   * Training content main block.
+   */
+  public function trainingContentMain(&$content, $steps) {
     $content['tabs'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['lp_tabs', 'nav', 'mb-4']],
     ];
 
-    $content['tabs'][] = [
-      '#markup' => '<a class="lp_tabs_link active" data-toggle="tab" href="#training-content">' . $this->t('Training Content') . '</a>',
-    ];
-
-    $content['tabs'][] = [
-      '#markup' => '<a class="lp_tabs_link" data-toggle="tab" href="#documents-library">' . $this->t('Documents Library') . '</a>',
+    $content['tabs']['training'] = [
+      '#markup' => '<a class="lp_tabs_link active" href="#training-content">' . $this->t('Training Content') . '</a>',
     ];
 
     $content['tab_content'] = [
@@ -420,33 +446,48 @@ class LearningPathController extends ControllerBase {
       '#attributes' => ['class' => ['tab-content']],
     ];
 
-    $content['tab_content'][] = [
-      '#type' => 'container',
-      '#attributes' => [
-        'id' => 'training-content',
-        'class' => ['tab-pane', 'fade', 'show', 'active'],
-      ],
+    $content['tab_content']['training'] = [
+      '#theme' => 'opigno_learning_path_training_content_steps',
       'steps' => $steps,
     ];
 
-    $content['tab_content'][] = [
-      '#type' => 'container',
-      '#attributes' => [
-        'id' => 'documents-library',
-        'class' => ['tab-pane', 'fade'],
-      ],
-      [
-        '#type' => 'html_tag',
-        '#tag' => 'iframe',
-        '#attributes' => [
-          'src' => $tft_url,
-          'frameborder' => 0,
-          'width' => '100%',
-          'height' => '600px',
-        ],
-      ],
+  }
+
+  /**
+   * Training document block.
+   */
+  public function trainingContentDocuments(&$content, $group) {
+
+    // $TFTController = new TFTController();
+    // $listGroup = $TFTController->listGroup($group->id());
+    $tft_url = Url::fromRoute('tft.group', ['group' => $group->id()])->toString();
+
+    $content['tabs'][] = $tft_url = [
+      '#markup' => '<div class="see-all"><a href="' . $tft_url . '">' . $this->t('See all') . '</a></div>',
     ];
 
+    $block_render = $this->attachBlock('opigno_documents_last_group_block', ['group' => $group->id()]);
+    $block_render["content"]['link'] = $tft_url;
+    $content['tab_content']['documents'] = (isset($block_render["content"]["content"]) && !empty($block_render["content"]["content"])) ? [
+      '#type' => 'container',
+      '#attributes' => [
+        'id' => 'documents',
+      ],
+      'block' => [
+        'content' => $block_render["content"],
+      ],
+    ] : [];
+
+  }
+
+  /**
+   * Training workspaces block.
+   *
+   * @opigno_deprecated
+   */
+  public function trainingContentWorkspace(&$content, $group, $user) {
+    // @todo Refactoring needed, the opigno_moxtra.workspace_controller is not available in the code,
+    //       probably should be changed to a opigno_moxtra.meeting_controller service.
     $is_moxtra_enabled = \Drupal::hasService('opigno_moxtra.workspace_controller');
     if ($is_moxtra_enabled) {
       $has_workspace_field = $group->hasField('field_workspace');
@@ -490,6 +531,12 @@ class LearningPathController extends ControllerBase {
       }
     }
 
+  }
+
+  /**
+   * Training forum block.
+   */
+  public function trainingContentForum(&$content, $group, $user) {
     $has_enable_forum_field = $group->hasField('field_learning_path_enable_forum');
     $has_forum_field = $group->hasField('field_learning_path_forum');
     if ($has_enable_forum_field && $has_forum_field) {
@@ -500,34 +547,57 @@ class LearningPathController extends ControllerBase {
         $forum_tid = $forum_field[0]['target_id'];
         if ($enable_forum && _opigno_forum_access($forum_tid, $user)) {
           $forum_url = Url::fromRoute('forum.page', ['taxonomy_term' => $forum_tid])->toString();
-          $content['tabs'][] = [
-            '#markup' => '<a class="lp_tabs_link" data-toggle="tab" href="#forum">' . $this->t('Forum') . '</a>',
+          $content['tabs'][] = $forum_url = [
+            '#markup' => '<div class="see-all"><a href="' . $forum_url . '">' . $this->t('See all') . '</a></div>',
           ];
-
-          $content['tab_content'][] = [
+          $block_render = $this->attachBlock('opigno_forum_last_topics_block', ['taxonomy_term' => $forum_tid]);
+          $block_render["content"]['link'] = $forum_url;
+          $content['tab_content']['forum'] = $block_render["topics"] ? [
             '#type' => 'container',
             '#attributes' => [
               'id' => 'forum',
-              'class' => ['tab-pane', 'fade'],
             ],
-            [
-              '#type' => 'html_tag',
-              '#tag' => 'iframe',
-              '#attributes' => [
-                'src' => $forum_url,
-                'frameborder' => 0,
-                'width' => '100%',
-                'height' => '600px',
-              ],
+            'block' => [
+              'content' => $block_render["content"],
             ],
-          ];
+          ] : [];
         }
       }
     }
-
-    $content['#attached']['library'][] = 'opigno_learning_path/training_content';
-
     return $content;
+  }
+
+  /**
+   * Attaches a block by block name.
+   */
+  public function attachBlock($name, $config = []) {
+    $block_manager = \Drupal::service('plugin.manager.block');
+    // You can hard code configuration or you load from settings.
+    $plugin_block = $block_manager->createInstance($name, $config);
+    // Some blocks might implement access check.
+    $access_result = $plugin_block->access(\Drupal::currentUser());
+    // Return empty render array if user doesn't have access.
+    // $access_result can be boolean or an AccessResult class.
+    if ((is_object($access_result) && $access_result->isForbidden()) || (is_bool($access_result) && !$access_result)) {
+      // You might need to add some cache tags/contexts.
+      return [];
+    }
+    $render = $plugin_block->build();
+    // In some cases, you need to add the cache tags/context depending on
+    // the block implemention. As it's possible to add the cache tags and
+    // contexts in the render method and in ::getCacheTags and
+    // ::getCacheContexts methods.
+    return $render;
+  }
+
+  /**
+   * Loads a group by LP forum term.
+   */
+  public static function loadGroupByForum(Term $term) {
+    $query = \Drupal::entityQuery('group')
+      ->condition('field_learning_path_forum.target_id', $term->id());
+    $nids = $query->execute();
+    return $nids ? Group::load(reset($nids)) : FALSE;
   }
 
 }

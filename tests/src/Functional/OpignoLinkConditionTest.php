@@ -26,8 +26,8 @@ class OpignoLinkConditionTest extends LearningPathBrowserTestBase {
       'search',
     ]);
     // Install Platon theme.
-    \Drupal::service('theme_handler')->install(['platon']);
-    \Drupal::service('theme_handler')->setDefault('platon');
+    \Drupal::service('theme_handler')->install(['aristotle']);
+    \Drupal::service('theme_handler')->setDefault('aristotle');
 
   }
 
@@ -111,7 +111,7 @@ class OpignoLinkConditionTest extends LearningPathBrowserTestBase {
     $current_attempt->setEvaluated(1);
     $current_attempt->setFinished(time());
     $current_attempt->save();
-    
+
     // Reset all static variables.
     $stack->resetAll();
     // Save all achievements.

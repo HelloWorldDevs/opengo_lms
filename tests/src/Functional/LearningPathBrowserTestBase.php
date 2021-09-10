@@ -44,6 +44,8 @@ abstract class LearningPathBrowserTestBase extends BrowserTestBase {
    */
   protected $accountSwitcher;
 
+  protected $defaultTheme = 'stable';
+
   /**
    * {@inheritdoc}
    */

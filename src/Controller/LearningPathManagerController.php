@@ -45,7 +45,7 @@ class LearningPathManagerController extends ControllerBase {
    * Root page for angular app.
    */
   public function index(Group $group, Request $request) {
-    $tempstore = \Drupal::service('user.private_tempstore')->get('opigno_group_manager');
+    $tempstore = \Drupal::service('tempstore.private')->get('opigno_group_manager');
 
     return [
       '#theme' => 'opigno_learning_path_manager',

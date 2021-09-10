@@ -383,11 +383,12 @@ class LearningPathStepsController extends ControllerBase {
   /**
    * Redirect the user to the next step.
    */
-  public function nextStep(Group $group, OpignoGroupManagedContent $parent_content) {
+  public function getNextStep(Group $group, OpignoGroupManagedContent $parent_content, $content_update = TRUE) {
     // Get the user score of the parent content.
     // First, get the content type object of the parent content.
     $content_type = $this->content_type_manager->createInstance($parent_content->getGroupContentTypeId());
-    $user_score = $content_type->getUserScore(\Drupal::currentUser()->id(), $parent_content->getEntityId());
+    $user_score = $content_type->getUserScore(\Drupal::currentUser()
+      ->id(), $parent_content->getEntityId());
 
     // If no no score and content is mandatory, show a message.
     if ($user_score === FALSE && $parent_content->isMandatory()) {
@@ -432,7 +433,9 @@ class LearningPathStepsController extends ControllerBase {
       if ($required >= 0 || $current_step['typology'] == 'Meeting') {
         // Check if it's "skills module" with skills which user is already passed.
         if ($current_step['typology'] == 'Module') {
-          $module = \Drupal::entityTypeManager()->getStorage('opigno_module')->load($current_step['id']);
+          $module = \Drupal::entityTypeManager()
+            ->getStorage('opigno_module')
+            ->load($current_step['id']);
           $moduleHandler = \Drupal::service('module_handler');
 
           if ($moduleHandler->moduleExists('opigno_skills_system') && $module->getSkillsActive()) {
@@ -498,10 +501,9 @@ class LearningPathStepsController extends ControllerBase {
               }
             }
           }
-
-          OpignoGroupContext::setGroupId($group->id());
-          OpignoGroupContext::setCurrentContentId($current_step['cid']);
-
+          if($content_update) {
+            $this->setGroupAndContext($group->id(), $current_step['cid']);
+          }
           return $message;
         }
       }
@@ -525,9 +527,9 @@ class LearningPathStepsController extends ControllerBase {
               $gid
             );
 
-            OpignoGroupContext::setGroupId($group->id());
-            OpignoGroupContext::setCurrentContentId($module_content->id());
-
+            if($content_update) {
+              $this->setGroupAndContext($group->id(), $module_content->id());
+            }
             return $this->failedStep('none', FALSE, $this->requiredStepMessage($name, $required, $module_url->toString()));
 
           }
@@ -536,9 +538,9 @@ class LearningPathStepsController extends ControllerBase {
           if ($course['attempts'] === 0) {
             $module_content = OpignoGroupManagedContent::getFirstStep($course['id']);
 
-            OpignoGroupContext::setGroupId($group->id());
-            OpignoGroupContext::setCurrentContentId($module_content->id());
-
+            if($content_update) {
+              $this->setGroupAndContext($group->id(), $module_content->id());
+            }
             return $this->failedStep('none', FALSE, $this->requiredStepMessage($name));
           }
         }
@@ -548,9 +550,9 @@ class LearningPathStepsController extends ControllerBase {
     // Skip live meetings and instructor-led trainings.
     $skip_types = []; //['Meeting', 'ILT'];
     for ($next_step_index = $current_step_index + 1;
-      $next_step_index < $count
-      && in_array($steps[$next_step_index]['typology'], $skip_types);
-      ++$next_step_index) {
+    $next_step_index < $count
+    && in_array($steps[$next_step_index]['typology'], $skip_types);
+    ++$next_step_index) {
       $next_step = $steps[$next_step_index];
       $is_mandatory = $next_step['mandatory'] === 1;
 
@@ -594,23 +596,38 @@ class LearningPathStepsController extends ControllerBase {
       }
     }
 
-    $next_step = isset($steps[$next_step_index])
-      ? $steps[$next_step_index] : NULL;
+    return $steps[$next_step_index] ?? NULL;
+  }
 
+  /**
+   * Sets a groupd and content.
+   */
+  public function setGroupAndContext($group_id, $content_id) {
+    OpignoGroupContext::setGroupId($group_id);
+    OpignoGroupContext::setCurrentContentId($content_id);
+  }
+
+  /**
+   * Redirect the user to the next step.
+   */
+  public function nextStep(Group $group, OpignoGroupManagedContent $parent_content, $content_update = TRUE) {
+    $next_step = $this->getNextStep($group, $parent_content, $content_update);
     // If there is no next step, show a message.
     if ($next_step === NULL) {
       // Redirect to training home page.
       $this->messenger()->addWarning($this->t('You reached the last content of that training.'));
       return $this->redirect('entity.group.canonical', ['group' => $group->id()]);
     }
-
+    if(!isset($next_step['cid'])) {
+      return $next_step;
+    }
     // Load next step entity.
     $next_step = OpignoGroupManagedContent::load($next_step['cid']);
 
     // Before redirect, change the content context.
-    OpignoGroupContext::setCurrentContentId($next_step->id());
-    OpignoGroupContext::setGroupId($group->id());
-
+    if ($content_update) {
+      $this->setGroupAndContext($group->id(), $next_step->id());
+    }
     // Finally, redirect the user to the next step URL.
     $next_step_content_type = $this->content_type_manager->createInstance($next_step->getGroupContentTypeId());
     $next_step_url = $next_step_content_type->getStartContentUrl($next_step->getEntityId(), $group->id());

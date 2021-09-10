@@ -18,80 +18,8 @@ class RecipientsPlugin extends LearningPathMembersPluginBase {
   /**
    * {@inheritdoc}
    */
-  public function getMembersForm(array &$form, FormStateInterface $form_state, User $current_user) {
+  public function getMembersForm(array &$form, FormStateInterface $form_state, User $current_user, bool $hide = FALSE) {
     // Get the groups, this allows to filter the available users.
-    $classes = opigno_messaging_get_groups('opigno_class');
-    $learning_paths = opigno_messaging_get_groups('learning_path');
-
-    $form['filters'] = [
-      '#type' => 'container',
-      '#weight' => -2,
-    ];
-
-    $form['filters']['title'] = [
-      '#type' => 'label',
-      '#title' => t('Participants'),
-    ];
-
-    $form['filters']['class'] = [
-      '#type' => 'select',
-      '#options' => [
-        'All' => t('Filter by class'),
-      ],
-      '#default_value' => t('All'),
-      '#ajax' => [
-        'callback' => [$this, 'updateMembersAjax'],
-        'event' => 'change',
-        'wrapper' => 'users-to-send',
-        'progress' => [
-          'type' => 'throbber',
-          'message' => t('Verifying entry...'),
-        ],
-      ],
-    ];
-
-    $form['filters']['learning_path'] = [
-      '#type' => 'select',
-      '#wrapper_attributes' => [
-        'class' => ['col-6'],
-      ],
-      '#options' => [
-        'All' => t('Filter by training'),
-      ],
-      '#default_value' => t('All'),
-      '#ajax' => [
-        'callback' => [$this, 'updateMembersAjax'],
-        'event' => 'change',
-        'wrapper' => 'users-to-send',
-        'progress' => [
-          'type' => 'throbber',
-          'message' => t('Verifying entry...'),
-        ],
-      ],
-    ];
-
-    $options = [];
-
-    foreach ($classes as $class) {
-      $id = $class['entity_id'];
-      $options[$id] = $class['title'];
-    }
-
-    uasort($options, 'strcasecmp');
-    $form['filters']['class']['#options'] += $options;
-
-    $options = [];
-
-    foreach ($learning_paths as $learning_path) {
-      $id = $learning_path['entity_id'];
-      $options[$id] = $learning_path['title'];
-    }
-
-    uasort($options, 'strcasecmp');
-    $form['filters']['learning_path']['#options'] += $options;
-
-    // Get the users for the specific group.
-    $current_user = \Drupal::currentUser();
     $show_all = $current_user->hasPermission('message anyone regardless of groups');
     $users = opigno_messaging_get_all_recipients($show_all);
     $options = [];
@@ -111,15 +39,12 @@ class RecipientsPlugin extends LearningPathMembersPluginBase {
 
     $form['users_to_send'] = [
       '#title' => t('Select the users you want to send a message to'),
-      '#type' => 'multiselect',
+      '#type' => 'entity_selector',
       '#options' => $options,
       '#weight' => -1,
-      '#prefix' => '<div id="users-to-send">',
+      '#multiple' => TRUE,
+      '#prefix' => $hide ? '<div id="users-to-send" class="hidden">' : '<div id="users-to-send">',
       '#suffix' => '</div>',
-      // Fixes multiselect issue 2852654.
-      '#process' => [
-        ['Drupal\multiselect\Element\MultiSelect', 'processSelect'],
-      ],
     ];
   }
 

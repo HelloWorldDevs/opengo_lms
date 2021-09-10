@@ -1,0 +1,143 @@
+{
+  "users": {
+    "2": {
+      "id": "2",
+      "name": "user1",
+      "email": "user1@localhost",
+      "avatar": "https:\/\/cdn.fakercloud.com\/avatars\/jarsen_128.jpg",
+      "member": [
+        2,
+        1
+      ]
+    },
+    "3": {
+      "id": "3",
+      "name": "Cloned 56",
+      "email": "user1@localhost",
+      "avatar": "https:\/\/cdn.fakercloud.com\/avatars\/jarsen_128.jpg",
+      "member": [
+        4,
+        3,
+        1
+      ]
+    },
+    "4": {
+      "id": "4",
+      "name": "Cloned 2",
+      "email": "user1@localhost",
+      "avatar": "https:\/\/cdn.fakercloud.com\/avatars\/jarsen_128.jpg",
+      "member": [
+        4,
+        3
+      ]
+    },
+    "5": {
+      "id": "5",
+      "name": "Cloned 3",
+      "email": "user1@localhost",
+      "avatar": "https:\/\/cdn.fakercloud.com\/avatars\/jarsen_128.jpg",
+      "member": [
+        4,
+        3
+      ]
+    },
+    "6": {
+      "id": "6",
+      "name": "Cloned 4",
+      "email": "user1@localhost",
+      "avatar": "https:\/\/cdn.fakercloud.com\/avatars\/jarsen_128.jpg",
+      "member": [
+        4,
+        3
+      ]
+    },
+    "7": {
+      "id": "7",
+      "name": "Cloned 5",
+      "email": "user1@localhost",
+      "avatar": "https:\/\/cdn.fakercloud.com\/avatars\/jarsen_128.jpg",
+      "member": [
+        4,
+        3
+      ]
+    },
+    "8": {
+      "id": "8",
+      "name": "yuboychenko22",
+      "email": "yuboychenko+22@gmail.com",
+      "avatar": "https:\/\/cdn.fakercloud.com\/avatars\/jarsen_128.jpg",
+      "member": [
+        3,
+        1
+      ]
+    }
+  },
+  "members": {
+    "2": {
+      "id": "2",
+      "type": "class",
+      "info": {
+        "name": "Class 1",
+        "avatar": "https:\/\/cdn.fakercloud.com\/avatars\/jarsen_128.jpg"
+      },
+      "key": "class_2",
+      "loaded": true,
+      "members": [
+        1,
+        2
+      ]
+    },
+    "1": {
+      "id": "1",
+      "type": "training",
+      "info": {
+        "name": "Learning path 1",
+        "avatar": "https:\/\/cdn.fakercloud.com\/avatars\/jarsen_128.jpg"
+      },
+      "key": "training_1",
+      "loaded": true,
+      "members": [
+        1,
+        2,
+        8,
+        3
+      ]
+    },
+    "4": {
+      "id": "4",
+      "type": "class",
+      "info": {
+        "name": "Class 4",
+        "avatar": "https:\/\/cdn.fakercloud.com\/avatars\/jarsen_128.jpg"
+      },
+      "key": "class_4",
+      "loaded": true,
+      "members": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    "3": {
+      "id": "3",
+      "type": "training",
+      "info": {
+        "name": "Learning path 0",
+        "avatar": "https:\/\/cdn.fakercloud.com\/avatars\/jarsen_128.jpg"
+      },
+      "key": "training_3",
+      "loaded": true,
+      "members": [
+        1,
+        8,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    }
+  }
+}

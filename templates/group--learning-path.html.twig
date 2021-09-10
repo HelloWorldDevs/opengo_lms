@@ -49,44 +49,102 @@
     </h2>
   {% endif %}
   {{ title_suffix }}
-  <div class="row">
-    {% if opigno_catalog_is_member(group.id()) %}
-      {{ get_progress() }}
-    {% endif %}
-    <div class="col-md-4">
-      <section>
-        <h2 class="h4 bg-primary color-white text-uppercase mb-0 px-3 py-2">{{ 'Information'|t }}</h2>
-        <div class="content bg-light px-3 pl-md-0 py-2">
-          <div class="lp-image">
-            {% if content.field_learning_path_media_image[0] %}
-              {{ content.field_learning_path_media_image }}
-            {% else %}
-              {{ opigno_catalog_get_default_image('learning_path', label) }}
+  <div class="content-box">
+    <div class="row">
+      <div class="col-xl-3 col-lg-4 lp-image">
+        {% if content.field_learning_path_media_image[0] %}
+          {{ content.field_learning_path_media_image }}
+        {% else %}
+          {{ opigno_catalog_get_default_image('learning_path', label) }}
+        {% endif %}
+      </div>
+
+      <div class="col-xl-9 col-lg-8 lp-content">
+        <div class="lp-content__top">
+          <h2 class="lp-title">{{ label }}</h2>
+          {% set updated = group.changed.value|format_date('datepicker') %}
+          {% trans %}
+            <div class="lp-update-date">last update on: {{  updated }}</div>
+          {% endtrans %}
+
+          {{ content.actions_dropdown }}
+        </div>
+
+        <div class="lp-content__bottom">
+          {{ content|without('field_learning_path_media_image', 'field_learning_path_duration', 'field_learning_path_category', 'field_certificate', 'actions_dropdown') }}
+        </div>
+
+        <div class="lp-info">
+          <div class="labels">
+            {%  set field_certificate = content.field_certificate|render %}
+            {% if field_certificate %}
+              <h2 class="label"><i class="fi fi-rr-diploma"></i>{{ 'Certificate' | t }}</h2>
+            {% endif %}
+
+            {%  set field_learning_path_duration = content.field_learning_path_duration|render %}
+            {% if field_learning_path_duration %}
+              <h2 class="label"><i class="fi fi-rr-graduation-cap"></i>{{ 'Duration' | t }}</h2>
+            {% endif %}
+
+            {%  set field_learning_path_category = content.field_learning_path_category|render %}
+            {% if field_learning_path_category %}
+              <h2 class="label"><i class="fi fi-rr-clock"></i>{{ 'Category' | t }}</h2>
+            {% endif %}
+
+            {% set field_modules_counter =  opigno_modules_counter(group) %}
+            {% if field_modules_counter %}
+              <h2 class="label"><i class="fi fi-rr-file"></i>{{ 'Modules' | t }}</h2>
+            {% endif %}
+
+          </div>
+
+          <div class="values">
+            {% if field_certificate %}
+              <p class="value">{{ content.field_certificate|field_value }}</p>
+            {% endif %}
+
+            {% if field_learning_path_duration %}
+              <p class="value">{{ content.field_learning_path_duration|field_value }}</p>
+            {% endif %}
+
+            {% if field_learning_path_category %}
+              <p class="value">{{ content.field_learning_path_category|field_value }}</p>
+            {% endif %}
+
+            {% if field_modules_counter %}
+              <p class="value">{{ field_modules_counter }}</p>
             {% endif %}
           </div>
-          <div class="duration d-flex px-2 py-2 bg-white mt-2">
-            <i class="icon-duration"></i>
-            <div class="label">{{ 'Length'|t }}</div>
-            <div class="value text-right ml-auto">{{ group.field_learning_path_duration.value }}</div>
+
+          <div class="action-wrapper">
+            {{ get_start_link(null, {'class': ['btn','btn-rounded']}) }}
           </div>
-          <div class="category d-flex px-2 py-2 bg-white mt-2">
-            <i class="icon-category"></i>
-            <div class="label">{{ 'Subject'|t }}</div>
-            <div class="value text-right ml-auto">{{ learning_path_category }}</div>
-          </div>
-        </div>
-        {{ get_join_group_link(null, null, {'class': ['opigno-quiz-app-course-button', 'bg-success', 'color-white', 'd-block', 'px-2', 'py-2', 'text-center', 'text-uppercase', 'join-link']}) }}
-      </section>
-    </div>
-    <div id="group-content" {{ content_attributes.addClass('col-md-8') }}>
-      <h2 class="h4 bg-primary text-uppercase color-white mb-0 px-3 py-2">{{ 'About this training'|t }}</h2>
-      <div class="content bg-light px-3 px-md-2 pt-2">
-        <div class="bg-white px-3 py-3">
-          {{ content|without('field_learning_path_media_image', 'field_learning_path_duration', 'field_learning_path_category') }}
         </div>
       </div>
-      {{ get_start_link(null, {'class': ['opigno-quiz-app-course-button', 'bg-success', 'color-white', 'd-block', 'px-2', 'py-2', 'text-center', 'text-uppercase']}) }}
     </div>
-    {{ get_training_content() }}
+
+  </div>
+
+  {% set content_training = get_training_content() %}
+  <div class="row">
+    <div class="col-left col-xl-3 col-lg-4" id="sidebar-first">
+      <div class="d-block d-lg-none">
+        {% if opigno_catalog_is_member(group.id()) %}
+          {{ get_progress(false) }}
+        {% endif %}
+      </div>
+
+      {{ content_training.tab_content.forum }}
+      {{ content_training.tab_content.documents }}
+    </div>
+
+    <div class="col-right col-xl-9 col-lg-8" id="content">
+      <div class="d-none d-lg-block">
+        {% if opigno_catalog_is_member(group.id()) %}
+          {{ get_progress(false) }}
+        {% endif %}
+      </div>
+      {{ content_training.tab_content.training }}
+    </div>
   </div>
 </div>

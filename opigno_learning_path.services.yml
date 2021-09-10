@@ -20,6 +20,7 @@ services:
 
   opigno_learning_path.group_operations:
     class: Drupal\opigno_learning_path\LearningPathGroupOperationsLinks
+    arguments: ['@config.factory', '@module_handler', '@current_user']
 
   opigno_learning_path.route_subscriber:
     class: Drupal\opigno_learning_path\Routing\RouteSubscriber
@@ -39,3 +40,9 @@ services:
   opigno_lps:
     class: Drupal\opigno_learning_path\LpSteps
     arguments: ['@current_user', '@database', '@module_handler']
+
+  cache_context.opigno_current:
+    class: Drupal\opigno_learning_path\Cache\Context\OpignoCurrentCacheContext
+    arguments: ['@current_user']
+    tags:
+      - { name: cache.context}

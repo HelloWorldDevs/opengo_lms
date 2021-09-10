@@ -13,7 +13,7 @@
         $dialog.dialog('option', 'position', {
           'my': 'right top',
           'at': 'right top',
-          'of': '#block-platon-content',
+          'of': '#block-aristotle-content',
           'collision': 'none',
         });
         $dialog.dialog('option', 'minWidth', 490);

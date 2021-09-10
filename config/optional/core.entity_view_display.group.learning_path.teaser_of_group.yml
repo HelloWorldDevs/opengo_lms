@@ -5,14 +5,21 @@ dependencies:
     - core.entity_view_mode.group.teaser_of_group
     - field.field.group.learning_path.field_anonymous_visibility
     - field.field.group.learning_path.field_certificate
+    - field.field.group.learning_path.field_certificate_expire
+    - field.field.group.learning_path.field_certificate_expire_results
+    - field.field.group.learning_path.field_guided_navigation
     - field.field.group.learning_path.field_learning_path_category
     - field.field.group.learning_path.field_learning_path_description
     - field.field.group.learning_path.field_learning_path_duration
+    - field.field.group.learning_path.field_learning_path_enable_forum
     - field.field.group.learning_path.field_learning_path_folder
+    - field.field.group.learning_path.field_learning_path_forum
     - field.field.group.learning_path.field_learning_path_media_image
     - field.field.group.learning_path.field_learning_path_published
     - field.field.group.learning_path.field_learning_path_visibility
+    - field.field.group.learning_path.field_required_trainings
     - field.field.group.learning_path.field_requires_validation
+    - field.field.group.learning_path.field_workspace
     - group.type.learning_path
   module:
     - media
@@ -23,7 +30,7 @@ bundle: learning_path
 mode: teaser_of_group
 content:
   field_certificate:
-    weight: 6
+    weight: 5
     label: above
     settings:
       link: true
@@ -44,14 +51,6 @@ content:
     settings: {  }
     third_party_settings: {  }
     type: text_default
-    region: content
-  field_learning_path_duration:
-    weight: 5
-    label: hidden
-    settings:
-      link_to_entity: false
-    third_party_settings: {  }
-    type: string
     region: content
   field_learning_path_folder:
     weight: 4
@@ -79,17 +78,25 @@ content:
       link_to_entity: false
     third_party_settings: {  }
 hidden:
+  actions_dropdown: true
   changed: true
   created: true
   entity_print_view_epub: true
   entity_print_view_pdf: true
   entity_print_view_word_docx: true
   field_anonymous_visibility: true
+  field_certificate_expire: true
+  field_certificate_expire_results: true
+  field_guided_navigation: true
+  field_learning_path_duration: true
   field_learning_path_enable_forum: true
   field_learning_path_forum: true
   field_learning_path_published: true
   field_learning_path_visibility: true
   field_lp_price: true
+  field_required_trainings: true
   field_requires_validation: true
   field_workspace: true
+  langcode: true
+  search_api_excerpt: true
   uid: true

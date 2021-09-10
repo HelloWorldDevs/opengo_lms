@@ -11,6 +11,7 @@ use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\group\Entity\Group;
+use Drupal\group\GroupMembership;
 use Drupal\user\Entity\User;
 use Drupal\views\Views;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -102,83 +103,109 @@ class LearningPathMembershipController extends ControllerBase {
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    *   A JSON response containing the autocomplete suggestions.
    */
-  public function addUserToTrainingAutocomplete(Group $group) {
+  public function addUserToTrainingAutocompleteSelect(Group $group): array {
     $matches = [];
+    $default = [];
     $is_class = $group->getGroupType()->id() == 'opigno_class';
     $string = \Drupal::request()->query->get('q');
+    // Find users by email or name.
+    $query = \Drupal::entityQuery('user')
+      ->condition('uid', 0, '<>');
     if ($string !== NULL) {
       $like_string = '%' . $this->connection->escapeLike($string) . '%';
-      // Find users by email or name.
-      $query = \Drupal::entityQuery('user')
-        ->condition('uid', 0, '<>');
       $cond_group = $query
         ->orConditionGroup()
         ->condition('mail', $like_string, 'LIKE')
         ->condition('name', $like_string, 'LIKE');
       $query = $query
-        ->condition($cond_group)
-        ->sort('name')
-        ->range(0, 20);
+        ->condition($cond_group);
+    }
 
-      $uids = $query->execute();
-      $users = User::loadMultiple($uids);
+    $query->sort('name');
 
-      /** @var \Drupal\user\Entity\User $user */
-      foreach ($users as $user) {
-        $id = $user->id();
-        $name = $user->getDisplayName();
+    $uids = $query->execute();
+    $users = User::loadMultiple($uids);
 
-        // Skip users that already members of the current group.
-        if ($group->getMember($user) !== FALSE) {
-          continue;
-        }
+    /** @var \Drupal\user\Entity\User $user */
+    foreach ($users as $user) {
+      $id = $user->id();
+      $name = $user->getDisplayName();
 
-        $matches[] = [
-          'value' => "$name (User #$id)",
-          'label' => "$name (User #$id)",
-          'type' => 'user',
-          'id' => 'user_' . $id,
-        ];
+      // Skip users that already members of the current group.
+      if ($group->getMember($user) !== FALSE) {
+        $default[] = 'user_' . $id;
       }
 
-      if (!$is_class) {
-        // Find classes by name.
-        $query = \Drupal::entityQuery('group')
-          ->condition('type', 'opigno_class')
-          ->condition('label', $like_string, 'LIKE')
-          ->sort('label')
-          ->range(0, 20);
+      $matches['user_' . $id] = [
+        'value' => "$name (User #$id)",
+        'label' => "$name (User #$id)",
+        'type' => 'user',
+        'id' => 'user_' . $id,
+      ];
+    }
 
-        $gids = $query->execute();
-        $classes = Group::loadMultiple($gids);
+    if (!$is_class) {
+      // Find classes by name.
+      $query = \Drupal::entityQuery('group')
+        ->condition('type', 'opigno_class');
+      if ($string && $like_string) {
+        $query->condition('label', $like_string, 'LIKE');
+      }
+      $query->sort('label')
+        ->range(0, 20);
 
-        $db_connection = \Drupal::service('database');
-        /** @var \Drupal\group\Entity\Group $class */
-        foreach ($classes as $class) {
-          // Check if class already added.
-          $is_class_added = $db_connection->select('group_content_field_data', 'g_c_f_d')
-            ->fields('g_c_f_d', ['id'])
-            ->condition('gid', $group->id())
-            ->condition('entity_id', $class->id())
-            ->condition('type', 'group_content_type_27efa0097d858')
-            ->execute()->fetchField();
+      $gids = $query->execute();
+      $classes = Group::loadMultiple($gids);
 
-          if (!$is_class_added) {
-            // If class haven't added yet.
-            $id = $class->id();
-            $name = $class->label();
+      $db_connection = \Drupal::service('database');
+      /** @var \Drupal\group\Entity\Group $class */
+      foreach ($classes as $class) {
+        // Check if class already added.
+        $is_class_added = $db_connection->select('group_content_field_data', 'g_c_f_d')
+          ->fields('g_c_f_d', ['id'])
+          ->condition('gid', $group->id())
+          ->condition('entity_id', $class->id())
+          ->condition('type', 'group_content_type_27efa0097d858')
+          ->execute()->fetchField();
 
-            $matches[] = [
-              'value' => "$name (Group #$id)",
-              'label' => "$name (Group #$id)",
-              'type' => 'group',
-              'id' => 'class_' . $id,
-            ];
-          }
+        // If class haven't added yet.
+        $id = $class->id();
+        $name = $class->label();
+        if ($is_class_added) {
+          $default[] = 'class_' . $id;
         }
+        $matches['class_' . $id] = [
+          'value' => "$name (Group #$id)",
+          'label' => "$name (Group #$id)",
+          'type' => 'group',
+          'id' => 'class_' . $id,
+          'members' => array_reduce($class->getMembers(), function ($acc, GroupMembership $entity) {
+            $user = $entity->getGroupContent()->getEntity();
+            $id = $user->id();
+            $name = $user->getDisplayName();
+            $acc[$user->getEntityTypeId() . '_' . $user->id()] = [
+              'value' => "$name (User #$id)",
+              'label' => "$name (User #$id)",
+              'type' => 'user',
+              'id' => 'user_' . $id,
+            ];
+            return $acc;
+          }, []),
+        ];
       }
     }
 
+    return [$matches, $default];
+  }
+
+
+  /**
+   * Returns response for the autocompletion.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   */
+  public function addUserToTrainingAutocomplete(Group $group) {
+    [$matches, $default] = $this->addUserToTrainingAutocompleteSelect($group);
     return new JsonResponse($matches);
   }
 

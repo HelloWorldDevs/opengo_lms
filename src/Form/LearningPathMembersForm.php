@@ -4,6 +4,7 @@ namespace Drupal\opigno_learning_path\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\Url;
 use Drupal\opigno_learning_path\LearningPathAccess;
 use Drupal\opigno_learning_path\LearningPathValidator;
@@ -195,9 +196,6 @@ class LearningPathMembersForm extends FormBase {
           '#type' => 'html_tag',
           '#tag' => 'h2',
           '#value' => $class_entity->label(),
-          '#attributes' => [
-            'class' => ['class_title'],
-          ],
         ],
         'member_since' => [
           '#type' => 'html_tag',
@@ -239,7 +237,7 @@ class LearningPathMembersForm extends FormBase {
           [
             '#type' => 'html_tag',
             '#tag' => 'span',
-            '#value' => $this->t('Hide'),
+            '#value' => Markup::create($this->t('Hide') . '<i class="fi fi-rr-eye-crossed"></i>'),
             '#attributes' => [
               'class' => ['class_hide_text'],
             ],
@@ -253,7 +251,7 @@ class LearningPathMembersForm extends FormBase {
           [
             '#type' => 'html_tag',
             '#tag' => 'span',
-            '#value' => $this->t('Show'),
+            '#value' => Markup::create($this->t('Show') . '<i class="fi fi-rr-eye"></i>'),
             '#attributes' => [
               'class' => ['class_show_text'],
             ],
@@ -348,7 +346,7 @@ class LearningPathMembersForm extends FormBase {
               'class' => 'class_member_delete_wrapper',
               'data' => [
                 '#type' => 'link',
-                '#title' => ['data' => ['#markup' => '&times;']],
+                '#title' => ['data' => ['#markup' => '<i class="fi fi-rr-trash"></i>']],
                 '#url' => $delete_url,
                 '#attributes' => [
                   'id' => 'class_member_delete_' . $user_entity->id(),
@@ -370,9 +368,6 @@ class LearningPathMembersForm extends FormBase {
           '#type' => 'html_tag',
           '#tag' => 'h2',
           '#value' => $this->t('Learners not in a class'),
-          '#attributes' => [
-            'class' => ['class_title'],
-          ],
         ],
         'search' => [
           '#type' => 'textfield',
@@ -419,7 +414,7 @@ class LearningPathMembersForm extends FormBase {
           [
             '#type' => 'html_tag',
             '#tag' => 'span',
-            '#value' => $this->t('Hide'),
+            '#value' => Markup::create($this->t('Hide') . '<i class="fi fi-rr-eye-crossed"></i>'),
             '#attributes' => [
               'class' => ['class_hide_text'],
             ],
@@ -433,7 +428,7 @@ class LearningPathMembersForm extends FormBase {
           [
             '#type' => 'html_tag',
             '#tag' => 'span',
-            '#value' => $this->t('Show'),
+            '#value' => Markup::create($this->t('Show') . '<i class="fi fi-rr-eye"></i>'),
             '#attributes' => [
               'class' => ['class_show_text'],
             ],

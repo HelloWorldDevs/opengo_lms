@@ -6,6 +6,9 @@
  */
 
 use Drupal\Component\Render\MarkupInterface;
+use Drupal\opigno_learning_path\Controller\LearningPathController;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\opigno_learning_path\LearningPathGroupOperationsLinks;
 use Drupal\views\Plugin\views\query\QueryPluginBase;
 use Drupal\views\ViewExecutable;
 use Drupal\entity_browser\Plugin\Field\FieldWidget\EntityReferenceBrowserWidget;
@@ -91,18 +94,28 @@ function opigno_learning_path_theme() {
       'step_list_top' => NULL,
       'step_list_aside' => NULL,
     ],
-    'page__group' => [
+    /*'page__group' => [
       'base hook' => 'page',
       'join_group_form' => NULL,
       'delete_lp_form' => NULL,
-    ],
+    ],*/
     'opigno_learning_path_training_content' => [
       'render element' => 'content',
     ],
+    'opigno_learning_path_training_content_steps' => [
+      'render element' => 'elements',
+    ],
     'opigno_learning_path_training_content_step' => [
+      'render element' => 'elements',
+    ],
+    'opigno_learning_path_training_content_step_summary_details_table' => [
       'variables' => [
-        'step' => NULL,
-        'group' => NULL,
+        'mandatory' => FALSE,
+        'type' => NULL,
+        'steps' => NULL,
+        'substeps' => NULL,
+        'status' => NULL,
+        'progress' => NULL,
       ],
     ],
     'multiselect_new_class' => [
@@ -120,10 +133,8 @@ function opigno_learning_path_theme() {
     ],
     'opigno_learning_path_progress' => [
       'variables' => [
-        'label' => NULL,
         'value' => NULL,
-        'class' => NULL,
-        'progress_bar' => TRUE,
+        'show_bar' => NULL,
       ],
     ],
     'opigno_learning_path_message' => [
@@ -159,10 +170,18 @@ function opigno_learning_path_theme() {
         'certificate_url' => NULL,
       ],
     ],
+    'opigno_learning_path_actions' => [
+      'variables' => [
+        'actions' => [],
+      ],
+    ],
     'opigno_learning_path_training_details' => [
       'variables' => [
         'group_id' => NULL,
-      ]
+      ],
+    ],
+    'opigno_learning_path_join_group_form_overlay' => [
+      'render element' => 'elements',
     ],
     'opigno_learning_path_training_course_content' => [
       'render element' => 'elements',
@@ -175,7 +194,7 @@ function opigno_learning_path_theme() {
         'completed' => NULL,
         'badges' => NULL,
         'time_spent' => NULL,
-      ]
+      ],
     ],
     'opigno_learning_path_training_module' => [
       'variables' => [
@@ -186,6 +205,27 @@ function opigno_learning_path_theme() {
         'completed' => NULL,
         'badges' => NULL,
         'time_spent' => NULL,
+        'activities' => NULL,
+      ],
+    ],
+    'opigno_learning_path_training_ilt' => [
+      'variables' => [
+        'date' => NULL,
+        'status' => NULL,
+        'attended' => NULL,
+        'step' => NULL,
+        'place' => NULL,
+        'approved' => NULL,
+      ],
+    ],
+    'opigno_learning_path_training_meeting' => [
+      'variables' => [
+        'date' => NULL,
+        'status' => NULL,
+        'attended' => NULL,
+        'step' => NULL,
+        'place' => NULL,
+        'approved' => NULL,
       ],
     ],
     'opigno_learning_path_training_step' => [
@@ -198,7 +238,92 @@ function opigno_learning_path_theme() {
         'table_summary' => NULL,
       ],
     ],
+    'opigno_learning_path_step_block_progress' => [
+      'variables' => [
+        'passed' => NULL,
+        'expired' => NULL,
+        'has_experation_date' => NULL,
+        'expired_date' => NULL,
+        'complite_date' => NULL,
+        'started_date' => NULL,
+      ],
+    ],
+    'lp_progress' => [
+      'variables' => [
+        'progress' => NULL,
+        'summary' => NULL,
+      ],
+    ],
+    'opigno_lp_step_activity' => [
+      'render element' => 'elements',
+    ],
+    'opigno_lp_step_module'  => [
+      'render element' => 'elements',
+    ],
+    'opigno_lp_step_module_activity'  => [
+      'render element' => 'elements',
+    ],
+    'opigno_lp_step_ilt'  => [
+      'render element' => 'elements',
+    ],
+    'opigno_lp_step_meeting'  => [
+      'render element' => 'elements',
+    ],
+    'lp_status'  => [
+      'render element' => 'elements',
+    ],
+    'lp_circle_progress'  => [
+      'variables' => [
+        'radius' => NULL,
+        'progress' => NULL,
+      ],
+    ],
+    'opigno_documents_last_group_block' => [
+      'render element' => 'elements',
+    ],
+    'opigno_documents_last_group_item' => [
+      'variables' => [
+        'item' => NULL,
+        'type' => NULL,
+        'link' => NULL,
+        'label' => NULL,
+      ],
+    ],
   ];
+}
+
+/**
+ * Implements hook_entity_extra_field_info().
+ */
+function opigno_learning_path_entity_extra_field_info() {
+  $extra = [];
+  // LP action links dropdown.
+  $extra['group']['learning_path']['display']['actions_dropdown'] = [
+    'label' => t('Opigno LP actions dropdown'),
+    'description' => t('Provides the dropdown with the LP action links available for the current user.'),
+    'weight' => 0,
+  ];
+  return $extra;
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_view().
+ */
+function opigno_learning_path_group_view(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode) {
+  if (!$entity instanceof GroupInterface || $entity->bundle() !== 'learning_path') {
+    return;
+  }
+
+  $content = $display->get('content');
+  $actions_enabled = $content['actions_dropdown'] ?? [];
+  if (!$actions_enabled) {
+    return;
+  }
+
+  $lp_actions_service = \Drupal::service('opigno_learning_path.group_operations');
+  if ($lp_actions_service instanceof LearningPathGroupOperationsLinks) {
+    $build['actions_dropdown'] = $lp_actions_service->renderActionsDropdown($entity);
+  }
 }
 
 function opigno_learning_path_theme_suggestions_multiselect(array $variables) {
@@ -219,8 +344,8 @@ function opigno_learning_path_page_attachments(array &$page) {
     $page['#attached']['library'][] = 'opigno_learning_path/delete';
   }
   if ($route == 'entity.group.canonical') {
-    $page['#attached']['library'][] = 'opigno_learning_path/join';
-    $page['#attached']['library'][] = 'opigno_learning_path/training_main_page';
+    // $page['#attached']['library'][] = 'opigno_learning_path/join';
+    // $page['#attached']['library'][] = 'opigno_learning_path/training_main_page';
 
     $query = \Drupal::request()->query->all();
 
@@ -261,6 +386,35 @@ function opigno_learning_path_preprocess_html(&$variables) {
     unset($variables['page_top']);
   }
 
+  $route = \Drupal::routeMatch()->getRouteName();
+  $account = \Drupal::currentUser();
+  $group = \Drupal::routeMatch()->getParameter('group');
+  // Get join form.
+  if ($route == 'entity.group.canonical' && $group) {
+    $form_builder = \Drupal::service('opigno_learning_path.join_form');
+    $form = $form_builder->getForm($group);
+
+    if ($group->hasField('field_learning_path_visibility')) {
+      $visibility = $group->field_learning_path_visibility->value;
+      if (($visibility === 'semiprivate' && !$account->isAuthenticated()) || !$group->hasPermission('join group', $account)) {
+        return;
+      }
+    }
+
+    if (!$group->getMember($account)) {
+      $variables['join_group_form'] = [
+        '#theme' => 'opigno_learning_path_join_group_form_overlay',
+        '#attributes' => [
+          'id' => 'join-group-form-overlay',
+          'class'=>['modal', 'fade']
+        ],
+        [
+          '#type' => 'container',
+          'form' => $form,
+        ],
+      ];
+    }
+  }
   if (opigno_learning_path_is_lp_route()) {
     $variables['attributes']['class'][] = 'admin-learning-path';
   }
@@ -287,10 +441,10 @@ function opigno_learning_path_preprocess_region(&$variables) {
       $is_published = $group->hasField('field_learning_path_published')
         ? $group->get('field_learning_path_published')->getValue()[0]['value']
         : TRUE;
-      $finish_text = !$is_published ? t('Publish') : t('Finish');
+      $finish_text = !$is_published ? t('Publish') : Markup::create(t('Finish') . '<i class="fi fi-rr-rocket"></i>');
 
       $next_step = ($current_step < 5) ? $current_step + 1 : NULL;
-      $link_text = !$next_step ? $finish_text : t('Next');
+      $link_text = !$next_step ? $finish_text : Markup::create(t('Next') . '<i class="fi fi-rr-angle-small-right"></i>');
       if (!$next_step && !$group->access('update')) {
         $variables['next_link'] = '';
       }
@@ -302,8 +456,7 @@ function opigno_learning_path_preprocess_region(&$variables) {
           'attributes' => [
             'class' => [
               'btn',
-              'btn-success',
-              'color-white',
+              'btn-rounded',
             ],
             'data-toggle' => 'trigger_click',
             'data-target' => '#group-learning-path-edit-form .form-submit',
@@ -325,13 +478,13 @@ function opigno_learning_path_preprocess_region(&$variables) {
 
     // Limit the number of members in the class.
     if (!($bundle == 'opigno_class') || count($group->getMembers()) < 100) {
-      $link = Link::createFromRoute(t('Add members'), 'entity.group_content.add_form', [
+      $link = Link::createFromRoute(Markup::create('<i class="fi fi-rr-user-add"></i>' . t('Add members')), 'entity.group_content.add_form', [
         'group' => $group->id(),
         'plugin_id' => 'group_membership',
       ], [
         'attributes' => [
           'id' => 'btn_member_add',
-          'class' => ['btn', 'btn-success'],
+          'class' => ['d-inline-flex', 'align-items-center', 'btn', 'btn-rounded'],
         ],
       ])->toRenderable();
       $variables['add_member_link'] = render($link);
@@ -460,77 +613,10 @@ function opigno_learning_path_cron() {
  */
 function opigno_learning_path_preprocess_page(&$variables) {
   $route = \Drupal::routeMatch()->getRouteName();
-  $account = \Drupal::currentUser();
-  $group = \Drupal::routeMatch()->getParameter('group');
 
   // Hide local tasks.
   if (opigno_learning_path_is_lp_route()) {
-    unset($variables['page']['content']['platon_local_tasks']);
-  }
-
-  // Check if there is required trainings.
-  if ($route == 'entity.group.canonical'
-    && $group
-    && $group->getGroupType()->id() == 'learning_path'
-    && $required_trainings = LearningPathAccess::hasUncompletedRequiredTrainings($group, $account)) {
-    // Show for user required trainings.
-    $links = [];
-    foreach ($required_trainings as $gid) {
-      $training = Group::load($gid);
-      $url = Url::fromRoute($route, ['group' => $training->id()]);
-      $link = Link::fromTextAndUrl($training->label(), $url)->toString();
-      array_push($links, render($link));
-    }
-    $messenger = \Drupal::messenger();
-    $messenger->addWarning(Markup::create(t('You need to complete first some prerequisite trainings:') . ' ' . implode(', ', $links)));
-
-  }
-
-  // Get join form.
-  if ($route == 'entity.group.canonical' && $group) {
-    $form_builder = \Drupal::service('opigno_learning_path.join_form');
-    $form = $form_builder->getForm($group);
-
-    if ($group->hasField('field_learning_path_visibility')) {
-      $visibility = $group->field_learning_path_visibility->value;
-      if (($visibility === 'semiprivate' && !$account->isAuthenticated()) || !$group->hasPermission('join group', $account)) {
-        return;
-      }
-    }
-
-    if (!$group->getMember($account)) {
-      $variables['join_group_form'] = [
-        '#type' => 'container',
-        '#attributes' => [
-          'id' => 'join-group-form-overlay',
-          'style' => 'display: none;',
-        ],
-        [
-          '#type' => 'container',
-          '#attributes' => [
-            'id' => 'join-group-form-wrapper',
-          ],
-          [
-            '#type' => 'container',
-            '#attributes' => [
-              'class' => ['text-right'],
-            ],
-            [
-              '#type' => 'html_tag',
-              '#tag' => 'button',
-              '#attributes' => [
-                'class' => ['close-overlay'],
-              ],
-              '#value' => t('close'),
-            ],
-          ],
-          [
-            '#type' => 'container',
-            'form' => $form,
-          ],
-        ],
-      ];
-    }
+    unset($variables['page']['content']['primaryadminactions']);
   }
 
   if ($route == 'entity.group.edit_form'
@@ -653,21 +739,11 @@ function opigno_learning_path_preprocess_opigno_certificate(array &$variables) {
  * Returns step list for page top area.
  */
 function opigno_learning_path_get_step_list_top() {
-  $steps = [];
   $group_type = opigno_learning_path_get_group_type();
   $current_step = opigno_learning_path_get_current_step();
-  $passed_steps = opigno_learning_path_validate_group_creating_steps();
   $enough_activities = TRUE;
 
   if ($group_type == 'learning_path') {
-    $steps = [
-      1 => t('Create training'),
-      2 => t('Structure the training'),
-      3 => t('Add modules to courses'),
-      4 => t('Add activities to modules'),
-      5 => t('Enroll learners'),
-    ];
-
     // Check if training has 'automatic skills module'.
     $group = \Drupal::routeMatch()->getParameter('group');
     $moduleHandler = \Drupal::service('module_handler');
@@ -735,57 +811,8 @@ function opigno_learning_path_get_step_list_top() {
     }
   }
 
-  elseif ($group_type == 'opigno_course') {
-    $steps = [
-      1 => t('Create course'),
-      2 => t('Add modules to courses'),
-      3 => t('Add activities to modules'),
-    ];
-  }
-  elseif ($group_type == 'opigno_module') {
-    $steps = [
-      1 => t('Create module'),
-      2 => t('Add activities to module'),
-      3 => t('Add bulk activities to module'),
-    ];
-  }
-  elseif ($group_type == 'opigno_class') {
-    $steps = [
-      1 => t('Create class'),
-      2 => t('Enroll learners'),
-    ];
-  }
-
-  $html = '<ul class="d-none d-md-flex justify-content-center text-center list-unstyled step-list-top mb-5">';
-  $icon = '';
-  foreach ($steps as $key => $step) {
-    $classes = ['mx-4', 'mb-4', 'mb-md-0'];
-
-    if ($current_step >= $key) {
-      $classes[] = 'active';
-    }
-
-    if ($passed_steps) {
-      // @TODO check if step is validated.
-      if (in_array($key, $passed_steps) && ($key != 4 || (isset($enough_activities) && $enough_activities))) {
-        $classes[] = 'done';
-        $icon = 'ok-fill';
-      }
-      else {
-        $classes[] = 'error';
-        $icon = 'close';
-      }
-    };
-
-    $html .= '<li class="' . implode(' ', $classes) . '">';
-    $html .= '<div class="number mx-auto">' . $key . '</div>';
-    $html .= '<div class="title">' . $step . '</div>';
-    $html .= '<i class="icon-' . $icon . '"></i>';
-    $html .= '</li>';
-  }
-  $html .= '</ul>';
-
   // Add steps explanation.
+  $html = '';
   if ($group_type == 'learning_path') {
     $explanations = [
       1 => t('<p>A training is a program composed of diverse courses, modules and activities which guide students throughout their learning process.</p><p>Start here by describing the basic information of your learning program and click the button «Next» . You will be taken to step 2, to the Learning Path Manager to create content.</p><p>You can learn more in our <a href="https://opigno.atlassian.net/wiki/spaces/OUM20/overview" target="_blank">online user manual</a></p>'),
@@ -799,7 +826,7 @@ function opigno_learning_path_get_step_list_top() {
       $warning = t('There are not enough activities in the Opigno System to complete "@target_skill" skills tree!<br />
         Missed skill "@skill_name" with level "@skill_level".',
         ['@target_skill' => $target_skill_entity->getName(), '@skill_name' => $not_enough_skill_name, '@skill_level' => $not_enough_skill_level]);
-      $html .= "<div class='lp_step_warning lp_step_explanation'>$warning</div>";
+      $html .= "<div class='lp_step_warning lp_step_explanation content-box'>$warning</div>";
     }
 
     $messenger = \Drupal::messenger();
@@ -807,14 +834,14 @@ function opigno_learning_path_get_step_list_top() {
 
     if (!empty($messages)) {
       foreach ($messages as $message) {
-        $html .= "<div class='lp_step_warning lp_step_explanation'>$message</div>";
+        $html .= "<div class='lp_step_warning lp_step_explanation content-box'>$message</div>";
       }
 
       $messenger->deleteByType('error');
     }
 
     $explanation = $explanations[$current_step];
-    $html .= "<div class='lp_step_explanation'>$explanation</div>";
+    $html .= "<div class='lp_step_explanation content-box'>$explanation</div>";
   }
 
   return new FormattableMarkup($html, []);
@@ -837,18 +864,17 @@ function opigno_learning_path_get_step_list_aside() {
     $home_link = [
       '#type' => 'container',
       '#attributes' => [
-        'class' => ['mb-3'],
+        'class' => ['mb-4'],
       ],
-      'link' => Link::createFromRoute(Markup::create('<i class="icon-home"></i>' . t('Home')),
+      'link' => Link::createFromRoute(t('Home'),
         'entity.group.canonical',
         $args,
         [
           'attributes' => [
             'class' => [
               'btn',
-              'btn-primary',
-              'btn-home',
-              'w-100',
+              'btn-rounded',
+              'd-flex',
             ],
           ],
         ]
@@ -1009,12 +1035,15 @@ function opigno_learning_path_get_step_list_aside() {
     [
       '#type' => 'container',
       '#attributes' => [
-        'class' => ['step-list-aside-wrapper'],
+        'class' => ['step-list-aside-wrapper', 'content-box'],
       ],
       [
         '#type' => 'html_tag',
         '#tag' => 'h2',
         '#value' => t('Manage'),
+        '#attributes' => [
+          'class' => 'content-box__title'
+        ],
       ],
       [
         '#theme' => 'item_list',
@@ -1456,47 +1485,34 @@ function opigno_learning_path_form_alter(&$form, FormStateInterface $form_state,
     $group = \Drupal::routeMatch()->getParameter('group');
 
     $form['#title'] = $is_class ? t('Members in class') : t('Members in learning path');
-    $form['btn_create'] = Link::createFromRoute(
-      t('Create new users'),
-      'opigno_learning_path.membership.create_member',
+    $form['btn_create'] = Link::createFromRoute(Markup::create('<i class="fi fi-rr-user-add"></i>' . t('Create new users')), 'opigno_learning_path.membership.create_member',
       [
         'group' => $group->id(),
       ]
     )->toRenderable();
     $form['btn_create']['#attributes']['class'][] = 'use-ajax';
     $form['btn_create']['#attributes']['class'][] = 'btn';
-    $form['btn_create']['#attributes']['class'][] = 'btn-success';
+    $form['btn_create']['#attributes']['class'][] = 'btn-rounded';
     $form['btn_create']['#attributes']['data-dialog-type'] = 'modal';
     $form['btn_create']['#attributes']['data-dialog-options'] = json_encode(['dialogClass' => 'modal-dialog-sidebar']);
 
-    $form['training_users_autocomplete'] = [
-      '#type' => 'textfield',
-      '#title' => $is_class ? t('Find existing users') : t('Find existing users or groups'),
-      '#autocomplete_route_name' => 'opigno_learning_path.membership.add_user_to_training_autocomplete',
-      '#autocomplete_route_parameters' => [
-        'group' => $group->id(),
-      ],
-      '#placeholder' => t('Enter a user’s name or email'),
-      '#attributes' => [
-        'id' => 'training_users_autocomplete',
-      ],
-    ];
-
     $form['training_users'] = [
-      '#type' => 'multiselect',
+      '#title' => $is_class ? t('Find existing users') : t('Find existing users or groups'),
+      '#type' => 'entity_selector',
       '#attributes' => [
         'id' => 'training_users',
         'class' => [
           'row',
         ],
       ],
-      '#options' => [],
-      // Allow modifying option with AJAX.
-      '#validated' => TRUE,
-      // Fixes multiselect issue 2852654.
-      '#process' => [
-        ['Drupal\multiselect\Element\MultiSelect', 'processSelect'],
+      '#entity_selector_option' => '\Drupal\opigno_learning_path\Controller\LearningPathMembershipController::addUserToTrainingAutocompleteSelect',
+      '#entity_selector_parameters' => [
+        'group' => $group,
       ],
+      '#multiple' => TRUE,
+      '#data_type' => 'key',
+      '#options' => [],
+      '#validated' => TRUE,
     ];
 
     if ($is_class) {
@@ -3632,7 +3648,7 @@ function opigno_learning_path_save_step_achievements(
  * @param int $uid
  *   User ID.
  * @param bool $with_meeting
- *   If training contains ILT or Live Meeting.
+ *  If training contains ILT or Live Meeting.
  *
  * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
  * @throws \Drupal\Component\Plugin\Exception\PluginException
@@ -3666,20 +3682,7 @@ function opigno_learning_path_save_achievements($gid, $uid, $with_meeting = FALS
 
   $latest_cert_date = LPStatus::getTrainingStartDate($group, $uid);
 
-  if ($with_meeting) {
-    // When a training contains a meeting.
-    $is_passed = opigno_learning_path_is_passed($group, $uid);
-    if (isset($completed)) {
-      $status = $is_passed ? 'completed' : 'failed';
-    }
-    else {
-      $status = 'pending';
-    }
-  }
-  else {
-    // Usual flow.
-    $status = isset($completed) ? 'completed' : 'pending';
-  }
+  $status = isset($completed) ? 'completed' : 'pending';
   $score = opigno_learning_path_get_score($gid, $uid, FALSE, $latest_cert_date);
   $progress_service = \Drupal::service('opigno_learning_path.progress');
   $progress = $progress_service->getProgressRound($gid, $uid, $latest_cert_date);
@@ -3974,6 +3977,18 @@ function opigno_learning_path_system_breadcrumb_alter(Breadcrumb &$breadcrumb, R
       $links[1] = Link::createFromRoute($group->label(), 'entity.group.canonical', ['group' => $group->id()]);
       $breadcrumb = new Breadcrumb();
       $breadcrumb->setLinks($links);
+    }
+  }
+  if ($route_match->getRouteName() == 'entity.group.canonical') {
+    $link = Link::createFromRoute(t('Catalog'), 'view.opigno_training_catalog.training_catalogue');
+    $breadcrumb->addLink($link);
+  }
+  if ($route_match->getRouteName() == 'forum.page') {
+    $term = $route_match->getParameter('taxonomy_term');
+    /** @var Group $group */
+    $group = LearningPathController::loadGroupByForum($term);
+    if($group) {
+      $breadcrumb->addLink($group->toLink());
     }
   }
 }

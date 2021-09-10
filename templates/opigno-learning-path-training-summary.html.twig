@@ -15,38 +15,51 @@
  * - time_spend: Time spends in training.
  */
 #}
-
-{% set certificate_class = not certificate_url ? 'lp_summary_certificate_inactive' %}
-
-<div class="lp_summary d-flex flex-wrap py-5">
-  <div class="lp_summary_content">
-    <div class="lp_step_summary_title h4 mb-0 text-uppercase">{{ 'Training Progress'|t }}</div>
-    <div class="lp_step_summary_progress">{{ progress ~ '%' }}</div>
+<div class="training__content">
+  <div class="training__status">
+    <div class="label">{{ 'Status' | t }}</div>
+    <div class="state">{{ state_class | title }}</div>
+    <div class="status">
+      {% include 'lp-status.html.twig' with {state_class: state_class} %}
+    </div>
   </div>
-  <div class="lp_summary_content {{ 'mobile--' ~ state_class }}">
-    <div class="lp_step_summary_title h4 mb-0 text-uppercase">{{ 'Training Score'|t }}</div>
-    <div class="lp_step_summary_score">{{ score ~ '%' }}</div>
+  <div class="training__progress">
+    <div class="label">Progress</div>
+    {% include 'lp-circle-progress.html.twig' with {radius: 40, progress: progress} %}
   </div>
-  <div class="{{ state_class }}"></div>
-  <div class="lp_summary_certificate {{ certificate_class }}">
-    {% if certificate_url %}
-      <a href="{{ certificate_url }}" class="lp_summary_certificate_text">{{ 'Download certificate'|t }}</a>
-      <a href="{{ certificate_url }}" class="lp_summary_certificate_icon">
-        <span class="sr-only"> {{ 'Download certificate'|t }}</span>
-      </a>
-    {% else %}
-      <span class="lp_summary_certificate_text">{{ 'Download certificate'|t }}</span>
-      <span class="lp_summary_certificate_icon"></span>
+  <div class="training__score">
+    <div class="label">Score</div>
+    {% include 'lp-circle-progress.html.twig' with {radius: 40, progress: score} %}
+  </div>
+  <div class="training__dates">
+    {% if validation_date and valid_until %}
+      <div class="training__dates--valid-date">
+        {% if validation_date %}
+          <div class="label">{{ 'Validation date' | t }}</div>
+          <time class="value">{{ validation_date }}</time>
+        {% endif %}
+        {% if valid_until %}
+          <div class="label">{{ 'Valid until' | t }}</div>
+          <time class="value">{{ valid_until }}</time>
+        {% endif %}
+      </div>
     {% endif %}
-  </div>
-  <div class="mt-4 w-100 d-flex justify-content-center lp-step-summary">
-    <div class="lp_step_summary_registration font-italic">
-      {{ 'Registration date: @date'|t({'@date': registration_date}) }}</div>
-    <div class="lp_step_summary_validation ml-3 ml-md-5 font-italic">
-      {{ validation_message|raw }}
+    <div class="training__dates--register-date">
+      <div class="label">{{ 'Register date' | t }}</div>
+      <time class="value">{{ registration_date }}</time>
     </div>
-    <div class="lp_step_summary_time_spent ml-3 ml-md-5 font-italic">
-      {{ 'Time spent: @date'|t({'@date': time_spend}) }}
+    <div class="training__dates--time-spent">
+      <div class="label">{{ 'Time spent' | t }}</div>
+      <time class="value">{{ time_spend }}</time>
     </div>
   </div>
+  {% if certificate_url %}
+    <div class="training__certificate {{ certificate_class }}">
+        {% set certificate_image = opigno_catalog_get_default_image('certificate_image', label) %}
+        <a href="{{ certificate_url }}">
+          {{ certificate_image }}
+          {{ 'Download certificate' | t | striptags | replace({' ':'<br/>'}) | raw }}
+        </a>
+    </div>
+  {% endif %}
 </div>
