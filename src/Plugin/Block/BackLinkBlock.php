@@ -88,7 +88,7 @@ class BackLinkBlock extends SystemBreadcrumbBlock implements ContainerFactoryPlu
     if ($last_link instanceof Link) {
       return [
         '#type' => 'inline_template',
-        '#template' => '<div class="back-btn d-none d-lg-block {{js_button}}"><a href="{{context}}"><i class="fi fi-rr-arrow-left"></i>{{context_title}}</a></div>',
+        '#template' => '<div class="back-btn d-none d-lg-block {{js_button}}"><a href="{{context}}"><i class="fi fi-rr-angle-small-left d-lg-none"></i><i class="fi fi-rr-arrow-left d-none d-lg-block"></i>{{context_title}}</a></div>',
         '#context' => [
           'context_title' => $this->t('Back'),
           'context' => $last_link->getUrl()->toString(),

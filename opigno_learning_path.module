@@ -25,8 +25,6 @@ use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
-use Drupal\Core\Render\Element;
-use Drupal\Core\Template\Attribute;
 use Drupal\group\Entity\Group;
 use Drupal\group\Entity\GroupInterface;
 use Drupal\opigno_ilt\ILTInterface;
@@ -42,7 +40,6 @@ use Drupal\opigno_module\Entity\OpignoActivity;
 use Drupal\opigno_module\Entity\OpignoModule;
 use Drupal\opigno_module\Entity\UserModuleStatus;
 use Drupal\opigno_moxtra\MeetingInterface;
-use Drupal\multiselect\Element\Multiselect;
 use Drupal\user\Entity\User;
 use Drupal\Core\Breadcrumb\Breadcrumb;
 
@@ -117,11 +114,6 @@ function opigno_learning_path_theme() {
         'status' => NULL,
         'progress' => NULL,
       ],
-    ],
-    'multiselect_new_class' => [
-      'arguments' => ['element' => NULL],
-      'render element' => 'element',
-      'template' => 'multiselect-new-class',
     ],
     'opigno_learning_path_progress_ajax_container' => [
       'variables' => [
@@ -326,14 +318,6 @@ function opigno_learning_path_group_view(array &$build, EntityInterface $entity,
   }
 }
 
-function opigno_learning_path_theme_suggestions_multiselect(array $variables) {
-  if (isset($variables["element"]["#name"]) && $variables["element"]["#name"] == 'new_class_users') {
-    $suggestions = [];
-    $suggestions[] = 'multiselect_new_class';
-    return $suggestions;
-  }
-}
-
 /**
  * Implements hook_page_attachments().
  */
@@ -457,6 +441,7 @@ function opigno_learning_path_preprocess_region(&$variables) {
             'class' => [
               'btn',
               'btn-rounded',
+              'current-step-' . $current_step,
             ],
             'data-toggle' => 'trigger_click',
             'data-target' => '#group-learning-path-edit-form .form-submit',
@@ -496,65 +481,6 @@ function opigno_learning_path_preprocess_region(&$variables) {
       ];
     }
 
-  }
-}
-
-/**
- * Implements hook_preprocess_multiselect().
- */
-function opigno_learning_path_preprocess_multiselect_new_class(&$variables) {
-  $element = $variables['element'];
-  Element::setAttributes($element, array('id', 'name', 'size', 'required'));
-
-  $available_options = Multiselect::getOptions('available', $element);
-  $available_size = min(count($available_options), 10);
-
-  $selected_options = Multiselect::getOptions('selected', $element);
-  $selected_size = min(count($selected_options), 10);
-  $total_size = $available_size + $selected_size;
-
-  $variables['multiselect'] = array(
-    'available' => array(
-      'id' => $element['#attributes']['id'] . '-available',
-      'label' => t('Available Options'),
-      'attributes' => array(
-        'id' => $element['#attributes']['id'] . '-available',
-        'size' => $total_size,
-      ),
-      'options' => $available_options,
-    ),
-    'selected' => array(
-      'id' => $element['#attributes']['id'],
-      'label' => t('Selected Options'),
-      'attributes' => $element['#attributes'],
-      'options' => $selected_options,
-    ),
-    'labels' => array(
-      'add' => t('Add'),
-      'remove' => t('Remove'),
-    ),
-  );
-
-  // Prepare selected attributes.
-  $variables['multiselect']['selected']['attributes']['size'] = $total_size;
-
-  // Prepare attributes for available select.
-  foreach (array('multiple', 'required', 'class') as $key) {
-    $element_key = "#{$key}";
-    if (isset($element[$element_key])) {
-      $variables['multiselect']['available']['attributes'][$key] = $element[$element_key];
-    }
-  }
-  // Prepare attributes.
-  $multiselect = &$variables['multiselect'];
-  foreach (array('available', 'selected') as $key) {
-    $multiselect[$key]['attributes']['class'][] = 'multiselect-' . $key;
-    $multiselect[$key]['attributes']['class'][] = 'form-multiselect';
-    if (isset($multiselect[$key]['attributes']) && !($multiselect[$key]['attributes'] instanceof Attribute)) {
-      if ($multiselect[$key]['attributes']) {
-        $multiselect[$key]['attributes'] = new Attribute($multiselect[$key]['attributes']);
-      }
-    }
   }
 }
 
@@ -700,39 +626,6 @@ function opigno_learning_path_preprocess_block(&$variables) {
     }
   };
 
-}
-
-/**
- * Implements template_preprocess_HOOK().
- */
-function opigno_learning_path_preprocess_opigno_certificate(array &$variables) {
-  /** @var \Drupal\opigno_certificate\CertificateInterface $opigno_certificate */
-  $opigno_certificate = $variables['elements']['#opigno_certificate'];
-
-  /** @var \Drupal\Core\Entity\ContentEntityInterface $referencing_entity */
-  $referencing_entity = $opigno_certificate->referencing_entity->entity;
-
-  // Provide the referencing entity context.
-  if ($referencing_entity) {
-    $completed = opigno_learning_path_completed_on($referencing_entity->id(), \Drupal::currentUser()->id(), TRUE);
-    if ($completed) {
-      $variables['completed_on'] = \Drupal::service('date.formatter')->format($completed, 'custom', 'd/M/Y');
-    }
-
-    // @todo: add a proper API function to get courses for a learning path.
-    $managed_content = OpignoGroupManagedContent::loadByProperties(['group_id' => $referencing_entity->id()]);
-    $course_titles = [];
-    foreach ($managed_content as $content) {
-      // Need the content type object to get the LearningPathContent object.
-      $content_type_id = $content->getGroupContentTypeId();
-      if ($content_type_id == 'ContentTypeCourse') {
-        $group = Group::load($content->getEntityId());
-        $course_titles[] = $group->label();
-      }
-    }
-
-    $variables['extra'] = implode(', ', $course_titles);
-  }
 }
 
 /**

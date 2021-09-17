@@ -11,14 +11,14 @@
 <div class="content-box p-0">
   <div class="training">
     <div class="training__image">
-      {% if content.field_learning_path_media_image[0] %}
-        {{ content.field_learning_path_media_image }}
+      {% if elements.image %}
+        {{ elements.image }}
       {% else %}
         {{ opigno_catalog_get_default_image('learning_path', label) }}
       {% endif %}
     </div>
     <div class="training__container"><h2 class="training__title">{{ 'Training - @label'|t({'@label': elements['#label']}) }}</h2>
-      {{ elements|without('details') }}
+      {{ elements|without('details', 'image') }}
     </div>
   </div>
 </div>

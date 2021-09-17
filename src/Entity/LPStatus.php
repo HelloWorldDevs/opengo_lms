@@ -2,11 +2,16 @@
 
 namespace Drupal\opigno_learning_path\Entity;
 
+use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
+use Drupal\Component\Plugin\Exception\PluginException;
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\group\Entity\Group;
+use Drupal\group\Entity\GroupInterface;
 use Drupal\opigno_learning_path\LPStatusInterface;
 
 /**
@@ -305,19 +310,48 @@ class LPStatus extends ContentEntityBase implements LPStatusInterface {
    * @return int|null
    *   Timestamp if found, null otherwise.
    */
-  public static function getCertificateExpireTimestamp($gid, $uid) {
-    $db_connection = \Drupal::service('database');
-    $result = $db_connection->select('user_lp_status_expire', 'lps')
-      ->fields('lps', ['expire'])
-      ->condition('gid', $gid)
-      ->condition('uid', $uid)
-      ->execute()->fetchField();
-
-    if ($result) {
-      return $result;
+  public static function getCertificateExpireTimestamp($gid, $uid): ?int {
+    $group = Group::load($gid);
+    try {
+      $completed_on = opigno_learning_path_completed_on($gid, $uid, TRUE);
+    }
+    catch (InvalidPluginDefinitionException | PluginNotFoundException | PluginException $e) {
+      $completed_on = NULL;
+      watchdog_exception('opigno_learning_path_exception', $e);
     }
 
-    return NULL;
+    // Get the data from the database if that's impossible to get the completion
+    // date (old approach). This returns the incorrect result if the user
+    // completed the same LP for several times.
+    if (!$completed_on || !$group instanceof GroupInterface) {
+      return \Drupal::database()->select('user_lp_status_expire', 'lps')
+        ->fields('lps', ['expire'])
+        ->condition('gid', $gid)
+        ->condition('uid', $uid)
+        ->execute()
+        ->fetchField();
+    }
+
+    // Get the certificate expiration time depending on the completion timestamp
+    // and LP certificate validity settings.
+    if (!$group->get('field_certificate_expire')->getString()) {
+      return NULL;
+    }
+
+    // Get the available options for the expiration time.
+    $field = 'field_certificate_expire_results';
+    $definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions('group', 'learning_path');
+    $definition = $definitions[$field] ?? NULL;
+
+    if (!$definition instanceof FieldDefinitionInterface) {
+      return NULL;
+    }
+
+    $options = $definition->getSetting('allowed_values');
+    $valid_for = $group->get($field)->getString();
+    $valid_for = $options[$valid_for] ?? $valid_for . ' months';
+
+    return strtotime($valid_for) ?? NULL;
   }
 
   /**

@@ -5,12 +5,15 @@
  * Install, update and uninstall functions for the module.
  */
 
-use Drupal\block\Entity\Block;
+use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Core\Config\FileStorage;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\group\Entity\GroupInterface;
 use Drupal\opigno_learning_path\LearningPathAccess;
+use Drupal\taxonomy\Entity\Term;
 use Drupal\user\Entity\Role;
 use Drupal\user\RoleInterface;
 
@@ -354,9 +357,13 @@ function opigno_learning_path_update_9002() {
 }
 
 /**
- * Remove duration field.
+ * Replace the LP duration field with the taxonomy terms reference.
  */
 function opigno_learning_path_update_9003() {
+  // Create duration terms from current duration values.
+  $durations = _opigno_learning_path_duration_terms_create();
+
+  // Remove the old "duration" field.
   $instance = FieldConfig::loadByName('group', 'learning_path', 'field_learning_path_duration');
   if (!empty($instance)) {
     $instance->delete();
@@ -364,12 +371,8 @@ function opigno_learning_path_update_9003() {
   if ($storage = FieldStorageConfig::loadByName('group', 'field_learning_path_duration')) {
     $storage->delete();
   }
-}
 
-/**
- * Add duration field.
- */
-function opigno_learning_path_update_9004() {
+  // Add taxonomy duration field.
   $config_path = drupal_get_path('module', 'opigno_learning_path') . '/config/optional';
   $storage = new FileStorage($config_path);
 
@@ -382,12 +385,95 @@ function opigno_learning_path_update_9004() {
   if (!FieldConfig::loadByName($data['entity_type'], $data['bundle'], $data['field_name'])) {
     FieldConfig::create($data)->save();
   }
+
+  // Set the new field value.
+  if (!$durations) {
+    return;
+  }
+
+  drupal_flush_all_caches();
+  foreach ($durations as $item) {
+    $tid = $item['tid'];
+
+    /** @var \Drupal\group\Entity\GroupInterface $lp */
+    foreach ($item['lps'] as $lp) {
+      if (!$lp->hasField('field_learning_path_duration')) {
+        continue;
+      }
+
+      // For some reason $lp->set('field_learning_path_duration', $tid) doesn't
+      // work properly.
+      $lp->field_learning_path_duration->target_id = $tid;
+      try {
+        $lp->save();
+      }
+      catch (EntityStorageException $e) {
+        watchdog_exception('opigno_learning_path_exception', $e);
+      }
+    }
+  }
+}
+
+/**
+ * Create duration terms based on existing field values.
+ *
+ * @return array
+ *   The list of duration terms with related LPs.
+ */
+function _opigno_learning_path_duration_terms_create(): array {
+  try {
+    $storage = \Drupal::entityTypeManager()->getStorage('group');
+  }
+  catch (PluginNotFoundException | InvalidPluginDefinitionException $e) {
+    watchdog_exception('opigno_learning_path_exception', $e);
+    return [];
+  }
+
+  $lp_ids = $storage->getQuery()
+    ->condition('type', 'learning_path')
+    ->exists('field_learning_path_duration')
+    ->execute();
+
+  if (!$lp_ids) {
+    return [];
+  }
+
+  // Prepare the list of existing durations.
+  $durations = [];
+  $lps = $storage->loadMultiple($lp_ids);
+  foreach ($lps as $lp) {
+    if (!$lp instanceof GroupInterface) {
+      continue;
+    }
+
+    $duration = $lp->get('field_learning_path_duration')->getString();
+    if (!array_key_exists($duration, $durations)) {
+      $durations[$duration] = [];
+      $term = Term::create([
+        'vid' => 'duration',
+        'name' => $duration,
+      ]);
+
+      try {
+        $term->save();
+        $durations[$duration]['tid'] = $term->id();
+      }
+      catch (EntityStorageException $e) {
+        watchdog_exception('opigno_learning_path_exception', $e);
+        continue;
+      }
+    }
+
+    $durations[$duration]['lps'][] = $lp;
+  }
+
+  return $durations;
 }
 
 /**
  * Import optional configs.
  */
-function opigno_learning_path_update_9005() {
+function opigno_learning_path_update_9004() {
   $config_path = drupal_get_path('module', 'opigno_learning_path') . '/config/optional';
   $files = \Drupal::service('file_system')
     ->scanDirectory($config_path, '/\.yml$/');
@@ -409,7 +495,7 @@ function opigno_learning_path_update_9005() {
 /**
  * Import updated LP configs.
  */
-function opigno_learning_path_update_9006() {
+function opigno_learning_path_update_9005() {
   module_load_include('install', 'opigno_lms');
   _opigno_lms_apply_update('module', 'opigno_learning_path', 'config/install', [
     'core.entity_view_display.group.learning_path.default',

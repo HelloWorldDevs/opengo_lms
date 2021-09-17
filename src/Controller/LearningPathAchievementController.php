@@ -939,6 +939,13 @@ class LearningPathAchievementController extends ControllerBase {
       '#label' => $group->label(),
       'summary' => $this->build_training_summary($group, $account),
       'details' => $this->build_lp_steps($group, $account),
+      'image' => $group->get('field_learning_path_media_image')->view([
+        'label' => 'hidden',
+        'type' => 'media_thumbnail',
+        'settings' => [
+          'image_style' => 'medium',
+        ],
+      ]),
     ];
   }
 
