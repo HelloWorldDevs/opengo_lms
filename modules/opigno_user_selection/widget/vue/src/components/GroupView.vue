@@ -60,3 +60,31 @@
     }
 }
 </script>
+
+<style scoped lang="scss">
+  .group-view {
+    cursor: pointer;
+    border: 1px solid #f5f5f5;
+    border-radius: 10px;
+    padding: 10px;
+    background-color: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    margin-bottom: 10px;;
+    transition: all .3s ease;
+    &.selected{
+      background-color: #4AD3B0;
+    }
+    .name{
+
+      flex-basis: 100%;
+    }
+    > img {
+      width: 30px;
+      height: 30px;
+      border-radius: 50px;
+      margin: 0 10px 0 0;
+    }
+  }
+</style>

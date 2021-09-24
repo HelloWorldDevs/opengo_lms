@@ -44,3 +44,26 @@ export default {
   }
 }
 </script>
+
+<style scoped lang="scss">
+.user-view {
+  border: 1px solid #f5f5f5;
+  border-radius: 10px;
+  padding: 10px;
+  background-color: #f5f5f5;
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  transition: all .3s ease;
+  &.selected {
+    background-color: #4ad3b0;
+  }
+
+  > img {
+    width: 30px;
+    height: 30px;
+    border-radius: 50px;
+    margin: 0 10px 0 0;
+  }
+}
+</style>

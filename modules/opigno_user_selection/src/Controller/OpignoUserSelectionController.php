@@ -194,4 +194,47 @@ class OpignoUserSelectionController extends ControllerBase {
     return $response;
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function training($data = NULL) {
+    $content = $this->currentRequest->getContent();
+    if (!empty($content)) {
+      // 2nd param to get as array.
+      $data = json_decode($content, TRUE);
+    }
+    $response_data = [];
+
+    $meta = new CacheableMetadata();
+    $meta->setCacheMaxAge(Cache::PERMANENT);
+
+    $map = [
+      'learning_path' => 'training',
+      'opigno_class' => 'class',
+    ];
+
+    /** @var \Drupal\group\Entity\Group[] $groups */
+    $groups = $this->entityTypeManager()
+      ->getStorage('group')
+      ->loadMultiple($data ?: []);
+
+    // Response_data key should be "users",
+    $response_data['users'] = (array_map(function ($group) use ($meta, $map) {
+
+      $meta->addCacheableDependency($group);
+
+      /** @var \Drupal\group\Entity\Group $group */
+      return [
+        'id' => $group->id(),
+        'name' => $group->label(),
+        'email' => '',
+        'avatar' => $this->getGroupImage($map[$group->bundle()], $group),
+      ];
+    }, $groups));
+
+    $response = new CacheableJsonResponse($response_data);
+    $response->addCacheableDependency($meta);
+    return $response;
+  }
+
 }

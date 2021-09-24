@@ -80,3 +80,12 @@ opigno_admin.manage_categories:
   parent: opigno_admin.training_contents
   menu_name: opigno-admin
   weight: -34
+
+opigno_admin.manage_durations:
+  title: Durations
+  description: 'Manage durations'
+  route_name: entity.taxonomy_vocabulary.overview_form
+  route_parameters: { taxonomy_vocabulary: 'duration' }
+  parent: opigno_admin.training_contents
+  menu_name: opigno-admin
+  weight: -33

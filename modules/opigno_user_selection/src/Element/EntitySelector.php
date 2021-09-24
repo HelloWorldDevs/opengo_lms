@@ -2,15 +2,11 @@
 
 namespace Drupal\opigno_user_selection\Element;
 
-use Drupal\Core\Access\CsrfRequestHeaderAccessCheck;
-use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\Element\Select;
 use Drupal\Core\Url;
 use Drupal\group\Entity\Group;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides a form element for entity selection.
@@ -70,10 +66,11 @@ class EntitySelector extends Select {
         }, ARRAY_FILTER_USE_BOTH);
         $element['#default_value'] = [];
       }
-      elseif(!is_null($default) && !isset($element['#default_value'])) {
+      elseif (!is_null($default) && !isset($element['#default_value'])) {
         $element['#default_value'] = $default;
       }
     }
+    unset($element["#options"]["_none"]);
     return parent::valueCallback($element, $input, $form_state);
   }
 
@@ -87,7 +84,8 @@ class EntitySelector extends Select {
     if (empty($element['#entity_selector_route_name'])) {
       $element['#entity_selector_route_name'] = 'user_selection_list';
     }
-    $url = Url::fromRoute($element['#entity_selector_route_name'], [])->toString(TRUE);
+    $url = Url::fromRoute($element['#entity_selector_route_name'], [])
+      ->toString(TRUE);
     /** @var \Drupal\Core\Access\AccessManagerInterface $access_manager */
     $access_manager = \Drupal::service('access_manager');
     $access = $access_manager->checkNamedRoute($element['#entity_selector_route_name'], [], \Drupal::currentUser(), TRUE);

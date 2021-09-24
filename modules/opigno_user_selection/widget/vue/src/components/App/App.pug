@@ -1,22 +1,19 @@
 
 section(class="app")
   div(class="navi navi-pills")
-    div(
-      v-for="(v,i) in {users: 'Users',classes: 'Classes',trainings: 'Trainings',}"
-      class="navi-item"
-      :key="i"
-      :class="{active: active == i}"
-      @click.stop="onClickTab(i)"
+    div.navi-item(
+      v-for="(tabLabel, tabKey) in topTabsWithTypes()"
+      :key="tabKey"
+      :class="{active: active == tabKey}"
+      @click.stop="onClickTab(tabKey)"
     )
-      span(
-        class="navi-link"
-      ) {{ v }}
+      span.navi-link {{ tabLabel }}
 
   div(class="input-group")
     input(
       class="form-control"
       v-model="filter"
-      :placeholder="`Filter by ${group ? 'users' : active}`"
+      :placeholder="`Filter by ${group ? 'users' : topTabsWithTypeLabel(active)}`"
     )
 
   pre(v-if=0) {{ $props }}

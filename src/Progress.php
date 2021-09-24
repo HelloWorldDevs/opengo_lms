@@ -417,26 +417,24 @@ class Progress {
   /**
    * {@inheritdoc}
    */
-  public function buildSummary($group, $account) {
+  public function buildSummary($group, $account): array {
     $uid = $account->id();
+    $gid = (int) $group->id();
     // Get user training expiration flag.
-    $has_experation_date = LPStatus::isCertificateExpireSet($group);
     $expired = LPStatus::isCertificateExpired($group, $uid);
-    $expired_date = LPStatus::isCertificateExpiredDate($group, $uid);
-    $status = $this->getProgressAchievementsData($group->id(), $uid);
+    $status = $this->getProgressAchievementsData($gid, $uid);
     $result = LPResult::getCurrentLPAttempt($group, $account);
     $is_passed = opigno_learning_path_is_passed($group, $uid, $expired);
-    $build = isset($result->started) ? [
+
+    return isset($result->started) ? [
       '#theme' => 'opigno_learning_path_step_block_progress',
       '#passed' => $is_passed,
       '#expired' => $expired,
-      '#has_experation_date' => $has_experation_date,
-      '#expired_date' => $expired_date->expire ?? 0,
+      '#has_experation_date' => LPStatus::isCertificateExpireSet($group),
+      '#expired_date' => LPStatus::getCertificateExpireTimestamp($gid, $uid),
       '#complite_date' => strtotime($status["registered"]) ?? 0,
       '#started_date' => $result->started->value ?? 0,
     ] : [];
-
-    return $build;
   }
 
   /**

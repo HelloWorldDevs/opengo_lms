@@ -37,6 +37,7 @@ export default {
     'data-multiple':{},
     'data-name':{},
     'data-id':{},
+    'data-top-tabs-with-types': {},
     'data-class':{},
     'data-user-load':{},
     'data-user-list':{
@@ -178,5 +179,25 @@ export default {
     getStoringIdByEntity: function (entity) {
       return entity[this.dataType];
     },
+    /**
+     * Allows to override tabs.
+     *
+     * The object key is constant and should be "user", "classes", or "trainings".
+     * Only label cn be overridden for now.
+     *
+     * It is not completed implementation that allows to use widget on entity_reference field.
+     *
+     * @returns {object}
+     */
+    topTabsWithTypes: function () {
+      return this.$props.dataTopTabsWithTypes ? JSON.parse(this.$props.dataTopTabsWithTypes) : {
+        users: 'Users',
+        classes: 'Classes',
+        trainings: 'Trainings',
+      }
+    },
+    topTabsWithTypeLabel: function (active) {
+      return (this.topTabsWithTypes()[active] || "").toLocaleLowerCase();
+    }
   }
 }

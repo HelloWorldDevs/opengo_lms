@@ -5,3 +5,11 @@ user_selection_list:
     _controller: '\Drupal\opigno_user_selection\Controller\OpignoUserSelectionController::post'
   requirements:
     _permission: 'access content'
+
+training_selection_list:
+  path: '/user_selection/training'
+  defaults:
+    _title: 'OpignoUserSelectionController'
+    _controller: '\Drupal\opigno_user_selection\Controller\OpignoUserSelectionController::training'
+  requirements:
+    _permission: 'access content'

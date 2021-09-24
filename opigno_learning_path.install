@@ -506,3 +506,11 @@ function opigno_learning_path_update_9005() {
     'views.view.latest_active_trainings',
   ]);
 }
+
+/**
+ * Import LP steps block.
+ */
+function opigno_learning_path_update_9006() {
+  module_load_include('install', 'opigno_lms');
+  _opigno_lms_apply_update('profile', 'opigno_lms', 'config/optional', ['block.block.lp_steps_block']);
+}

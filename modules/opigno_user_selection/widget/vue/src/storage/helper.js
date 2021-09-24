@@ -14,4 +14,5 @@ const parseIds = (key) => {
     type: ids.join("_") || 'user',
   }
 }
-export { isDevMode, url, parseIds };
+const log = (...data) => isDevMode ? console.log(...data) : null;
+export { isDevMode, url, parseIds, log };

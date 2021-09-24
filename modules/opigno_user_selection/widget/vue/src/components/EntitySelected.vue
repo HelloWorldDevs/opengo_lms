@@ -77,3 +77,31 @@ export default {
   }
 }
 </script>
+
+<style scoped lang="scss">
+.entity-selected {
+  display: flex;
+  .label {
+    cursor: pointer;
+    display: flex;
+    box-sizing: border-box;
+    border: 1px solid #f5f5f5;
+    border-radius: 10px;
+    padding: .2em .6em;
+    margin: 0em .5em .3em 0em;
+    background-color: #f5f5f5;
+    justify-content: center;
+    align-items: center;
+    > img {
+      width: 10px;
+      height: 10px;
+      border-radius: 50px;
+      margin: 0 10px 0 0;
+    }
+  }
+
+  .close {
+    padding: 0 0 0 .5em;
+  }
+}
+</style>

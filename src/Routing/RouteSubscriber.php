@@ -23,6 +23,10 @@ class RouteSubscriber extends RouteSubscriberBase {
     if ($route = $collection->get('entity.group.join')) {
       $route->setRequirement('_entity_access', 'group.join');
     }
+
+    if ($route = $collection->get('view.opigno_classes.all')) {
+      $route->setOption('_admin_route', TRUE);
+    }
   }
 
 }

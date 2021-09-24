@@ -15,8 +15,9 @@ new Vue({
       "data-name": "users_to_send[]",
       "data-id": "edit-users-to-send",
       "data-data-user-load": "",
-      "data-type": "key",
-      "data-autocomplete-path": "/user_selection/users",
+      "data-type": "id",
+      "data-autocomplete-path": "/user_selection/entity",
+      "data-top-tabs-with-types": "{\"users\":\"Users\",\"classes\":\"Classes\",\"trainings\":\"Trainings\"}",
       // "data-token": "u0QlR8jqaL65XO6RUR1SF71NiwyfQip6Cd_CYcxQW78",
       "data-user-list": require('../db.json')['users'],
       "data-user-default": ["2"]
