@@ -3,7 +3,7 @@
 namespace Drupal\opigno_learning_path\Form;
 
 use Drupal\Core\Ajax\AjaxResponse;
-use Drupal\Core\Ajax\CloseModalDialogCommand;
+use Drupal\Core\Ajax\InvokeCommand;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Form\ConfirmFormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -68,10 +68,12 @@ class DeleteAchievementsForm extends ConfirmFormBase {
     }
 
     $form['actions']['submit']['#name'] = 'submit';
+    $form['actions']['submit']['#attributes']['class'] = ['btn', 'btn-rounded'];
 
     $form['actions']['cancel']['#type'] = 'submit';
     $form['actions']['cancel']['#name'] = 'cancel';
     $form['actions']['cancel']['#value'] = $this->getCancelText();
+    $form['actions']['cancel']['#attributes']['class'] = ['btn', 'btn-rounded'];
 
     $is_ajax = $this->getRequest()->isXmlHttpRequest();
     if ($is_ajax) {
@@ -206,7 +208,8 @@ class DeleteAchievementsForm extends ConfirmFormBase {
    */
   public function closeModal(array &$form, FormStateInterface $form_state) {
     $response = new AjaxResponse();
-    $response->addCommand(new CloseModalDialogCommand());
+    $response->addCommand(new InvokeCommand('.modal', 'modal', ['hide']));
+
     return $response;
   }
 

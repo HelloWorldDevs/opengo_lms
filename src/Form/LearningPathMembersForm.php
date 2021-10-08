@@ -185,11 +185,11 @@ class LearningPathMembersForm extends FormBase {
         ],
         'class_delete' => [
           '#type' => 'submit',
-          '#value' => $this->t('&times;'),
+          '#value' => $this->t('Remove this class'),
           '#submit' => [],
           '#attributes' => [
             'id' => 'class_delete_' . $class_entity->id(),
-            'class' => ['class_delete'],
+            'class' => ['btn', 'btn-rounded', 'class_delete'],
           ],
         ],
         'title' => [
@@ -440,11 +440,12 @@ class LearningPathMembersForm extends FormBase {
     // Remove not needed roles for classes.
     if ($group_bundle == 'opigno_class' && !empty($form[0])) {
       unset($form[0]['title']);
-      foreach ($form[0]['members']['#rows'] as $key => $row) {
-        unset($form[0]['members']['#rows'][$key]['data'][2]);
-        unset($form[0]['members']['#rows'][$key]['data'][3]);
+      if (isset($form[0]['members']['#rows'])) {
+        foreach ($form[0]['members']['#rows'] as $key => $row) {
+          unset($form[0]['members']['#rows'][$key]['data'][2]);
+          unset($form[0]['members']['#rows'][$key]['data'][3]);
+        }
       }
-
       unset($form[0]['members']['#header'][2]);
       unset($form[0]['members']['#header'][3]);
     }
@@ -452,10 +453,13 @@ class LearningPathMembersForm extends FormBase {
     elseif ($group_bundle == 'learning_path') {
       $form_array_keys = array_keys($form);
       $last_key = end($form_array_keys);
-      foreach ($form[$last_key]['members']['#rows'] as $key => $row) {
-        unset($form[$last_key]['members']['#rows'][$key]['data'][4]);
+      if (isset($form[$last_key]['members']['#rows'])) {
+        foreach ($form[$last_key]['members']['#rows'] as $key => $row) {
+          unset($form[$last_key]['members']['#rows'][$key]['data'][4]);
+        }
       }
       unset($form[$last_key]['members']['#header'][4]);
+
     }
 
     $form['#attached']['library'][] = 'opigno_learning_path/member_overview';

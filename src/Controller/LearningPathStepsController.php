@@ -4,10 +4,15 @@ namespace Drupal\opigno_learning_path\Controller;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\AppendCommand;
+use Drupal\Core\Ajax\InsertCommand;
+use Drupal\Core\Ajax\InvokeCommand;
 use Drupal\Core\Ajax\OpenModalDialogCommand;
 use Drupal\Core\Ajax\RedirectCommand;
+use Drupal\Core\Ajax\RemoveCommand;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Form\FormState;
 use Drupal\Core\Url;
 use Drupal\group\Entity\Group;
 use Drupal\opigno_group_manager\Controller\OpignoGroupManagerController;
@@ -15,6 +20,7 @@ use Drupal\opigno_group_manager\Entity\OpignoGroupManagedContent;
 use Drupal\opigno_group_manager\OpignoGroupContentTypesManager;
 use Drupal\opigno_group_manager\OpignoGroupContext;
 use Drupal\opigno_learning_path\Entity\LPResult;
+use Drupal\opigno_learning_path\Form\DeleteAchievementsForm;
 use Drupal\opigno_learning_path\LearningPathAccess;
 use Drupal\opigno_learning_path\LearningPathValidator;
 use Drupal\opigno_learning_path\LearningPathContent;
@@ -296,14 +302,26 @@ class LearningPathStepsController extends ControllerBase {
 
         // If training is changed.
         if (!$is_valid) {
-          $form = $this->formBuilder()->getForm('Drupal\opigno_learning_path\Form\DeleteAchievementsForm', $group);
+          $form_state = new FormState();
+          $form_state->addBuildInfo('args', [$group]);
+          $form = $this->formBuilder()->buildForm(DeleteAchievementsForm::class, $form_state);
           if ($is_ajax) {
             $redirect = $this->redirectToHome('', TRUE);
             if ($redirect) {
               return $redirect;
             }
             else {
-              return (new AjaxResponse())->addCommand(new OpenModalDialogCommand('', $form));
+              $build = [
+                '#theme' => 'opigno_confirmation_popup',
+                '#body' => $form,
+              ];
+
+              $response = new AjaxResponse();
+              $response->addCommand(new RemoveCommand('.modal-ajax'));
+              $response->addCommand(new AppendCommand('body', $build));
+              $response->addCommand(new InvokeCommand('.modal-ajax', 'modal', ['show']));
+
+              return $response;
             }
           }
           else {

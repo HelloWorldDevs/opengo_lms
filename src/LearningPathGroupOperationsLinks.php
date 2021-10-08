@@ -98,6 +98,10 @@ class LearningPathGroupOperationsLinks implements TrustedCallbackInterface{
         'title' => $this->t('Documents'),
         'params' => ['group' => $gid],
       ],
+      'opigno_statistics.training' => [
+        'title' => $this->t('Training statistics'),
+        'params' => ['group' => $gid],
+      ],
       'opigno_learning_path.training' => [
         'title' => $this->t('Results'),
         'params' => ['group' => $gid],

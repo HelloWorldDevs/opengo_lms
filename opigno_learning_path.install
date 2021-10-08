@@ -514,3 +514,19 @@ function opigno_learning_path_update_9006() {
   module_load_include('install', 'opigno_lms');
   _opigno_lms_apply_update('profile', 'opigno_lms', 'config/optional', ['block.block.lp_steps_block']);
 }
+
+/**
+ * Import LP steps block.
+ */
+function opigno_learning_path_update_9007() {
+  module_load_include('install', 'opigno_lms');
+  _opigno_lms_apply_update('profile', 'opigno_lms', 'config/optional', ['block.block.lp_steps_block']);
+}
+
+/**
+ * Import user view block on lp member edit page.
+ */
+function opigno_learning_path_update_9008() {
+  module_load_include('install', 'opigno_lms');
+  _opigno_lms_apply_update('module', 'opigno_learning_path', 'config/install', ['views.view.opigno_group_members_table']);
+}

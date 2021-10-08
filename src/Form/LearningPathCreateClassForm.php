@@ -3,8 +3,9 @@
 namespace Drupal\opigno_learning_path\Form;
 
 use Drupal\Core\Ajax\AjaxResponse;
-use Drupal\Core\Ajax\ReplaceCommand;
 use Drupal\Core\Ajax\HtmlCommand;
+use Drupal\Core\Ajax\ReplaceCommand;
+use Drupal\Core\Entity\Element\EntityAutocomplete;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\group\Entity\Group;
@@ -42,30 +43,20 @@ class LearningPathCreateClassForm extends FormBase {
 
     $group = $this->getRequest()->get('group');
 
-    $form['search'] = [
+    $form['new_class_users'] = [
       '#type' => 'textfield',
       '#autocomplete_route_name' => 'opigno_learning_path.membership.add_user_to_class_autocomplete',
       '#autocomplete_route_parameters' => [
         'group' => $group !== NULL ? $group->id() : 0,
       ],
+      '#tags' => TRUE,
+      '#selection_settings' => [],
+      '#selection_handler' => '',
+      '#target_type' => 'user',
+      '#element_validate' => [[EntityAutocomplete::class, 'validateEntityAutocomplete']],
       '#placeholder' => $this->t('Search name or email'),
       '#attributes' => [
         'id' => 'class_users_autocomplete',
-      ],
-    ];
-
-    $form['new_class_users'] = [
-      '#type' => 'multiselect',
-      '#attributes' => [
-        'id' => 'new_class_users',
-        'class' => [
-          'row',
-        ],
-      ],
-      '#options' => [],
-      '#validated' => TRUE,
-      '#process' => [
-        ['Drupal\multiselect\Element\MultiSelect', 'processSelect'],
       ],
       '#prefix' => '<div id="learning_path_create_class_form_messages" class="alert-danger"></div>',
     ];
@@ -93,15 +84,19 @@ class LearningPathCreateClassForm extends FormBase {
   /**
    * Handles AJAX form submit.
    */
-  public function submitFormAjax(array $form, FormStateInterface $form_state) {
+  public function submitFormAjax(array &$form, FormStateInterface $form_state) {
     $response = new AjaxResponse();
-    $form = \Drupal::formBuilder()->getForm('Drupal\opigno_learning_path\Form\LearningPathCreateMemberForm');
+
+    $form = \Drupal::formBuilder()
+      ->getForm(LearningPathCreateMemberForm::class);
 
     if ($form_state->hasValidateError) {
       $response->addCommand(new HtmlCommand('#learning_path_create_class_form_messages', $this->t('Please select at least one user')));
     }
     else {
       $response->addCommand(new ReplaceCommand('#learning_path_create_class_form', $form));
+      // @todo Ensure that old errors are cleaned up.
+      $form_state->clearErrors();
     }
 
     return $response;
@@ -113,6 +108,9 @@ class LearningPathCreateClassForm extends FormBase {
   public function validateForm(array &$form, FormStateInterface $form_state) {
     if (empty($form_state->getValue('new_class_users'))) {
       $form_state->hasValidateError = TRUE;
+      // @todo Legacy implementation don't re-render form,
+      //   so we cannot use an error there currently.
+      /*$form_state->setError($form['new_class_users'], $this->t('Please select at least one user'));*/
     }
   }
 
@@ -125,9 +123,12 @@ class LearningPathCreateClassForm extends FormBase {
 
     // Parse uids.
     $uids = array_map(function ($user) {
-      list($type, $id) = explode('_', $user);
-      return $id;
+      return $user["target_id"];
     }, $users);
+
+    if (!(is_array($uids) && count($uids) > 0)) {
+      return;
+    }
 
     // Load users.
     $users = User::loadMultiple($uids);
@@ -162,7 +163,7 @@ class LearningPathCreateClassForm extends FormBase {
       $group->addMember($user);
     }
 
-    $this->messenger()->addMessage(t('New class created'));
+    $this->messenger()->addMessage($this->t('New class created'));
   }
 
 }

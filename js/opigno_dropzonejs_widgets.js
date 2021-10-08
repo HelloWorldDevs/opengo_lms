@@ -3,9 +3,9 @@
     attach: function (context, settings) {
 
       // We have issue that we need to Init view first before select existing media.
-      $("form[id^='entity-browser-media-entity-browser-groups-form--']").find(".views-exposed-form div[id^='edit-actions--'] .button").click();
-      $("form[id^='entity-browser-media-entity-browser-badge-images-form--']").find(".views-exposed-form div[id^='edit-actions--'] .button").click();
-      $("form[id^='entity-browser-media-entity-browser-file-pdf-form--']").find(".views-exposed-form div[id^='edit-actions--'] .button").click();
+      $("form[id^='entity-browser-media-entity-browser-groups-form--']").find(".views-exposed-form .button").click();
+      $("form[id^='entity-browser-media-entity-browser-badge-images-form--']").find(".views-exposed-form .button").click();
+      $("form[id^='entity-browser-media-entity-browser-file-pdf-form--']").find(".views-exposed-form .button").click();
 
       // Make form auto submission.
       var targetNode = document.querySelector("form.entity-browser-form #edit-actions .is-entity-browser-submit");
@@ -26,7 +26,7 @@
             }
           });
         });
-  
+
         // Start observing the target node for configured mutations
         observer.observe(targetNode, config);
       }

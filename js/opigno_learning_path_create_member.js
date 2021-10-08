@@ -4,12 +4,12 @@
 
       var $dialog = $('#drupal-modal');
       $dialog.on('dialogopen', function(event, ui) {
-        $dialog.dialog('option', 'position', {
-          'my': 'right top',
-          'at': 'right top',
-          'of': '#block-aristotle-content',
-          'collision': 'none',
-        });
+        // $dialog.dialog('option', 'position', {
+        //   'my': 'right top',
+        //   'at': 'right top',
+        //   'of': '#learning_path_create_member_form',
+        //   'collision': 'none',
+        // });
         $dialog.dialog('option', 'minWidth', 490);
         $dialog.dialog('option', 'minHeight', 450);
       });

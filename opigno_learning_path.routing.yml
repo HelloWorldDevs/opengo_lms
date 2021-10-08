@@ -777,3 +777,31 @@ opigno_learning_path.progress:
        type: entity:group
       account:
        type: entity:user
+
+# Delete group confirmation form.
+opigno_learning_path.confirm_delete_group_form:
+  path: '/ajax/opigno-learning-path/group/{group}/delete'
+  defaults:
+    _controller: '\Drupal\opigno_learning_path\Controller\OpignoPopupController::getDeleteGroupForm'
+  methods: ['POST']
+  requirements:
+    _entity_access: 'group.delete'
+
+# Delete group confirmation form.
+opigno_learning_path.confirm_delete_module_form:
+  path: '/ajax/opigno-learning-path/module/{opigno_module}/delete'
+  defaults:
+    _controller: '\Drupal\opigno_learning_path\Controller\OpignoPopupController::getDeleteModuleForm'
+  methods: ['POST']
+  requirements:
+    _entity_access: 'opigno_module.delete'
+
+# Close the modal.
+opigno_learning_path.close_modal:
+  path: '/ajax/opigno-lp/close-modal'
+  defaults:
+    _controller: '\Drupal\opigno_learning_path\Controller\OpignoPopupController::closeModal'
+  methods: ['POST']
+  requirements:
+    _role: 'authenticated'
+

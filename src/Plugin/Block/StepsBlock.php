@@ -8,6 +8,7 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Url;
 use Drupal\group\Entity\Group;
+use Drupal\group\Entity\GroupInterface;
 use Drupal\opigno_group_manager\Entity\OpignoGroupManagedContent;
 use Drupal\opigno_group_manager\OpignoGroupContentTypesManager;
 use Drupal\opigno_learning_path\Controller\LearningPathStepsController;
@@ -90,7 +91,7 @@ class StepsBlock extends BlockBase implements ContainerFactoryPluginInterface, T
   public function build() {
     $group = $this->getGroupByRouteOrContext();
 
-    $steps = $this->getStepsByGroup($group);
+    $steps = $group instanceof GroupInterface ? $this->getStepsByGroup($group) : [];
 
     // Get group context.
     $cid = $this->getCurrentGroupContentId();

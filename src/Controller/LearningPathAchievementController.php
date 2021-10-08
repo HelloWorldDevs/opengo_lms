@@ -844,8 +844,8 @@ class LearningPathAchievementController extends ControllerBase {
 
         return TRUE;
       });
-      $steps = array_map(function ($step) use ($user, $latest_cert_date) {
-        $status = opigno_learning_path_get_step_status($step, $user->id(), TRUE, $latest_cert_date);
+      $steps = array_map(function ($step) use ($user, $latest_cert_date, $group) {
+        $status = opigno_learning_path_get_step_status($step, $user->id(), TRUE, $latest_cert_date, $group->id());
         if ($status == 'passed') {
           $step['passed'] = opigno_learning_path_is_passed($step, $user->id());
         }
@@ -891,7 +891,7 @@ class LearningPathAchievementController extends ControllerBase {
         'label' => $step['name'],
         'completed_on' => $step['completed on'] > 0 ?
           $date_formatter->format($step['completed on'], 'custom', 'F d, Y') : '',
-        'status' => opigno_learning_path_get_step_status($step, $user->id(), TRUE, $latest_cert_date),
+        'status' => opigno_learning_path_get_step_status($step, $user->id(), TRUE, $latest_cert_date, $group->id()),
       ];
     }
 

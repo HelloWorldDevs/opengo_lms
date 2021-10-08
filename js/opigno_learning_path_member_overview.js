@@ -21,7 +21,7 @@
 
         $parent.find('.class_hide').show();
         $parent.find('.class_show').hide();
-        $parent.find('.class_members_row').show();
+        $parent.find('.class_members_row:not(.deleted)').show();
       }
 
       function hideClass($el) {
@@ -237,7 +237,7 @@
           },
         })
             .done(function (data) {
-              $this.parents('.class_members_row').hide();
+              $this.parents('.class_members_row').addClass('deleted').hide();
             });
 
         return false;

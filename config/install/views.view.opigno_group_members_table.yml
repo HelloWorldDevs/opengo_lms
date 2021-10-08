@@ -13,7 +13,6 @@ description: ''
 tag: ''
 base_table: group_content_field_data
 base_field: id
-core: 8.x
 display:
   default:
     display_plugin: default
@@ -22,9 +21,8 @@ display:
     position: 0
     display_options:
       access:
-        type: perm
-        options:
-          perm: 'administer group'
+        type: none
+        options: {  }
       cache:
         type: none
         options: {  }
@@ -458,10 +456,8 @@ display:
         - 'languages:language_interface'
         - url
         - url.query_args
-        - user.permissions
       tags:
         - 'config:field.storage.group_content.group_roles'
-        - extensions
   group_members_block:
     display_plugin: block
     id: group_members_block
@@ -478,7 +474,5 @@ display:
         - 'languages:language_interface'
         - url
         - url.query_args
-        - user.permissions
       tags:
         - 'config:field.storage.group_content.group_roles'
-        - extensions

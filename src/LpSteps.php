@@ -69,11 +69,11 @@ class LpSteps {
 
       $user = User::load($uid);
       // Get actual score for Module.
-      $actual_score = $module->getUserScore($user, $latest_cert_date);
+      $actual_score = $module->getUserScore($user, $latest_cert_date, $group_id);
       // Get required score.
       $required_score = (int) $content->getSuccessScoreMin();
       // Get attempts.
-      $attempts = $module->getModuleAttempts($user, NULL, $latest_cert_date, TRUE);
+      $attempts = $module->getModuleAttempts($user, NULL, $latest_cert_date, TRUE, $group_id);
       $last_attempt_score = $this->getLastAttemptScore($attempts);
       // Get activities.
       $activities = $module->getModuleActivities(TRUE);

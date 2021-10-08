@@ -31,30 +31,6 @@ ajax_form:
     - core/jquery.once
     - core/drupalSettings
 
-join:
-  version: VERSION
-  css:
-    theme:
-      css/opigno_learning_path_join.css: {}
-  js:
-    js/opigno_learning_path_join.js: {}
-  dependencies:
-    - core/jquery
-    - core/jquery.once
-    - core/drupalSettings
-
-delete:
-  version: VERSION
-  css:
-    theme:
-      css/opigno_learning_path_delete.css: {}
-  js:
-    js/opigno_learning_path_delete.js: {}
-  dependencies:
-    - core/jquery
-    - core/jquery.once
-    - core/drupalSettings
-
 member_add:
   version: VERSION
   css:
@@ -147,14 +123,6 @@ steps_block:
   css:
     theme:
       css/steps_block.css: {}
-
-training_main_page:
-  version: 1.x
-  js:
-    js/opigno_learning_path_training_main_page.js: {}
-  dependencies:
-    - core/jquery
-    - core/jquery.once
 
 opigno_dropzonejs_widgets:
   version: VERSION

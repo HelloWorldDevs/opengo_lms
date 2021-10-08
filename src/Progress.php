@@ -520,6 +520,7 @@ class Progress {
         $format = 'Y-m-d H:i:s';
         $completed = DrupalDateTime::createFromFormat($format, $achievements_data['completed']);
         $validation = $completed->format('F d, Y');
+        $validation_date = $completed->format('m/d/Y');
       }
 
       if ($achievements_data['score']) {
@@ -534,10 +535,11 @@ class Progress {
         $time_spent = $date_formatter->formatInterval($achievements_data['time']);
       }
     } else {
-      $validation = opigno_learning_path_completed_on($group_id, $account_id, TRUE);
-      $validation = $validation > 0
-        ? $date_formatter->format($validation, 'custom', 'F d, Y')
+      $completed_on = opigno_learning_path_completed_on($group_id, $account_id, TRUE);
+      $validation = $completed_on > 0
+        ? $date_formatter->format($completed_on, 'custom', 'F d, Y')
         : '';
+      $validation_date = $date_formatter->format($completed_on, 'custom', 'm/d/Y');
 
       $time_spent = opigno_learning_path_get_time_spent($group_id, $account_id);
       $time_spent = $date_formatter->formatInterval($time_spent);
@@ -559,6 +561,8 @@ class Progress {
         }
 
         $expiration_message = $expiration_message . ' ' . $date_formatter->format($expiration_timestamp, 'custom', 'F d, Y');
+
+        $valid_until = $date_formatter->format($expiration_timestamp, 'custom', 'm/d/Y');
       }
     }
 
@@ -604,6 +608,8 @@ class Progress {
       '#registration_date' => $registration,
       '#validation_message' => $validation_message . $expiration_message,
       '#time_spend' => $time_spent,
+      '#validation_date' => $validation_date,
+      '#valid_until' => ($valid_until ?? ''),
       '#certificate_url' => $has_certificate && $is_passed ?
       Url::fromUri('internal:/certificate/group/' . $group_id . '/pdf') : FALSE,
     ];
