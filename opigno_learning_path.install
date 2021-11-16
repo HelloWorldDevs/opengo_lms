@@ -496,8 +496,7 @@ function opigno_learning_path_update_9004() {
  * Import updated LP configs.
  */
 function opigno_learning_path_update_9005() {
-  module_load_include('install', 'opigno_lms');
-  _opigno_lms_apply_update('module', 'opigno_learning_path', 'config/install', [
+  _opigno_learning_path_apply_update('module', 'opigno_learning_path', 'config/install', [
     'core.entity_view_display.group.learning_path.default',
     'taxonomy.vocabulary.duration',
     'field.storage.group.field_learning_path_duration',
@@ -511,22 +510,43 @@ function opigno_learning_path_update_9005() {
  * Import LP steps block.
  */
 function opigno_learning_path_update_9006() {
-  module_load_include('install', 'opigno_lms');
-  _opigno_lms_apply_update('profile', 'opigno_lms', 'config/optional', ['block.block.lp_steps_block']);
+  _opigno_learning_path_apply_update('module', 'opigno_learning_path', 'config/optional', ['block.block.lp_steps_block']);
 }
 
 /**
  * Import LP steps block.
  */
 function opigno_learning_path_update_9007() {
-  module_load_include('install', 'opigno_lms');
-  _opigno_lms_apply_update('profile', 'opigno_lms', 'config/optional', ['block.block.lp_steps_block']);
+  _opigno_learning_path_apply_update('module', 'opigno_learning_path', 'config/optional', ['block.block.lp_steps_block']);
 }
 
 /**
  * Import user view block on lp member edit page.
  */
 function opigno_learning_path_update_9008() {
-  module_load_include('install', 'opigno_lms');
-  _opigno_lms_apply_update('module', 'opigno_learning_path', 'config/install', ['views.view.opigno_group_members_table']);
+  _opigno_learning_path_apply_update('module', 'opigno_learning_path', 'config/install', ['views.view.opigno_group_members_table']);
+}
+
+/**
+ * Configs update helper function.
+ */
+function _opigno_learning_path_apply_update($type, $name, $path, $ymls) {
+  $theme_path = sprintf("%s/%s/", drupal_get_path($type, $name), $path);
+  $config_factory = \Drupal::configFactory();
+  $config_storage = \Drupal::service('config.storage');
+  $configs = [];
+  foreach ($ymls as $yml) {
+    $configs[$yml] = $theme_path;
+  }
+  foreach ($configs as $config => $config_path) {
+    $source = new FileStorage($config_path);
+    $data = $source->read($config);
+    if (is_array($data)) {
+      $config_factory->getEditable($config)->setData($data)->save(TRUE);
+      $config_storage->write($config, $data);
+    }
+    else {
+      \Drupal::messenger()->addWarning(t('Incorrect data of @config', ['@config'=>$config]));
+    }
+  }
 }

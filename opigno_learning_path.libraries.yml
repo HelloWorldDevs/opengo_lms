@@ -104,14 +104,6 @@ achievements_slick:
   js:
     /libraries/slick/slick/slick.min.js: { minified: true }
 
-achievements_slick_profile:
-  version: VERSION
-  css:
-    component:
-      /profiles/opigno_lms/libraries/slick/slick/slick.css: {}
-  js:
-    /profiles/opigno_lms/libraries/slick/slick/slick.min.js: { minified: true }
-
 creation_steps:
   version: VERSION
   css:
