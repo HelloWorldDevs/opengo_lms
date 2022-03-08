@@ -2,11 +2,14 @@
 
 namespace Drupal\opigno_user_selection\Controller;
 
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\file\Entity\File;
 use Drupal\group\GroupMembership;
 use Drupal\group\GroupMembershipLoaderInterface;
@@ -38,7 +41,6 @@ class OpignoUserSelectionController extends ControllerBase {
    * {@inheritdoc}
    */
   public function __construct(RequestStack $request_stack, GroupMembershipLoaderInterface $membership_loader) {
-
     $this->currentRequest = $request_stack->getCurrentRequest();
     $this->groupMembershipLoader = $membership_loader;
 
@@ -80,7 +82,7 @@ class OpignoUserSelectionController extends ControllerBase {
    *
    * @opigno_deprecated
    */
-  public function getuserAvatar($user) {
+  public function getUserAvatar($user) {
     $default_image = file_create_url(drupal_get_path('module', 'opigno_user_selection') . '/assets/profile.svg');
     $image_style = ImageStyle::load('thumbnail');
     if (!($image_style instanceof ImageStyle)) {
@@ -122,11 +124,13 @@ class OpignoUserSelectionController extends ControllerBase {
    * {@inheritdoc}
    */
   public function post($data = NULL) {
+    $allowed_recipient = $this->getAllowedRecipients();
     $content = $this->currentRequest->getContent();
     if (!empty($content)) {
       // 2nd param to get as array.
       $data = json_decode($content, TRUE);
     }
+    $data = array_intersect(array_keys($allowed_recipient), $data);
     $groups_id = [];
     $response_data = [];
 
@@ -144,7 +148,9 @@ class OpignoUserSelectionController extends ControllerBase {
     ];
 
     $response_data['users'] = (array_map(function ($user) use (&$groups_id, $meta, $map) {
-
+      if (!$user->access('view')) {
+        return FALSE;
+      }
       $meta->addCacheableDependency($user);
 
       $memberships = $this->groupMembershipLoader->loadByUser($user);
@@ -152,8 +158,8 @@ class OpignoUserSelectionController extends ControllerBase {
       return [
         'id' => $user->id(),
         'name' => $user->getDisplayName(),
-        'email' => '',
-        'avatar' => $this->getuserAvatar($user),
+        'email' => $this->checkUserEmail($this->currentUser()) ? $user->getEmail() : '',
+        'avatar' => $this->getUserAvatar($user),
         'member' => array_filter(array_map(function (GroupMembership $membership) use (&$groups_id, $map) {
           $group = $membership->getGroup();
           if (array_key_exists($group->bundle(), $map)) {
@@ -165,17 +171,21 @@ class OpignoUserSelectionController extends ControllerBase {
       ];
     }, $users));
 
+    $response_data['users'] = array_filter($response_data['users'], function ($user) use ($data) {
+      return in_array((int) $user['id'], $data);
+    });
+
     /** @var \Drupal\group\Entity\Group[] $groups */
     $groups = $this->entityTypeManager()
       ->getStorage('group')
       ->loadMultiple($groups_id ?: []);
-    $response_data['members'] = (array_map(function ($group) use ($meta, $map) {
+    $response_data['members'] = array_filter(array_map(function ($group) use ($meta, $map, $data) {
 
       $meta->addCacheableDependency($group);
 
       $memberships = $this->groupMembershipLoader->loadByGroup($group);
       /** @var \Drupal\group\Entity\Group $group */
-      return [
+      return $group->access('take') ? [
         "id" => $group->id(),
         "type" => $map[$group->bundle()],
         "info" => [
@@ -184,13 +194,27 @@ class OpignoUserSelectionController extends ControllerBase {
         ],
         "key" => $map[$group->bundle()] . "_" . $group->id(),
         "loaded" => TRUE,
-        "members" => array_map(function (GroupMembership $membership) {
-          return (int) $membership->getGroupContent()->getEntity()->id();
-        }, $memberships),
-      ];
+        "members" => array_filter(array_map(function (GroupMembership $membership) {
+          return (int) ($membership->getGroupContent()
+            ->getEntity() ? $membership->getGroupContent()
+            ->getEntity()
+            ->id() : 0);
+        }, $memberships), function ($user) use ($data) {
+          return in_array((int) $user, $data);
+        }),
+      ] : [];
     }, $groups));
+
+    foreach ($response_data['users'] as $key => $user) {
+      $response_data['users'][$key]['member'] = (array) array_values(array_intersect(array_keys($response_data['members']), $user['member']));
+    }
+    foreach ($response_data['members'] as $key => $member) {
+      $response_data['members'][$key]['members'] = (array) array_values(array_intersect($data, $member['members']));
+    }
+
     $response = new CacheableJsonResponse($response_data);
     $response->addCacheableDependency($meta);
+
     return $response;
   }
 
@@ -218,7 +242,7 @@ class OpignoUserSelectionController extends ControllerBase {
       ->getStorage('group')
       ->loadMultiple($data ?: []);
 
-    // Response_data key should be "users",
+    // Response_data key should be "users".
     $response_data['users'] = (array_map(function ($group) use ($meta, $map) {
 
       $meta->addCacheableDependency($group);
@@ -235,6 +259,40 @@ class OpignoUserSelectionController extends ControllerBase {
     $response = new CacheableJsonResponse($response_data);
     $response->addCacheableDependency($meta);
     return $response;
+  }
+
+  /**
+   * Authenticated users only have access to this route.
+   */
+  public function checkAccess(AccountInterface $account) {
+    return AccessResult::allowedIf($account->isAuthenticated() && $account->hasPermission('access user profiles'));
+  }
+
+  /**
+   * Check permissions to the e-mail view.
+   */
+  public function checkUserEmail(AccountInterface $account): AccessResultInterface {
+    return AccessResult::allowedIf($account->hasPermission('view user email addresses'));
+  }
+
+  /**
+   * Returns allowed recipients.
+   *
+   * @return bool|array|AccountInterface[]
+   */
+  private function getAllowedRecipients() {
+    $mapped_recipients = [];
+    // Get the groups, this allows to filter the available users.
+    $show_all = AccessResult::allowedIfHasPermissions($this->currentUser(), [
+      'add any members to calendar event',
+      'message anyone regardless of groups',
+    ], 'OR')->isAllowed();
+    /** @var \Drupal\Core\Session\AccountInterface[] $allowed_recipients */
+    $allowed_recipients = opigno_messaging_get_all_recipients($show_all);
+    foreach ($allowed_recipients as $allowed_recipient) {
+      $mapped_recipients[$allowed_recipient->id()] = $allowed_recipient;
+    }
+    return $mapped_recipients ?: [];
   }
 
 }
