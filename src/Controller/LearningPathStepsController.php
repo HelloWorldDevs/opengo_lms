@@ -5,9 +5,7 @@ namespace Drupal\opigno_learning_path\Controller;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\AppendCommand;
-use Drupal\Core\Ajax\InsertCommand;
 use Drupal\Core\Ajax\InvokeCommand;
-use Drupal\Core\Ajax\OpenModalDialogCommand;
 use Drupal\Core\Ajax\RedirectCommand;
 use Drupal\Core\Ajax\RemoveCommand;
 use Drupal\Core\Controller\ControllerBase;
@@ -135,17 +133,39 @@ class LearningPathStepsController extends ControllerBase {
     $content = [
       '#type' => 'html_tag',
       '#value' => $message,
-      '#tag' => 'p'
+      '#tag' => 'p',
     ];
 
     if ($modal) {
-      return (new AjaxResponse())->addCommand(new OpenModalDialogCommand('', $content));
+      return $this->showPopup($content);
     }
     else {
       return $content;
     }
   }
 
+  /**
+   * Show the AJAX popup.
+   *
+   * @param array $content
+   *   The popup content.
+   *
+   * @return \Drupal\Core\Ajax\AjaxResponse
+   *   The AJAX response to show the popup.
+   */
+  public function showPopup(array $content): AjaxResponse {
+    $build = [
+      '#theme' => 'opigno_confirmation_popup',
+      '#body' => $content,
+    ];
+
+    $response = new AjaxResponse();
+    $response->addCommand(new RemoveCommand('.modal-ajax'));
+    $response->addCommand(new AppendCommand('body', $build));
+    $response->addCommand(new InvokeCommand('.modal-ajax', 'modal', ['show']));
+
+    return $response;
+  }
 
   /**
    * Start the learning path.
@@ -157,6 +177,7 @@ class LearningPathStepsController extends ControllerBase {
     // Will be used to detect if user already started LP or not.
     $current_attempt = opigno_learning_path_started($group, \Drupal::currentUser());
 
+    $visibility = $group->get('field_learning_path_visibility')->value;
     $this->source_type = $type;
     $this->group = $group;
 
@@ -237,11 +258,6 @@ class LearningPathStepsController extends ControllerBase {
       }
     }
 
-    // Skip live meetings and instructor-led trainings from the group steps.
-    $steps = array_filter($steps, function ($step) {
-      return !in_array($step['typology'], ['Meeting', 'ILT']);
-    });
-
     // Check that training is completed.
     $is_completed = (int) $this->database
       ->select('opigno_learning_path_achievements', 'a')
@@ -311,17 +327,7 @@ class LearningPathStepsController extends ControllerBase {
               return $redirect;
             }
             else {
-              $build = [
-                '#theme' => 'opigno_confirmation_popup',
-                '#body' => $form,
-              ];
-
-              $response = new AjaxResponse();
-              $response->addCommand(new RemoveCommand('.modal-ajax'));
-              $response->addCommand(new AppendCommand('body', $build));
-              $response->addCommand(new InvokeCommand('.modal-ajax', 'modal', ['show']));
-
-              return $response;
+              return $this->showPopup($form);
             }
           }
           else {
@@ -348,9 +354,23 @@ class LearningPathStepsController extends ControllerBase {
     }
 
     // Check if there is resumed step. If is - redirect.
-    $step_resumed_cid = opigno_learning_path_resumed_step($steps);
+    // We disallow resuming for anonymous user if a training is public.
+    $step_resumed_cid = ($visibility === 'public' && $uid == 0) ? FALSE : opigno_learning_path_resumed_step($steps);
     if ($step_resumed_cid) {
       $content = OpignoGroupManagedContent::load($step_resumed_cid);
+      if (in_array($content->getGroupContentTypeId(), [
+        'ContentTypeMeeting',
+        'ContentTypeILT',
+      ])) {
+        for ($i = 0; $i < count($steps); ++$i) {
+          if (intval($steps[$i]['cid']) == $step_resumed_cid) {
+            // Set resumed step which is next to the meeting.
+            $step_resumed_cid = $steps[$i + 1]['cid'];
+            $content = OpignoGroupManagedContent::load($step_resumed_cid);
+            break;
+          };
+        }
+      }
       // Find and load the content type linked to this content.
       $content_type = $this->content_type_manager->createInstance($content->getGroupContentTypeId());
       $step_url = $content_type->getStartContentUrl($content->getEntityId(), $group->id());

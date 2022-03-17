@@ -264,15 +264,15 @@ class OpignoUserSelectionController extends ControllerBase {
   /**
    * Authenticated users only have access to this route.
    */
-  public function checkAccess(AccountInterface $account) {
+  public function checkAccess(AccountInterface $account): AccessResultInterface {
     return AccessResult::allowedIf($account->isAuthenticated() && $account->hasPermission('access user profiles'));
   }
 
   /**
    * Check permissions to the e-mail view.
    */
-  public function checkUserEmail(AccountInterface $account): AccessResultInterface {
-    return AccessResult::allowedIf($account->hasPermission('view user email addresses'));
+  public function checkUserEmail(AccountInterface $account): bool {
+    return $account->hasPermission('view user email addresses');
   }
 
   /**

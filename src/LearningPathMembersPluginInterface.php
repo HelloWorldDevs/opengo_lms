@@ -29,6 +29,6 @@ interface LearningPathMembersPluginInterface extends PluginInspectionInterface {
    * @return mixed
    *   From.
    */
-  public function getMembersForm(array &$form, FormStateInterface $form_state, User $current_user);
+  public function getMembersForm(array &$form, FormStateInterface $form_state, User $current_user, \Closure $function, bool $hide = FALSE);
 
 }

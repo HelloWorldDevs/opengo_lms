@@ -152,6 +152,16 @@ class DeleteAchievementsForm extends ConfirmFormBase {
           if (isset($group)) {
             // Load modules of a LP group.
             $modules = $group->getContentEntities('opigno_module_group');
+            $group_courses = $group->getContent('subgroup:opigno_course');
+            foreach ($group_courses as $content) {
+              /* @var $content \Drupal\group\Entity\GroupContent */
+              /* @var $content_entity \Drupal\group\Entity\Group */
+              $course = $content->getEntity();
+              $course_contents = $course->getContent('opigno_module_group');
+              foreach ($course_contents as $course_content) {
+                $modules[] = $course_content->getEntity();
+              }
+            }
             // Delete all answers connected to this user and LP.
             $this->deleteAnswers((int) $group->id(), $uid, $modules);
             $module = reset($modules);

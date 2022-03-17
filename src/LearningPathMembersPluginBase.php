@@ -29,7 +29,7 @@ abstract class LearningPathMembersPluginBase extends PluginBase implements Learn
   /**
    * {@inheritdoc}
    */
-  public function getMembersForm(array &$form, FormStateInterface $form_state, User $current_user) {}
+  public function getMembersForm(array &$form, FormStateInterface $form_state, User $current_user, \Closure $function, bool $hide = FALSE) {}
 
   /**
    * Returns group members uids.

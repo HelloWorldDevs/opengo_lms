@@ -11,7 +11,7 @@
 <div class="content-box p-0">
   <div class="training">
     <div class="training__image">
-      {% if elements.image %}
+      {% if elements.image[0] %}
         {{ elements.image }}
       {% else %}
         {{ opigno_catalog_get_default_image('learning_path', label) }}

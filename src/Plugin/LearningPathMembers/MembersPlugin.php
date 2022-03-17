@@ -18,11 +18,8 @@ class MembersPlugin extends LearningPathMembersPluginBase {
   /**
    * {@inheritdoc}
    */
-  public function getMembersForm(array &$form, FormStateInterface $form_state, User $current_user) {
+  public function getMembersForm(array &$form, FormStateInterface $form_state, User $current_user, \Closure $function, bool $hide = FALSE) {
     $storage = $form_state->getStorage();
-    // If user can add any other users or only from his groups.
-    $show_all = $current_user->hasPermission('add any members to calendar event') ? TRUE : FALSE;
-    $storage['show_all'] = $show_all;
 
     // Add filters for the members field.
     $form['members'] = [
@@ -35,8 +32,7 @@ class MembersPlugin extends LearningPathMembersPluginBase {
       '#title' => t('Members'),
     ];
 
-    // Get the users for the specific group.
-    $users = opigno_messaging_get_all_recipients($show_all);
+    $users = call_user_func_array($function, [$current_user]);
     $allowed_uids = [];
 
     foreach ($users as $user) {

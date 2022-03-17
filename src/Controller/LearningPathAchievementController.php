@@ -12,6 +12,7 @@ use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Link;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\group\Entity\Group;
 use Drupal\group\Entity\GroupInterface;
 use Drupal\opigno_group_manager\Controller\OpignoGroupManagerController;
@@ -23,6 +24,7 @@ use Drupal\opigno_module\Entity\OpignoModule;
 use Drupal\opigno_module\OpignoModuleBadges;
 use Drupal\opigno_moxtra\Entity\Meeting;
 use Drupal\user\Entity\User;
+use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -519,12 +521,14 @@ class LearningPathAchievementController extends ControllerBase {
    *   Parent training group entity.
    * @param \Drupal\group\Entity\GroupInterface $course
    *   Course group entity.
+   * @param \Drupal\Core\Session\AccountInterface|null $account
+   *   User account entity.
    *
    * @return array
    *   Course steps renderable array.
    */
-  protected function build_course_steps(GroupInterface $training, GroupInterface $course) {
-    $user = $this->currentUser();
+  protected function build_course_steps(GroupInterface $training, GroupInterface $course, AccountInterface $account = NULL) {
+    $user = $this->currentUser($account);
     $steps = opigno_learning_path_get_steps($course->id(), $user->id());
 
     // Get training latest certification timestamp.
@@ -559,7 +563,7 @@ class LearningPathAchievementController extends ControllerBase {
           'value' => $approved,
           'percent' => $approved_percent,
         ],
-        '#activities' => $this->build_module_panel($training, $course, $module),
+        '#activities' => $this->build_module_panel($training, $course, $module, $user),
       ];
     }, $steps);
 
@@ -660,7 +664,7 @@ class LearningPathAchievementController extends ControllerBase {
   public function getStatusPercentCourseByStep($step, $latest_cert_date, $group): array {
     $course_steps = $this->course_steps_passed($group, Group::load($step['id']), $latest_cert_date);
     $passed = $course_steps['passed'] . '/' . $course_steps['total'];
-    $passed_percent = ($course_steps['passed'] / $course_steps['total']) * 100;
+    $passed_percent = round(($course_steps['passed'] / $course_steps['total']) * 100);
     $score = $step['best score'];
     $score_percent = $score;
     return [
@@ -943,7 +947,7 @@ class LearningPathAchievementController extends ControllerBase {
         'label' => 'hidden',
         'type' => 'media_thumbnail',
         'settings' => [
-          'image_style' => 'medium',
+          'image_style' => 'catalog_image',
         ],
       ]),
     ];
@@ -1020,14 +1024,24 @@ class LearningPathAchievementController extends ControllerBase {
   public function buildTrainingProgressAccess(AccountInterface $account) {
     /** @var \Drupal\opigno_social\Services\UserAccessManager $user_access_manager */
     $user_access_manager = \Drupal::service('opigno_social.user_access_manager');
-    return AccessResult::allowedIf($user_access_manager->canAccessUserStatistics($account));
+    return AccessResult::allowedIf($account->id() > 0 && $user_access_manager->canAccessUserStatistics($account));
   }
 
   /**
-   * Returns training progress title.
+   * Get the training progress page title.
+   *
+   * @param \Drupal\group\Entity\GroupInterface|null $group
+   *   The group entity to get statistics for.
+   * @param \Drupal\user\UserInterface|null $account
+   *   The user account to get statistics for.
+   *
+   * @return \Drupal\Core\StringTranslation\TranslatableMarkup
+   *   The training progress page title.
    */
-  public function buildTrainingProgressTitle($group = NULL) {
-    return $this->t('My training progress');
+  public function buildTrainingProgressTitle(?GroupInterface $group = NULL, ?UserInterface $account = NULL): TranslatableMarkup {
+    return $account instanceof UserInterface && (int) $this->currentUser()->id() !== (int) $account->id()
+      ? $this->t('My training progress - @user', ['@user' => $account->getDisplayName()])
+      : $this->t('My training progress');
   }
 
   /**
@@ -1248,7 +1262,7 @@ class LearningPathAchievementController extends ControllerBase {
         '#badges' => $badges,
         '#time_spent' => $time_spent,
       ],
-      $this->build_course_steps($group, Group::load($step['id'])),
+      $this->build_course_steps($group, Group::load($step['id']), $user),
     ];
   }
 

@@ -14,7 +14,7 @@
 #}
 
 {% set is_passed = passed.percent == 100 %}
-{% set process = (100 * step.progress)|round() %}
+{% set process = (100 * step.progress)|round %}
 <div class="course">
   <div class="course__container">
     <h2 class="course__title">

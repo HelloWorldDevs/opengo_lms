@@ -83,12 +83,12 @@
 
             {%  set field_learning_path_duration = content.field_learning_path_duration|render %}
             {% if field_learning_path_duration %}
-              <h2 class="label"><i class="fi fi-rr-graduation-cap"></i>{{ 'Duration' | t }}</h2>
+              <h2 class="label"><i class="fi fi-rr-clock"></i>{{ 'Duration' | t }}</h2>
             {% endif %}
 
             {%  set field_learning_path_category = content.field_learning_path_category|render %}
             {% if field_learning_path_category %}
-              <h2 class="label"><i class="fi fi-rr-clock"></i>{{ 'Category' | t }}</h2>
+              <h2 class="label"><i class="fi fi-rr-graduation-cap"></i>{{ 'Category' | t }}</h2>
             {% endif %}
 
             {% set field_modules_counter =  opigno_modules_counter(group) %}

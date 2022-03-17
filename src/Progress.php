@@ -40,7 +40,7 @@ class Progress {
    *
    * @var \Symfony\Component\HttpFoundation\RequestStack
    */
-  protected $request_stack;
+  protected $requestStack;
 
   /**
    * Constructs a new Progress object.
@@ -56,15 +56,15 @@ class Progress {
    *
    * @param int $group_id
    *   Group ID.
-   * @param int $uid
+   * @param int $account_id
    *   User ID.
-   * @param int $latest_cert_date
+   * @param int|string $latest_cert_date
    *   Latest certification date.
    *
    * @return float
    *   Attempted activities count / total activities count.
    */
-  public function getProgress($group_id, $account_id, $latest_cert_date) {
+  public function getProgress(int $group_id, int $account_id, $latest_cert_date): float {
     $activities = opigno_learning_path_get_activities($group_id, $account_id, $latest_cert_date);
 
     $total = count($activities);
@@ -78,7 +78,8 @@ class Progress {
   /**
    * Check achievements data.
    *
-   * it can be reused, but leave as it is for backward compatibility.
+   * It can be reused, but leave as it is for backward compatibility.
+   *
    * @see \Drupal\opigno_learning_path\Progress::getProgressRound
    */
   public function getProgressAchievementsData($group_id, $account_id) {
@@ -96,15 +97,15 @@ class Progress {
    *
    * @param int $group_id
    *   Group ID.
-   * @param int $uid
+   * @param int $account_id
    *   User ID.
-   * @param int $latest_cert_date
+   * @param int|string $latest_cert_date
    *   Latest certification date.
    *
-   * @return integer
+   * @return int
    *   Attempted activities count / total activities count.
    */
-  public function getProgressRound($group_id, $account_id, $latest_cert_date = '') {
+  public function getProgressRound(int $group_id, int $account_id, $latest_cert_date = 0): int {
     // Firstly check achievements data.
     $query = $this->database
       ->select('opigno_learning_path_achievements', 'a')
@@ -131,24 +132,27 @@ class Progress {
    *
    * @param int $group_id
    *   Group ID.
-   * @param int $uid
+   * @param int $account_id
    *   User ID.
-   * @param int $latest_cert_date
+   * @param int|string $latest_cert_date
    *   Latest certification date.
    * @param string $class
-   *   identifier for progress bar.
+   *   Identifier for progress bar.
+   * @param bool $build_html
+   *   If the HTML should be returned or not.
    *
    * @return array
    *   Renderable array.
    */
-  public function getProgressAjaxContainer($group_id, $account_id, $latest_cert_date = '', $class = 'basic', $build_html = FALSE) {
+  public function getProgressAjaxContainer(int $group_id, int $account_id, $latest_cert_date = 0, string $class = 'basic', bool $build_html = FALSE): array {
 
     if (!$latest_cert_date) {
       $group = Group::load($group_id);
       $latest_cert_date = LPStatus::getTrainingStartDate($group, $account_id);
     }
 
-    // If latest_cert_date is empty we just set 0 to avoid any errors for empty args.
+    // If latest_cert_date is empty we just set 0 to avoid any errors for empty
+    // args.
     if (!$latest_cert_date) {
       $latest_cert_date = 0;
     }
@@ -181,13 +185,13 @@ class Progress {
    * @param int|string $latest_cert_date
    *   Latest certification date.
    * @param string $class
-   *   identifier for progress bar.
+   *   Identifier for progress bar.
    *
-   * @return array
+   * @return array|int
    *   Renderable array.
    */
   public function getProgressBuild($group_id, $account_id, $latest_cert_date, string $class) {
-    // If $latest_cert_date argument is 0 than it means it empty;
+    // If $latest_cert_date argument is 0 than it means it empty.
     if ($latest_cert_date === 0) {
       $latest_cert_date = '';
     }
@@ -206,7 +210,7 @@ class Progress {
 
       case 'module-page':
         // @todo We can reuse a getProgressBuildGroupPage method.
-        return $this->getProgressBuildModulePage($group_id, $account_id, $latest_cert_date);
+        return $this->getProgressBuildModulePage($group_id, $account_id);
 
       case 'achievements-page':
         return $this->getProgressBuildAchievementsPage($group_id, $account_id, $latest_cert_date);
@@ -229,9 +233,7 @@ class Progress {
 
       case 'empty':
         // Empty progress.
-        return [
-           '#markup' => '',
-        ];
+        return ['#markup' => ''];
 
       default:
         // Only value.
@@ -244,15 +246,15 @@ class Progress {
    *
    * @param int $group_id
    *   Group ID.
-   * @param int $uid
+   * @param int $account_id
    *   User ID.
-   * @param int $latest_cert_date
+   * @param int|string $latest_cert_date
    *   Latest certification date.
    *
    * @return array
    *   Renderable array.
    */
-  public function getProgressBuildGroupPage($group_id, $account_id, $latest_cert_date) {
+  public function getProgressBuildGroupPage(int $group_id, int $account_id, $latest_cert_date): array {
     /** @var \Drupal\group\Entity\GroupInterface $group */
     $group = Group::load($group_id);
     $account = User::load($account_id);
@@ -323,8 +325,8 @@ class Progress {
           '#tag' => 'h2',
           '#value' => $this->t('Progress status'),
           '#attributes' => [
-            'class' => ['sr-only']
-          ]
+            'class' => ['sr-only'],
+          ],
         ],
         [
           '#type' => 'html_tag',
@@ -376,8 +378,8 @@ class Progress {
           '#tag' => 'h2',
           '#value' => $this->t('Progress status'),
           '#attributes' => [
-            'class' => ['sr-only']
-          ]
+            'class' => ['sr-only'],
+          ],
         ],
         [
           '#type' => 'html_tag',
@@ -442,17 +444,15 @@ class Progress {
    *
    * @param int $group_id
    *   Group ID.
-   * @param int $uid
+   * @param int $account_id
    *   User ID.
-   * @param int $latest_cert_date
-   *   Latest certification date.
    *
    * @return array
    *   Renderable array.
    *
    * @opigno_deprecated
    */
-  public function getProgressBuildModulePage($group_id, $account_id, $latest_cert_date) {
+  public function getProgressBuildModulePage(int $group_id, int $account_id): array {
     $home_link = Link::createFromRoute(Markup::create($this->t('home') . '<i class="icon-home-2"></i>'), 'entity.group.canonical', ['group' => $group_id], ['attributes' => ['class' => ['w-100']]])->toRenderable();
     $home_link = render($home_link);
 
@@ -464,16 +464,16 @@ class Progress {
         // 'home_link' => $home_link,
         'progress' => $progress,
         'fullpage' => FALSE,
-       ],
+      ],
       '#configuration' => [
         'id' => 'opigno_module_learning_path_progress_block',
         'label' => 'Learning path progress',
         'provider' => 'opigno_module',
-        'label_display' => '0'
+        'label_display' => '0',
       ],
       '#plugin_id' => 'opigno_module_learning_path_progress_block',
       '#base_plugin_id' => 'opigno_module_learning_path_progress_block',
-      '#derivative_plugin_id' => NULL
+      '#derivative_plugin_id' => NULL,
     ];
 
     return $build;
@@ -484,16 +484,16 @@ class Progress {
    *
    * @param int $group_id
    *   Group ID.
-   * @param int $uid
+   * @param int|string $account_id
    *   User ID.
-   * @param int $latest_cert_date
+   * @param int|string $latest_cert_date
    *   Latest certification date.
    *
    * @return array
    *   Renderable array.
    */
-  public function getProgressBuildAchievementsPage($group_id, $account_id, $latest_cert_date) {
-
+  public function getProgressBuildAchievementsPage(int $group_id, int $account_id, $latest_cert_date): array {
+    $score = 0;
     $group = Group::load($group_id);
     $account = User::load($account_id);
 
@@ -523,18 +523,19 @@ class Progress {
         $validation_date = $completed->format('m/d/Y');
       }
 
-      if ($achievements_data['score']) {
+      if (isset($achievements_data['score'])) {
         $score = $achievements_data['score'];
       }
 
-      if ($achievements_data['progress']) {
+      if (isset($achievements_data['progress'])) {
         $progress = $achievements_data['progress'];
       }
 
       if ($achievements_data['time']) {
         $time_spent = $date_formatter->formatInterval($achievements_data['time']);
       }
-    } else {
+    }
+    else {
       $completed_on = opigno_learning_path_completed_on($group_id, $account_id, TRUE);
       $validation = $completed_on > 0
         ? $date_formatter->format($completed_on, 'custom', 'F d, Y')
@@ -593,7 +594,7 @@ class Progress {
       $state_class = 'not started';
     }
 
-    $validation_message = !empty($validation) ? t('Validation date: @date<br />', ['@date' => $validation]) : '';
+    $validation_message = !empty($validation) ? $this->t('Validation date: @date<br />', ['@date' => $validation]) : '';
 
     $has_certificate = !$group->get('field_certificate')->isEmpty();
 
