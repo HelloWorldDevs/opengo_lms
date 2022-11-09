@@ -1,7 +1,7 @@
 name: Opigno Learning Path
 type: module
 description: Add the Learning Path feature to the opigno instance.
-core_version_requirement: ^9
+core_version_requirement: ^9 || ^10
 package: Opigno
 dependencies:
   - better_exposed_filters:better_exposed_filters
