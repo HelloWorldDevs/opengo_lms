@@ -1,19 +1,3 @@
-### LEARNING PATH MANAGER ###
-#opigno_learning_path.manager.index:
-#  path: '/group/{group}/learning-path/manager'
-#  defaults:
-#    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathManagerController::index'
-#    _title: 'Learning Path manager'
-#  requirements:
-#    _user_is_logged_in: 'TRUE'
-#    _custom_access: '\Drupal\opigno_learning_path\Controller\LearningPathManagerController::access'
-#  options:
-#    parameters:
-#      group:
-#        type: entity:group
-#      account:
-#        type: entity:user
-
 opigno_learning_path.manager.get_items:
   path: '/group/{group}/learning-path/get-items/{mainItem}'
   methods: [GET]
@@ -232,25 +216,12 @@ opigno_learning_path.manager.unpublish:
       group:
         type: entity:group
 
-### STEPS ###
-opigno_learning_path.steps.start:
-  path: '/group/{group}/learning-path/start'
-  defaults:
-    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathStepsController::start'
-    _title: 'Learning Path start'
-  requirements:
-    _entity_access: 'group.take'
-    _custom_access: '\Drupal\opigno_learning_path\Controller\LearningPathStepsController::startAccess'
-  options:
-    parameters:
-      group:
-       type: entity:group
-
 opigno_learning_path.steps.type_start:
   path: '/group/{group}/learning-path/start/{type}'
   defaults:
     _controller: '\Drupal\opigno_learning_path\Controller\LearningPathStepsController::start'
     _title: 'Learning Path start'
+    type: 'group'
   requirements:
     _entity_access: 'group.take'
     _custom_access: '\Drupal\opigno_learning_path\Controller\LearningPathStepsController::startAccess'
@@ -272,18 +243,6 @@ opigno_learning_path.steps.next:
        type: entity:group
       parent_content:
        type: entity:opigno_group_content
-
-opigno_learning_path.steps.finish:
-  path: '/group/{group}/learning-path/finish'
-  defaults:
-    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathStepsController::finish'
-    _title: 'Finished'
-  requirements:
-    _entity_access: 'group.take'
-  options:
-    parameters:
-      group:
-       type: entity:group
 
 opigno_learning_path.steps.steps:
   path: '/group/{group}/learning-path/steps'
@@ -312,41 +271,6 @@ opigno_learning_path.content_steps:
       account:
        type: entity:user
 
-### RESULTS ###
-#opigno_learning_path.results:
-#  path: '/group/{group}/learning-path/results'
-#  defaults:
-#    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathResults::results'
-#    _title: 'Results'
-#    mode: 'results'
-#  requirements:
-#    _entity_access: 'group.take'
-#  options:
-#    parameters:
-#      group:
-#       type: entity:group
-#      account:
-#       type: entity:user
-
-#opigno_learning_path.results.delete:
-#  path: '/group/{group}/learning-path/results/{result}/delete'
-#  defaults:
-#    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathResults::delete'
-#    _title: 'Results'
-#    mode: 'delete'
-#  requirements:
-#    _entity_access: 'result.delete'
-#  options:
-#    parameters:
-#      group:
-#        type: entity:group
-#      account:
-#       type: entity:user
-#      result:
-#        type: entity:learning_path_result
-
-#TODO: Maybe change ROOT url from /group/ to /learning-path/ ?
-
 opigno_learning_path.opigno_admin_index:
   path: '/admin/config/opigno'
   defaults:
@@ -368,7 +292,6 @@ opigno_learning_path.learning_path_settings:
   options:
     _admin_route: TRUE
 
-### Learning path content ###
 ### Learning path courses ###
 opigno_learning_path.learning_path_courses:
   path: 'group/{group}/inner-courses'
@@ -472,19 +395,6 @@ opigno_learning_path.modules.delete_activity:
     parameters:
       opigno_module:
         type: entity:opigno_module
-
-opigno_learning_path.membership.add_user_to_training_autocomplete:
-  path: '/group/{group}/learning-path/members/add-user-to-training-autocomplete'
-  defaults:
-    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathMembershipController::addUserToTrainingAutocomplete'
-  requirements:
-    _entity_access: 'group.administer members'
-  options:
-    parameters:
-      group:
-       type: entity:group
-      account:
-       type: entity:user
 
 opigno_learning_path.membership.add_user_to_class_autocomplete:
   path: '/group/{group}/learning-path/members/add-user-to-class-autocomplete'
@@ -711,7 +621,7 @@ opigno_learning_path.training_by_user:
 opigno_learning_path.achievements.page_ajax:
   path: '/ajax/achievements/{page}'
   defaults:
-    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathAchievementController::page_ajax'
+    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathAchievementController::pageAjax'
     page: 0
   requirements:
     _user_is_logged_in: 'TRUE'
@@ -724,7 +634,7 @@ opigno_learning_path.achievements.page_ajax:
 opigno_learning_path.achievements.training_steps_ajax:
   path: '/ajax/achievements/training-steps/{group}'
   defaults:
-    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathAchievementController::training_steps_ajax'
+    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathAchievementController::trainingStepsAjax'
   requirements:
     _user_is_logged_in: 'TRUE'
   options:
@@ -737,7 +647,7 @@ opigno_learning_path.achievements.training_steps_ajax:
 opigno_learning_path.achievements.course_module_panel_ajax:
   path: '/ajax/achievements/module-panel/{training}/{course}/{opigno_module}'
   defaults:
-    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathAchievementController::course_module_panel_ajax'
+    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathAchievementController::courseModulePanelAjax'
   requirements:
     _user_is_logged_in: 'TRUE'
   options:
@@ -754,7 +664,7 @@ opigno_learning_path.achievements.course_module_panel_ajax:
 opigno_learning_path.achievements.training_module_panel_ajax:
   path: '/ajax/achievements/module-panel/{group}/{opigno_module}'
   defaults:
-    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathAchievementController::training_module_panel_ajax'
+    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathAchievementController::trainingModulePanelAjax'
   requirements:
     _user_is_logged_in: 'TRUE'
   options:
@@ -805,3 +715,15 @@ opigno_learning_path.close_modal:
   requirements:
     _role: 'authenticated'
 
+# Restart the LP.
+opigno_learning_path.restart:
+  path: '/ajax/opigno-lp/{type}/restart/{group}'
+  defaults:
+    _controller: '\Drupal\opigno_learning_path\Controller\LearningPathStepsController::restart'
+  requirements:
+    _entity_access: 'group.take'
+    _custom_access: '\Drupal\opigno_learning_path\Controller\LearningPathStepsController::startAccess'
+  options:
+    parameters:
+      group:
+        type: entity:group

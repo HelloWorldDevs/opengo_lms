@@ -15,7 +15,7 @@ use Drupal\opigno_learning_path\Entity\LPManagedContent;
 use Drupal\opigno_module\Entity\OpignoModule;
 
 /**
- * Class LearningPathAccess.
+ * Defines the LP access service.
  *
  * @package Drupal\opigno_learning_path
  */
@@ -25,7 +25,8 @@ class LearningPathAccess {
    * Gets group role.
    */
   public static function getGroupRoles(Group $group) {
-    $type = array_shift($group->type->getValue());
+    $type = $group->type->getValue();
+    $type = array_shift($type);
     $properties = [
       'group_type' => $type['target_id'],
       'permissions_ui' => TRUE,
@@ -90,7 +91,6 @@ class LearningPathAccess {
       $validation = TRUE;
     }
 
-
     return $validation;
   }
 
@@ -145,11 +145,10 @@ class LearningPathAccess {
       case 'Course':
         $group = Group::load($step['id']);
         return self::triggerHookAccess('status_course_validation_access', $group, $account);
-        break;
+
       case 'Module':
         $module = OpignoModule::load($step['id']);
         return self::triggerHookAccess('status_module_validation_access', $module, $account);
-        break;
     }
 
     return TRUE;
@@ -160,9 +159,12 @@ class LearningPathAccess {
    */
   public static function triggerHookAccess($hook_name, $entity, $account) {
     $access = TRUE;
-    $access_results = \Drupal::moduleHandler()->invokeAll($hook_name, [$entity, $account]);
+    $access_results = \Drupal::moduleHandler()->invokeAll($hook_name, [
+      $entity,
+      $account,
+    ]);
     if (is_array($access_results)) {
-      $access_results = array_filter($access_results, function($var){
+      $access_results = array_filter($access_results, function ($var) {
           return empty($var);
       });
       if (!empty($access_results)) {
@@ -324,8 +326,7 @@ class LearningPathAccess {
 
     if ($result) {
       if ($group->bundle() === 'learning_path') {
-        $token = \Drupal::moduleHandler()->moduleExists('token') ? TRUE : FALSE;
-        LearningPathAccess::notifyUsersByMail($group, $uid, $status, $token);
+        LearningPathAccess::notifyUsersByMail($group, $uid, $status);
 
         if ($membership->isNew()
           && $membership->getEntity()->id() == $membership->getOwnerId()) {
@@ -354,8 +355,7 @@ class LearningPathAccess {
       if (isset($entity) && isset($group)
         && $group->bundle() == 'learning_path') {
         $uid = $entity->id();
-        $token = \Drupal::moduleHandler()->moduleExists('token');
-        LearningPathAccess::notifyUsersByMail($group, $uid, NULL, $token);
+        LearningPathAccess::notifyUsersByMail($group, $uid, NULL);
       }
     }
   }
@@ -363,7 +363,7 @@ class LearningPathAccess {
   /**
    * Prepares and sends emails to users.
    */
-  public static function notifyUsersByMail(Group $group, $uid, $status, $token = FALSE) {
+  public static function notifyUsersByMail(Group $group, $uid, $status) {
     $user = \Drupal::currentUser();
     $config = \Drupal::config('opigno_learning_path.learning_path_settings');
     $send_to_admins = $config->get('opigno_learning_path_notify_admin');
@@ -408,7 +408,7 @@ class LearningPathAccess {
             'status' => $statusName,
           ];
 
-          LearningPathAccess::replaceGroupUserTokens($message, $params, $token);
+          LearningPathAccess::replaceGroupUserTokens($message, $params);
 
           $mails = explode("\r\n", $mails);
           foreach ($mails as $to) {
@@ -441,7 +441,7 @@ class LearningPathAccess {
           'status' => $statusName,
         ];
 
-        LearningPathAccess::replaceGroupUserTokens($message, $params, $token);
+        LearningPathAccess::replaceGroupUserTokens($message, $params);
 
         if (!empty($to) && !empty($message)) {
           LearningPathAccess::sendMail($to, $subject, $message, $params);
@@ -453,10 +453,8 @@ class LearningPathAccess {
   /**
    * Replaces tokens.
    */
-  public static function replaceGroupUserTokens(&$text, $params, $token) {
-    if ($token) {
-      $text = \Drupal::token()->replace($text);
-    }
+  public static function replaceGroupUserTokens(&$text, $params) {
+    $text = \Drupal::token()->replace($text);
 
     $text = str_replace([
       '[user]',
@@ -639,17 +637,15 @@ class LearningPathAccess {
    *
    * @param string $role
    *   User role in group.
-   *
    * @param \Drupal\Core\Session\AccountInterface $account
    *   User account.
-   *
-   * @param int $gid
+   * @param int|string|null $gid
    *   Group ID.
    *
    * @return bool
    *   Check if user has access to Class or Course.
    */
-  public static function memberHasRole($role, AccountInterface $account, $gid = NULL) {
+  public static function memberHasRole(string $role, AccountInterface $account, $gid = NULL) {
     $role = "learning_path-{$role}";
 
     $connection = Database::getConnection();

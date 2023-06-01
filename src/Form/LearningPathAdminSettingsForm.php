@@ -6,7 +6,9 @@ use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 
 /**
- * Class LearningPathAdminSettingsForm.
+ * Defines the LP settings form.
+ *
+ * @package Drupal\opigno_learning_path\Form
  */
 class LearningPathAdminSettingsForm extends ConfigFormBase {
 
@@ -35,7 +37,7 @@ class LearningPathAdminSettingsForm extends ConfigFormBase {
       [
         '#type' => 'html_tag',
         '#tag' => 'div',
-        '#value' => t('Group tokens:'),
+        '#value' => $this->t('Group tokens:'),
       ],
       [
         '#theme' => 'item_list',
@@ -83,12 +85,10 @@ class LearningPathAdminSettingsForm extends ConfigFormBase {
       '#default_value' => $config->get('opigno_learning_path_notify_admin_user_blocked'),
     ];
     $form['opigno_learning_path_mail']['opigno_learning_path_notify_group_tokens_1'] = $tokens_description;
-    if (\Drupal::moduleHandler()->moduleExists('token')) {
-      $form['opigno_learning_path_mail']['token_tree_1'] = [
-        '#theme' => 'token_tree_link',
-        '#show_restricted' => TRUE,
-      ];
-    }
+    $form['opigno_learning_path_mail']['token_tree_1'] = [
+      '#theme' => 'token_tree_link',
+      '#show_restricted' => TRUE,
+    ];
 
     $form['opigno_learning_path_mail']['opigno_learning_path_notify_users'] = [
       '#type' => 'checkbox',
@@ -112,12 +112,10 @@ class LearningPathAdminSettingsForm extends ConfigFormBase {
       '#default_value' => $config->get('opigno_learning_path_notify_user_user_blocked'),
     ];
     $form['opigno_learning_path_mail']['opigno_learning_path_notify_group_tokens_2'] = $tokens_description;
-    if (\Drupal::moduleHandler()->moduleExists('token')) {
-      $form['opigno_learning_path_mail']['token_tree_2'] = [
-        '#theme' => 'token_tree_link',
-        '#show_restricted' => TRUE,
-      ];
-    }
+    $form['opigno_learning_path_mail']['token_tree_2'] = [
+      '#theme' => 'token_tree_link',
+      '#show_restricted' => TRUE,
+    ];
     $form['opigno_learning_path_mail']['opigno_learning_path_notify_user_user_certificate_expired'] = [
       '#type' => 'textarea',
       '#title' => $this->t('Message to user when a training certificate has expired'),
@@ -128,7 +126,7 @@ class LearningPathAdminSettingsForm extends ConfigFormBase {
       [
         '#type' => 'html_tag',
         '#tag' => 'div',
-        '#value' => t('Group tokens:'),
+        '#value' => $this->t('Group tokens:'),
       ],
       [
         '#theme' => 'item_list',
@@ -140,13 +138,11 @@ class LearningPathAdminSettingsForm extends ConfigFormBase {
         ],
       ],
     ];
-    if (\Drupal::moduleHandler()->moduleExists('token')) {
-      $form['opigno_learning_path_mail']['token_tree_3'] = [
-        '#theme' => 'token_tree_link',
-        '#token_types' => ['group'],
-        '#show_restricted' => TRUE,
-      ];
-    }
+    $form['opigno_learning_path_mail']['token_tree_3'] = [
+      '#theme' => 'token_tree_link',
+      '#token_types' => ['group'],
+      '#show_restricted' => TRUE,
+    ];
 
     $form['opigno_learning_path_mail']['opigno_learning_path_student_does_activity_notify'] = [
       '#type' => 'checkbox',
@@ -164,7 +160,7 @@ class LearningPathAdminSettingsForm extends ConfigFormBase {
       [
         '#type' => 'html_tag',
         '#tag' => 'div',
-        '#value' => t('Tokens:'),
+        '#value' => $this->t('Tokens:'),
       ],
       [
         '#theme' => 'item_list',
@@ -195,7 +191,7 @@ class LearningPathAdminSettingsForm extends ConfigFormBase {
       [
         '#type' => 'html_tag',
         '#tag' => 'div',
-        '#value' => t('Tokens:'),
+        '#value' => $this->t('Tokens:'),
       ],
       [
         '#theme' => 'item_list',
@@ -210,13 +206,6 @@ class LearningPathAdminSettingsForm extends ConfigFormBase {
     ];
 
     return parent::buildForm($form, $form_state);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function validateForm(array &$form, FormStateInterface $form_state) {
-    parent::validateForm($form, $form_state);
   }
 
   /**
