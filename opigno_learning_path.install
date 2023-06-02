@@ -54,6 +54,21 @@ function opigno_learning_path_install() {
       watchdog_exception('opigno_learning_path_exception', $e);
     }
   }
+
+  // Checking if the lp_status fields definition is not exist.
+  // In case of the fresh install, according to order of the modules
+  // installation, the opigno_module can be enabled before this one.
+  $definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  if (!($definition_update_manager->getFieldStorageDefinition('lp_status', 'user_module_status'))) {
+    // Add a reference to LP status entity.
+    $definition = BaseFieldDefinition::create('entity_reference')
+      ->setLabel(t('Learning path status'))
+      ->setDescription(t('The learning path status entity the current module attempt belongs to'))
+      ->setSetting('target_type', 'user_lp_status')
+      ->setSetting('target_bundles', ['user_lp_status' => 'user_lp_status']);
+
+    $definition_update_manager->installFieldStorageDefinition('lp_status', 'user_module_status', 'opigno_module', $definition);
+  }
 }
 
 /**
