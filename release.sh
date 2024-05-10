@@ -6,4 +6,8 @@ if [ -z "$version" ]; then
     exit 1
 fi
 
+git tag $version
+
+git push origin $version
+
 gh release create $version -t "Release $version" -n "Release @ $version"
