@@ -1,0 +1,11 @@
+--- opigno_dashboard.module
++++ opigno_dashboard.module
+@@ -234,7 +235,7 @@ function opigno_dashboard_page_attachments(array &$page) {
+     return;
+   }
+ 
+-  $blocks = $block_service->getDashboardBlocksContents();
++  $blocks = $block_service->getDashboardBlocksContents(FALSE);
+   $block_attachments = $blocks['attachments'] ?? [];
+   if ($block_attachments) {
+     $page['#attached'] = array_merge_recursive($page['#attached'], $block_attachments);
