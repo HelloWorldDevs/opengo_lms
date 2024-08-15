@@ -162,7 +162,6 @@
     "drupal/simple_gmap": "~3.0.1",
     "drupal/honeypot": "^2.0",
     "drupal/css_editor": "^2.0",
-    "drupal/color": "2.x-dev",
     "drupal/queue_mail": "^1.4",
     "opis/json-schema": "^2.2",
     "drupal/opigno_calendar": "^3.0",
