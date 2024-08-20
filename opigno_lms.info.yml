@@ -117,13 +117,12 @@ dependencies:
   - variationcache
   - video
   - views_templates
-  - views_ui
   - forum
 themes:
   - seven
   - aristotle
 
 # Information added by Drupal.org packaging script on 2023-06-01
-version: '3.1.0'
-project: 'opigno_lms'
+version: "3.1.0"
+project: "opigno_lms"
 datestamp: 1685622115
