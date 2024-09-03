@@ -22,7 +22,8 @@ use Drupal\user\UserInterface;
  *
  * @throws \Drupal\Core\Extension\MissingDependencyException
  */
-function opigno_lms_install() {
+function opigno_lms_install()
+{
   \Drupal::service('module_installer')->install([
     'dblog',
     'opigno_alter_entity_autocomplete',
@@ -73,7 +74,8 @@ function opigno_lms_install() {
 /**
  * Implements hook_requirements().
  */
-function opigno_lms_requirements($phase) {
+function opigno_lms_requirements($phase)
+{
   $requirements = [];
 
   // Test if the Private File System Path is set.
@@ -85,14 +87,14 @@ function opigno_lms_requirements($phase) {
         'title' => 'Private Files System',
         'value' => t('Private file system path not set'),
         'severity' => REQUIREMENT_ERROR,
-        'description' => t('Your uploaded files are not fully protected because you did not set a Private File Directory.
+        'description' => t(
+          'Your uploaded files are not fully protected because you did not set a Private File Directory.
                           You need to set an existing local file system path for storing private files.
                           It should be writable by Drupal and not accessible over the web. This must be changed in settings.php.
                           More info: https://opigno.atlassian.net/wiki/spaces/OUM20/pages/743636993/Enable+private+file+system'
         ),
       ];
-    }
-    else {
+    } else {
       $requirements['file_private_system'] = [
         'title' => 'Private Files System',
         'value' => t('Private file system path is set'),
@@ -107,7 +109,8 @@ function opigno_lms_requirements($phase) {
 /**
  * Uninstall redundant modules.
  */
-function opigno_lms_update_9001() {
+function opigno_lms_update_9001()
+{
   _opigno_lms_update_module_disable([
     'opigno_tour',
     'multiselect',
@@ -143,7 +146,8 @@ function opigno_lms_update_9001() {
 /**
  * Import Aristotle theme configs.
  */
-function opigno_lms_update_9002() {
+function opigno_lms_update_9002()
+{
   _opigno_lms_apply_update('theme', 'aristotle', 'config/optional', [
     'block.block.opigno_admin',
     'block.block.messages',
@@ -153,14 +157,16 @@ function opigno_lms_update_9002() {
 /**
  * Install opigno social.
  */
-function opigno_lms_update_9003() {
+function opigno_lms_update_9003()
+{
   \Drupal::service('module_installer')->install(['opigno_social']);
 }
 
 /**
  * Install theme.
  */
-function opigno_lms_update_9004() {
+function opigno_lms_update_9004()
+{
   $theme = 'aristotle';
   \Drupal::service('theme_installer')->install([$theme]);
   \Drupal::configFactory()
@@ -175,7 +181,8 @@ function opigno_lms_update_9004() {
 /**
  * Import updated configs.
  */
-function opigno_lms_update_9005() {
+function opigno_lms_update_9005()
+{
   _opigno_lms_apply_update('profile', 'opigno_lms', 'config/install', [
     'block.block.opigno_training_catalog_filter',
     'aristotle.settings',
@@ -196,12 +203,11 @@ function opigno_lms_update_9005() {
 /**
  * Remove the platon block and deprecated dashboard.
  */
-function opigno_lms_update_9006() {
+function opigno_lms_update_9006()
+{
   try {
     \Drupal::service('theme_installer')->uninstall(['platon']);
-  }
-  catch (\Exception $e) {
-
+  } catch (\Exception $e) {
   }
   _opigno_lms_apply_update('module', 'opigno_lms', 'config/optional', [
     'block.block.dashboard_views_block_opigno_notifications_block_unread_dashboard',
@@ -249,14 +255,16 @@ function opigno_lms_update_9006() {
 /**
  * Update dashboard settings.
  */
-function opigno_lms_update_9007() {
+function opigno_lms_update_9007()
+{
   _opigno_lms_apply_update('profile', 'opigno_lms', 'config/install', ['opigno_dashboard.settings']);
 }
 
 /**
  * Update module configs.
  */
-function opigno_lms_update_9008() {
+function opigno_lms_update_9008()
+{
   _opigno_lms_apply_update('module', 'opigno_h5p', 'config/optional', [
     'core.entity_view_display.opigno_activity.opigno_h5p.activity',
     'core.entity_view_display.opigno_activity.opigno_h5p.default',
@@ -270,14 +278,16 @@ function opigno_lms_update_9008() {
 /**
  * Update theme logo.
  */
-function opigno_lms_update_9009() {
+function opigno_lms_update_9009()
+{
   _opigno_lms_apply_update('profile', 'opigno_lms', 'config/install', ['aristotle.settings']);
 }
 
 /**
  * Fix the last update number for opigno_certificate module.
  */
-function opigno_lms_update_9010() {
+function opigno_lms_update_9010()
+{
   \Drupal::service('update.update_hook_registry')->setInstalledVersion('opigno_certificate', 8025);
   if ((int) \Drupal::service('update.update_hook_registry')->getInstalledVersion('opigno_learning_path') > 9005) {
     \Drupal::service('update.update_hook_registry')->setInstalledVersion('opigno_learning_path', 9005);
@@ -288,7 +298,8 @@ function opigno_lms_update_9010() {
 /**
  * Fix logo variable.
  */
-function opigno_lms_update_9011() {
+function opigno_lms_update_9011()
+{
   $config = \Drupal::configFactory();
   $logo_second = "Logo-Opigno-3-dark.svg";
   $config->getEditable('aristotle.settings')
@@ -299,14 +310,16 @@ function opigno_lms_update_9011() {
 /**
  * Update primary admin actions block config.
  */
-function opigno_lms_update_9012() {
+function opigno_lms_update_9012()
+{
   _opigno_lms_apply_update('profile', 'opigno_lms', 'config/install', ['block.block.primaryadminactions']);
 }
 
 /**
  * Default the footer blocks for aristotle theme.
  */
-function opigno_lms_update_9013() {
+function opigno_lms_update_9013()
+{
   _opigno_lms_apply_update('module', 'opigno_lms', 'config/optional', [
     'block.block.footer',
     'block.block.sitebranding_2',
@@ -317,7 +330,8 @@ function opigno_lms_update_9013() {
 /**
  * Update the login image.
  */
-function opigno_lms_update_9014() {
+function opigno_lms_update_9014()
+{
   // Update the default login image if it wasn't overridden.
   $settings = theme_get_setting('aristotle_home_page_settings', 'aristotle');
   $slides = $settings['aristotle_home_page_slides'];
@@ -347,7 +361,8 @@ function opigno_lms_update_9014() {
 /**
  * Install a css editor module.
  */
-function opigno_lms_update_9015() {
+function opigno_lms_update_9015()
+{
   // Module replaces a previous functionality with aristotle_css text field.
   if (!\Drupal::moduleHandler()->moduleExists('css_editor')) {
     \Drupal::service('module_installer')->install(['css_editor']);
@@ -357,7 +372,8 @@ function opigno_lms_update_9015() {
 /**
  * Fix field definition errors for entities.
  */
-function opigno_lms_update_9016() {
+function opigno_lms_update_9016()
+{
   $update_manager = \Drupal::entityDefinitionUpdateManager();
   $changes = $update_manager->getChangeList();
   if (!$changes) {
@@ -383,8 +399,7 @@ function opigno_lms_update_9016() {
       $keys = $entity_type->getKeys();
       $entity_type->set('entity_keys', $keys);
       $update_manager->updateEntityType($entity_type);
-    }
-    catch (PluginNotFoundException $e) {
+    } catch (PluginNotFoundException $e) {
       watchdog_exception('opigno_lms_exception', $e);
     }
   }
@@ -393,31 +408,32 @@ function opigno_lms_update_9016() {
 /**
  * Move notifications emails into a queue.
  */
-function opigno_lms_update_9018() {
+function opigno_lms_update_9018()
+{
 
   // Check if queue_mail module exists and if not, install it.
   if (!\Drupal::moduleHandler()->moduleExists('queue_mail')) {
     try {
       \Drupal::service('module_installer')->install(['queue_mail']);
-    }
-    catch (\Exception $e) {
+    } catch (\Exception $e) {
       throw new Exception('Could not install queue_mail. Run "composer update" and then retry this update.');
     }
   }
 
   // Import the relevant configuration.
-  _opigno_lms_apply_update('profile', 'opigno_lms', 'config/optional', [
-    'queue_mail.settings',
-  ]);
-  _opigno_lms_apply_update('module', 'opigno_cron', 'config/rewrite', [
-    'ultimate_cron.job.ultimate_cron_queue_queue_mail',
-  ]);
+  // _opigno_lms_apply_update('profile', 'opigno_lms', 'config/optional', [
+  //   'queue_mail.settings',
+  // ]);
+  // _opigno_lms_apply_update('module', 'opigno_cron', 'config/rewrite', [
+  //   'ultimate_cron.job.ultimate_cron_queue_queue_mail',
+  // ]);
 }
 
 /**
  * Update opigno_admin block.
  */
-function opigno_lms_update_9019() {
+function opigno_lms_update_9019()
+{
   // Roles checking has been removed from the block visibility rules because it
   // conflicted with the custom access check (see opigno_module.block_access()).
   _opigno_lms_apply_update('theme', 'aristotle', 'config/optional', [
@@ -428,7 +444,8 @@ function opigno_lms_update_9019() {
 /**
  * Update access to group class manager views.
  */
-function opigno_lms_update_9020() {
+function opigno_lms_update_9020()
+{
   _opigno_lms_apply_update('module', 'opigno_class', 'config/optional', [
     'views.view.opigno_classes',
   ]);
@@ -440,7 +457,8 @@ function opigno_lms_update_9020() {
 /**
  * Configs update helper function.
  */
-function _opigno_lms_apply_update($type, $name, $path, $ymls) {
+function _opigno_lms_apply_update($type, $name, $path, $ymls)
+{
   $theme_path = sprintf("%s/%s/", \Drupal::service('extension.list.' . $type)->getPath($name), $path);
   $config_factory = \Drupal::configFactory();
   $config_storage = \Drupal::service('config.storage');
@@ -454,8 +472,7 @@ function _opigno_lms_apply_update($type, $name, $path, $ymls) {
     if (is_array($data)) {
       $config_factory->getEditable($config)->setData($data)->save(TRUE);
       $config_storage->write($config, $data);
-    }
-    else {
+    } else {
       \Drupal::messenger()->addWarning(t('Incorrect data of @config', ['@config' => $config]));
     }
   }
@@ -464,7 +481,8 @@ function _opigno_lms_apply_update($type, $name, $path, $ymls) {
 /**
  * Configs remove helper function.
  */
-function _opigno_lms_apply_delete($configs) {
+function _opigno_lms_apply_delete($configs)
+{
   $config_factory = \Drupal::configFactory();
   /** @var \Drupal\Core\Config\StorageInterface $config_storage */
   $config_storage = \Drupal::service('config.storage');
@@ -477,7 +495,8 @@ function _opigno_lms_apply_delete($configs) {
 /**
  * Module disable helper function.
  */
-function _opigno_lms_update_module_disable($modules) {
+function _opigno_lms_update_module_disable($modules)
+{
   $module_data = \Drupal::config('core.extension')->get('module');
   foreach ($modules as $item) {
     \Drupal::database()->delete('key_value')
@@ -502,7 +521,8 @@ function _opigno_lms_update_module_disable($modules) {
 /**
  * Update dependencies.
  */
-function opigno_lms_update_dependencies() {
+function opigno_lms_update_dependencies()
+{
   $dependencies['opigno_calendar'][9001] = [
     'opigno_lms' => 9001,
   ];
