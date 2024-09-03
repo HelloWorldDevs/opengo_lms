@@ -175,7 +175,7 @@
     "drupal/opigno_forum": "^3.0",
     "drupal/opigno_group_manager": "^3.0",
     "drupal/opigno_ilt": "^3.0",
-    "drupal/opigno_learning_path": "^3.0",
+    "drupal/opigno_learning_path": "dev-main as 3.0",
     "drupal/opigno_like": "^3.0",
     "drupal/opigno_messaging": "^3.0",
     "drupal/opigno_mobile_app": "^3.0",
