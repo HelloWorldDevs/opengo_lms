@@ -170,7 +170,7 @@
     "drupal/opigno_class": "^3.0",
     "drupal/opigno_commerce": "^3.0",
     "drupal/opigno_course": "^3.0",
-    "drupal/opigno_cron": "^3.0",
+    "drupal/opigno_cron": "dev-main as 3.0",
     "drupal/opigno_dashboard": "^3.0",
     "drupal/opigno_forum": "^3.0",
     "drupal/opigno_group_manager": "^3.0",
