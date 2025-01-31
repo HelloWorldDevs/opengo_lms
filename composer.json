@@ -177,7 +177,7 @@
     "drupal/opigno_like": "^3.0",
     "drupal/opigno_messaging": "^3.0",
     "drupal/opigno_mobile_app": "^3.0",
-    "drupal/opigno_module": "^3.1.2",
+    "drupal/opigno_module": "main",
     "drupal/opigno_moxtra": "^3.0",
     "drupal/opigno_notification": "^3.0",
     "drupal/opigno_scorm": "^3.0",
