@@ -185,7 +185,7 @@
     "drupal/opigno_social": "^3.0",
     "drupal/opigno_statistics": "^3.0",
     "drupal/opigno_tincan_api": "^3.0",
-    "drupal/opigno_tour": "^3.0",
+    "drupal/opigno_tour": "3.4.1",
     "drupal/tft": "^3.0",
     "drupal/aristotle": "^3.0"
   },
