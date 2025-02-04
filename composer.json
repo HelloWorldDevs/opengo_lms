@@ -182,7 +182,7 @@
     "drupal/opigno_notification": "3.1.0",
     "drupal/opigno_scorm": "3.1.0",
     "drupal/opigno_search": "3.1.0",
-    "drupal/opigno_social": "^3.0",
+    "drupal/opigno_social": "3.1.0",
     "drupal/opigno_statistics": "3.1.0",
     "drupal/opigno_tincan_api": "3.1.0",
     "drupal/opigno_tour": "^3",
