@@ -110,7 +110,6 @@
     "drupal/core-recommended": "~9.5.0",
     "dompdf/dompdf": "*",
     "opigno/tincan": "^1.1",
-    "drupal/calendar": "^1.0@alpha",
     "drupal/media_entity_browser": "^2.0@alpha",
     "drupal/better_exposed_filters": "^6",
     "drupal/ckeditor_bgimage": "2.0.0",
