@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Check if a version number is provided
+if [ -z "$1" ]; then
+    echo "Usage: ./ghrel X.X.X"
+    exit 1
+fi
+
+VERSION=$1
+TAG="v$VERSION"
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+echo "Releasing version $VERSION on branch $BRANCH..."
+
+# Ensure the working directory is clean
+if [[ -n $(git status -s) ]]; then
+    echo "Your working directory is not clean. Commit or stash changes first."
+    exit 1
+fi
+
+# Pull the latest changes
+git pull origin "$BRANCH"
+
+# Create a new tag
+git tag -a "$TAG" -m "Release $VERSION"
+
+# Push the tag to GitHub
+git push origin "$TAG"
+
+# Create a GitHub release
+gh release create "$TAG" --title "Version $VERSION" --notes "Release $VERSION"
+
+echo "✅ Release $VERSION created successfully!"
