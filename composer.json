@@ -135,7 +135,7 @@
     "drupal/mailsystem": "^4.4",
     "drupal/mimemail": "^1.0.0@alpha",
     "drupal/address": "^2.0",
-    "commerceguys/addressing": "^1.0.7",
+    "commerceguys/addressing": "*",
     "drupal/key": "^1.14.0",
     "drupal/state_machine": "~1.5.0",
     "kenwheeler/slick": "~1.8.1",
