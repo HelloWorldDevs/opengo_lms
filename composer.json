@@ -115,7 +115,7 @@
     "drupal/ckeditor_bgimage": "^3.0",
     "drupal/entity": "^1.3",
     "drupal/extra_field": "^2.3",
-    "drupal/field_group": "~3.2.0",
+    "drupal/field_group": "~3.6.0",
     "drupal/h5p": "^2.0@alpha",
     "drupal/token": "^1.10",
     "drupal/token_filter": "^2.1.0",
@@ -196,12 +196,6 @@
       },
       "drupal/ckeditor_bgimage": {
         "Ckeditor_bgimage Opigno certificate background image": "https://www.drupal.org/files/issues/2021-09-10/ckeditor_bgimage-opigno_certificate-3107667-9.patch"
-      },
-      "drupal/entity_print": {
-        "#3295355-4 Absolute paths support": "https://www.drupal.org/files/issues/2022-07-13/3295355-4-entity-print-abs-paths.patch"
-      },
-      "dompdf/dompdf": {
-        "#3295355-6 Absolute paths support": "https://www.drupal.org/files/issues/2022-07-14/3295355-6-dompdf-abs-paths.patch"
       },
       "drupal/group": {
         "Fix access to the courses group": "https://www.drupal.org/files/issues/2020-08-14/group-course-3165140-4.patch"
