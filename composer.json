@@ -195,9 +195,6 @@
         "#3218230: Decorate config entity storage errors": "https://www.drupal.org/files/issues/2022-01-10/3218230-decorate-config-entity-storage-errors-7.patch",
         "#3302838: Querying with NULL values results in warning mb_strtolower(): Passing null to parameter is deprecated": "https://www.drupal.org/files/issues/2022-08-23/3302838-13.patch"
       },
-      "drupal/video": {
-        "#2986682: Add source and destination module for migrate plugin": "https://www.drupal.org/files/issues/2018-07-18/2986682-2.patch"
-      },
       "drupal/ckeditor_bgimage": {
         "Ckeditor_bgimage Opigno certificate background image": "https://www.drupal.org/files/issues/2021-09-10/ckeditor_bgimage-opigno_certificate-3107667-9.patch"
       },
@@ -221,10 +218,7 @@
         "Undefined property: stdClass::$region in field_group_form_process()": "https://www.drupal.org/files/issues/2020-06-15/3059614-37.patch"
       },
       "drupal/calendar": {
-        "Ajax pager": "https://www.drupal.org/files/issues/2021-07-20/calendar-block-ajax-pager-3224497-2.patch",
-        "Opigno adoptation": "https://www.drupal.org/files/issues/2021-09-10/calendar_opigno_adoptation-3232403-1.patch",
-        "3249885: Error: Call to a member function getGranularity() on bool": "https://www.drupal.org/files/issues/2021-12-24/3249885-member-function-get-granularity.patch",
-        "Fix Notice: Undefined index: calendar_colors_None": "https://www.drupal.org/files/issues/2021-10-20/3244809-2.patch"
+       "Opigno adoptation": "https://www.drupal.org/files/issues/2021-09-10/calendar_opigno_adoptation-3232403-1.patch"
       },
       "drupal/views_infinite_scroll": {
         "Headers in table format repeat on load more instead of adding rows": "https://www.drupal.org/files/issues/2021-02-11/2899705-35.patch"
@@ -239,9 +233,6 @@
         "H5P saving missing title not saving changes": "https://www.drupal.org/files/issues/2022-05-19/h5p-3281356-2.patch",
         "3260094 - PHP 8.0 deprecated syntax warnings for h5p-editor": "https://www.drupal.org/files/issues/2023-02-06/h5p-php8-deprecation-warnings-3260094-27.patch",
         "#3295255: H5P widget settings unclickable checkboxes": "https://www.drupal.org/files/issues/2022-07-11/3295255_2.patch"
-      },
-      "drupal/color": {
-        "#2995825 - Color css files are not regenerated when deploying through configuration management": "https://www.drupal.org/files/issues/2022-06-21/2995825-68.patch"
       }
     }
   }
