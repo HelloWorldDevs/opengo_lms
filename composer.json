@@ -137,7 +137,7 @@
     "drupal/dropzonejs": "^2.6",
     "enyo/dropzone": "v5.5.0",
     "drupal/message": "~1.2.0",
-    "drupal/message_notify": "~1.2.0",
+    "drupal/message_notify": "^1.5",
     "mozilla/pdf.js": "v2.4.456",
     "furf/jquery-ui-touch-punch": "master",
     "drupal/jwt": "^1.0@rc",
